@@ -27,6 +27,25 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].sets.append(SetEntry(weightKg: weight, repetition: .init(value: reps)))
     }
 
+    // Trainings löschen (aus Listen .onDelete)
+    func deleteTraining(at offsets: IndexSet) {
+        trainings.remove(atOffsets: offsets)
+    }
+
+    // Übungen löschen (innerhalb eines Trainings)
+    func deleteExercise(in trainingID: UUID, at offsets: IndexSet) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        trainings[t].exercises.remove(atOffsets: offsets)
+    }
+
+    // Sätze löschen (innerhalb einer Übung)
+    func deleteSet(in trainingID: UUID, exerciseID: UUID, at offsets: IndexSet) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+        trainings[t].exercises[e].sets.remove(atOffsets: offsets)
+    }
+
+    
     // MARK: - Persistence
     private func save() {
         do {

@@ -1,17 +1,13 @@
-//
-//  FitnessTracker_V1App.swift
-//  FitnessTracker-V1
-//
-//  Created by Jannis Herold on 28.08.25.
-//
-
 import SwiftUI
 
 @main
-struct FitnessTracker_V1App: App {
+struct FitnessTrackerV1App: App {
+    @StateObject private var store = Store()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(store)
         }
     }
 }
