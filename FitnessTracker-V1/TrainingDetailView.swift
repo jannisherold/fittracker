@@ -7,40 +7,37 @@ struct TrainingDetailView: View {
     @State private var showingNewExercise = false
     @State private var name = ""
 
-    private var trainingIndex: Int? {
-        store.trainings.firstIndex(where: { $0.id == trainingID })
-    }
     private var training: Training? {
-        trainingIndex.flatMap { store.trainings[$0] }
+        store.trainings.first(where: { $0.id == trainingID })
     }
 
     var body: some View {
+        // ⬇️ ÄUSSERSTE View
         List {
             if let training {
-                Section("Übungen") {
+                Section("ÜBUNGEN") {
                     ForEach(training.exercises) { ex in
                         NavigationLink(ex.name) {
                             ExerciseDetailView(trainingID: trainingID, exerciseID: ex.id)
                         }
                     }
                     .onDelete { offsets in
-                                    store.deleteExercise(in: trainingID, at: offsets)
-                                }
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) { EditButton() }
-                        ToolbarItem(placement: .primaryAction) {
-                            Button { showingNewExercise = true } label: { Label("Übung", systemImage: "plus") }
-                        }
+                        store.deleteExercise(in: trainingID, at: offsets)
                     }
                 }
             }
         }
         .navigationTitle(training?.title ?? "Training")
+        // ⬇️ Toolbar EINMALIG an den Screen hängen (nicht in List / Section)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: .topBarLeading) {
+                EditButton()
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { showingNewExercise = true } label: {
-                    Label("Übung", systemImage: "plus")
+                    Image(systemName: "plus")
                 }
+                .accessibilityLabel("Übung hinzufügen")
             }
         }
         .sheet(isPresented: $showingNewExercise) {
@@ -48,7 +45,9 @@ struct TrainingDetailView: View {
                 Form { TextField("Übungsname", text: $name) }
                     .navigationTitle("Übung hinzufügen")
                     .toolbar {
-                        ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { showingNewExercise = false } }
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Abbrechen") { showingNewExercise = false }
+                        }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Speichern") {
                                 let n = name.trimmingCharacters(in: .whitespacesAndNewlines)

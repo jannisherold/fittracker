@@ -7,72 +7,105 @@ struct ExerciseDetailView: View {
 
     @State private var weight: Double = 20
     @State private var reps: Int = 8
-
-    // MARK: - Lookups
-    private var trainingIndex: Int? {
-        store.trainings.firstIndex(where: { $0.id == trainingID })
-    }
-    private var exerciseIndex: Int? {
-        guard let t = trainingIndex else { return nil }
-        return store.trainings[t].exercises.firstIndex(where: { $0.id == exerciseID })
-    }
-    private var exercise: Exercise? {
-        guard let t = trainingIndex, let e = exerciseIndex else { return nil }
-        return store.trainings[t].exercises[e]
-    }
+    @Environment(\.horizontalSizeClass) private var hSize
 
     var body: some View {
-        Group {
-            if let exercise {
-                VStack {
-                    exerciseSetsList(exercise)     // ausgelagert -> weniger Komplexität für den Compiler
-                    Divider()
-                    addSetBar                       // ebenfalls ausgelagert
-                }
-                .navigationTitle(exercise.name)
-                .toolbar { ToolbarItem(placement: .navigationBarTrailing) { EditButton() } }
-            } else {
-                Text("Übung nicht gefunden")
-                    .foregroundStyle(.secondary)
-            }
+        VStack {
+           
+            exerciseSetsList()
         }
+        
+        .safeAreaInset(edge: .bottom) { controlsBar }
+        .navigationTitle(exercise?.name ?? "Übung")
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { EditButton() } }
     }
 
     // MARK: - Subviews
 
-    @ViewBuilder
-    private func exerciseSetsList(_ exercise: Exercise) -> some View {
+    private func exerciseSetsList() -> some View {
         List {
-            Section("Sätze") {
-                ForEach(exercise.sets) { set in
-                    HStack {
-                        Text("\(Int(set.weightKg)) kg")
-                        Spacer()
-                        Text("\(set.repetition.value) Whd.")
+            if let exercise {
+                Section("SÄTZE") {
+                    ForEach(exercise.sets) { set in
+                        HStack {
+                            Text("\(Int(set.weightKg)) kg")
+                            Spacer()
+                            Text("\(set.repetition.value) Whd.")
+                        }
+                    }
+                    .onDelete { offsets in
+                        store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
                     }
                 }
-                .onDelete { offsets in
-                    store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
-                }
+            } else {
+                Text("Übung nicht gefunden").foregroundStyle(.secondary)
             }
         }
     }
 
-    private var addSetBar: some View {
-        HStack(spacing: 16) {
-            Stepper(value: $weight, in: 0...500, step: 2.5) {
-                Text("Gewicht: \(weight, specifier: "%.1f") kg")
+    
+    private var controlsBar: some View {
+        Group {
+            if hSize == .compact {         // iPhone hochkant
+                VStack(spacing: 12) {
+                    weightControl
+                    repsControl
+                    addButton
+                }
+            } else {                        // Querformat / iPad
+                HStack(spacing: 16) {
+                    weightControl
+                    repsControl
+                    addButton
+                }
             }
-            Stepper(value: $reps, in: 1...50) {
-                Text("Wdh.: \(reps)")
-            }
-            Button {
-                store.addSet(to: exerciseID, in: trainingID, weight: weight, reps: reps)
-            } label: {
-                Label("Hinzufügen", systemImage: "plus.circle.fill")
-            }
-            .buttonStyle(.borderedProminent)
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+    }
+
+    private var weightControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Gewicht: \(weight, specifier: "%.1f") kg")
+                .font(.body)
+                .monospacedDigit()
+                .lineLimit(1)
+            Stepper(value: $weight, in: 0...500, step: 2.5) {
+                EmptyView()
+            }
+            .labelsHidden()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var repsControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Wdh.: \(reps)")
+                .font(.body)
+                .monospacedDigit()
+                .lineLimit(1)
+            Stepper(value: $reps, in: 1...50) {
+                EmptyView()
+            }
+            .labelsHidden()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var addButton: some View {
+        Button {
+            store.addSet(to: exerciseID, in: trainingID, weight: weight, reps: reps)
+        } label: {
+            Label("Hinzufügen", systemImage: "plus.circle.fill")
+                .font(.headline)
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    // Dein Lookup (exercise) wie gehabt:
+    private var exercise: Exercise? {
+        guard let t = store.trainings.firstIndex(where: { $0.id == trainingID }) else { return nil }
+        return store.trainings[t].exercises.first(where: { $0.id == exerciseID })
     }
 }
