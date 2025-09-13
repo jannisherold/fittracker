@@ -11,13 +11,14 @@ struct WorkoutRunView: View {
         List {
             ForEach(training.exercises) { ex in
                 Section(ex.name.uppercased()) {
+                    notesEditor(for: ex.id)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
+                    
                     ForEach(ex.sets) { set in
                         SetRow(
-                            trainingID: trainingID,
-                            exerciseID: ex.id,
-                            set: set
-                        )
+                            trainingID: trainingID, exerciseID: ex.id, set: set)
                     }
+                    
                 }
             }
         }
@@ -46,7 +47,49 @@ struct WorkoutRunView: View {
     private var training: Training {
         store.trainings.first(where: { $0.id == trainingID }) ?? Training(title: "Training")
     }
+    
+    
+    // MARK: - Subview: Notizen
+       @ViewBuilder
+       private func notesEditor(for exerciseID: UUID) -> some View {
+           // Binding direkt in den Store (sicher & performant)
+           let binding = Binding<String>(
+               get: {
+                   guard let t = store.trainings.firstIndex(where: { $0.id == trainingID }),
+                         let e = store.trainings[t].exercises.firstIndex(where: { $0.id == exerciseID })
+                   else { return "" }
+                   return store.trainings[t].exercises[e].notes
+               },
+               set: { newValue in
+                   store.updateExerciseNotes(trainingID: trainingID, exerciseID: exerciseID, notes: newValue)
+               }
+           )
+
+           VStack(alignment: .leading, spacing: 6) {
+               //Text("Notizen")
+                  // .font(.footnote)
+                  // .foregroundStyle(.secondary)
+
+               ZStack(alignment: .topLeading) {
+                   // Placeholder
+                   if binding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                       Text("Notizen zur Übung")
+                           .foregroundStyle(.tertiary)
+                           .padding(.horizontal, 6)
+                           .padding(.vertical, 8)
+                   }
+                   TextEditor(text: binding)
+                       .frame(minHeight: 90)
+                       .padding(6)
+               }
+               .background(.thinMaterial)
+               .clipShape(RoundedRectangle(cornerRadius: 12))
+           }
+           .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+       }
+    
 }
+
 
 
 

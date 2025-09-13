@@ -30,6 +30,13 @@ final class Store: ObservableObject {
         trainings[tIndex].exercises.append(Exercise(name: name, sets: sets))
     }
 
+    // Notizen einer Übung setzen
+    func updateExerciseNotes(trainingID: UUID, exerciseID: UUID, notes: String) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+        trainings[t].exercises[e].notes = notes
+    }
+
 
     func addSet(to exerciseID: UUID, in trainingID: UUID, weight: Double, reps: Int) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }

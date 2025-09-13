@@ -6,14 +6,14 @@ struct TrainingDetailView: View {
 
     @State private var showingNewExercise = false
     @State private var name = ""
-    @State private var setCount = 3   // Default
+    @State private var setCount = 3
+    @Environment(\.editMode) private var editMode     // ← für eigenen Edit-Schalter
 
     private var training: Training? {
         store.trainings.first(where: { $0.id == trainingID })
     }
 
     var body: some View {
-        // ⬇️ ÄUSSERSTE View
         List {
             if let training {
                 Section("ÜBUNGEN") {
@@ -29,53 +29,76 @@ struct TrainingDetailView: View {
             }
         }
         .navigationTitle(training?.title ?? "Training")
-        // ⬇️ Toolbar EINMALIG an den Screen hängen (nicht in List / Section)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                EditButton()
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showingNewExercise = true } label: {
-                    Image(systemName: "plus")
+        .navigationBarTitleDisplayMode(.large)
+        // 🔽 Leiste direkt unter dem großen Titel
+        .safeAreaInset(edge: .top) { headerControls }
+        // (Keine Toolbar mehr für Edit/+)
+        .sheet(isPresented: $showingNewExercise) { addExerciseSheet }
+    }
+
+    // MARK: - Header unter Titel
+    private var headerControls: some View {
+        HStack {
+            Button {
+                // Toggle Edit-Modus der List
+                withAnimation {
+                    if editMode?.wrappedValue == .active {
+                        editMode?.wrappedValue = .inactive
+                    } else {
+                        editMode?.wrappedValue = .active
+                    }
                 }
-                .accessibilityLabel("Übung hinzufügen")
+            } label: {
+                Label(editMode?.wrappedValue == .active ? "Fertig" : "Edit",
+                      systemImage: "pencil")
+            }
+
+            Spacer()
+
+            Button {
+                showingNewExercise = true
+            } label: {
+                Label("Übung", systemImage: "plus")
+                    .fontWeight(.semibold)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+        //.background(.ultraThinMaterial)   // dezente Fläche unter dem Titel
+        //.shadow(radius: 0.5)
+    }
+
+    // MARK: - Sheet: Übung hinzufügen (Name + Satzanzahl)
+    private var addExerciseSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Name") {
+                    TextField("Übungsname", text: $name)
+                }
+                Section("Sätze") {
+                    Stepper(value: $setCount, in: 1...10) {
+                        Text("\(setCount) Sätze")
+                    }
+                }
+            }
+            .navigationTitle("Übung hinzufügen")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { showingNewExercise = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Speichern") {
+                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !n.isEmpty else { return }
+                        store.addExercise(to: trainingID, name: n, setCount: setCount)
+                        name = ""; setCount = 3
+                        showingNewExercise = false
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
         }
-        .sheet(isPresented: $showingNewExercise) {
-            NavigationStack {
-                Form {
-                    Section("Name") {
-                        TextField("Übungsname", text: $name)
-                    }
-                    Section("Sätze") {
-                        Stepper(value: $setCount, in: 1...10) {
-                            Text("\(setCount) Sätze")
-                        }
-                    }
-                }
-                .navigationTitle("Übung hinzufügen")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { showingNewExercise = false }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Speichern") {
-                            let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !n.isEmpty else { return }
-                            store.addExercise(to: trainingID, name: n, setCount: setCount)
-                            // Reset + schließen
-                            name = ""; setCount = 3; showingNewExercise = false
-                        }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
-            }
-            .presentationDetents([.medium])
-        }
-        
-        
-        
-        
-        
+        .presentationDetents([.medium])
     }
 }
