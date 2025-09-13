@@ -36,6 +36,15 @@ final class Store: ObservableObject {
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         trainings[t].exercises[e].sets.append(SetEntry(weightKg: weight, repetition: .init(value: reps)))
     }
+    
+    // Neuen Satz mit Standardwerten hinzufügen
+    func addSet(to exerciseID: UUID, in trainingID: UUID) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+        let newSet = SetEntry(weightKg: 0, repetition: .init(value: 0), isDone: false)
+        trainings[t].exercises[e].sets.append(newSet)
+    }
+
 
     // Trainings löschen (aus Listen .onDelete)
     func deleteTraining(at offsets: IndexSet) {

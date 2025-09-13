@@ -23,6 +23,13 @@ struct ExerciseDetailView: View {
                     .onDelete { offsets in
                         store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
                     }
+                    
+                    Button {
+                        store.addSet(to: exerciseID, in: trainingID)
+                    } label: {
+                        Label("Satz hinzufügen", systemImage: "plus")
+                    }
+                                
                 }
             }
         }
