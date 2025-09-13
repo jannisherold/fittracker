@@ -7,14 +7,27 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
+            
+            
             List {
                 ForEach(store.trainings) { t in
-                    NavigationLink(t.title) {
-                        TrainingDetailView(trainingID: t.id)
+                        // Standard: Tippen startet Workout
+                        NavigationLink(t.title) {
+                            WorkoutRunView(trainingID: t.id)
+                        }
+                        // Long-Press Menü für Bearbeiten
+                        .contextMenu {
+                            NavigationLink {
+                                TrainingDetailView(trainingID: t.id) // deine bestehende Edit-Ansicht
+                            } label: {
+                                Label("Bearbeiten", systemImage: "pencil")
+                            }
+                        }
                     }
-                }
-                .onDelete { store.deleteTraining(at: $0) }
+                    .onDelete { store.deleteTraining(at: $0) }
             }
+            
+            
             .navigationTitle("Trainings")
             // 👇 Toolbar AN den NavigationStack hängen – mit topBar-Placements
             .toolbar {

@@ -45,6 +45,26 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].sets.remove(atOffsets: offsets)
     }
 
+    // Satz als erledigt/unerledigt markieren
+    func toggleSetDone(in trainingID: UUID, exerciseID: UUID, setID: UUID) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+        guard let s = trainings[t].exercises[e].sets.firstIndex(where: { $0.id == setID }) else { return }
+        trainings[t].exercises[e].sets[s].isDone.toggle()
+    }
+
+    // Gewicht / Wiederholungen eines Satzes ändern
+    func updateSet(in trainingID: UUID, exerciseID: UUID, setID: UUID, weight: Double? = nil, reps: Int? = nil) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+        guard let s = trainings[t].exercises[e].sets.firstIndex(where: { $0.id == setID }) else { return }
+        if let w = weight { trainings[t].exercises[e].sets[s].weightKg = w }
+        if let r = reps { trainings[t].exercises[e].sets[s].repetition.value = r }
+    }
+
+    
+    
+    
     
     // MARK: - Persistence
     private func save() {
