@@ -6,6 +6,7 @@ struct TrainingDetailView: View {
 
     @State private var showingNewExercise = false
     @State private var name = ""
+    @State private var setCount = 3   // Default
 
     private var training: Training? {
         store.trainings.first(where: { $0.id == trainingID })
@@ -42,24 +43,39 @@ struct TrainingDetailView: View {
         }
         .sheet(isPresented: $showingNewExercise) {
             NavigationStack {
-                Form { TextField("Übungsname", text: $name) }
-                    .navigationTitle("Übung hinzufügen")
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Abbrechen") { showingNewExercise = false }
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Speichern") {
-                                let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard !n.isEmpty else { return }
-                                store.addExercise(to: trainingID, name: n)
-                                name = ""
-                                showingNewExercise = false
-                            }
+                Form {
+                    Section("Name") {
+                        TextField("Übungsname", text: $name)
+                    }
+                    Section("Sätze") {
+                        Stepper(value: $setCount, in: 1...10) {
+                            Text("\(setCount) Sätze")
                         }
                     }
+                }
+                .navigationTitle("Übung hinzufügen")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Abbrechen") { showingNewExercise = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Speichern") {
+                            let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !n.isEmpty else { return }
+                            store.addExercise(to: trainingID, name: n, setCount: setCount)
+                            // Reset + schließen
+                            name = ""; setCount = 3; showingNewExercise = false
+                        }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
             }
-            .presentationDetents([.height(220)])
+            .presentationDetents([.medium])
         }
+        
+        
+        
+        
+        
     }
 }

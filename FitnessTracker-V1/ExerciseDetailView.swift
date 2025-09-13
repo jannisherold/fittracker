@@ -10,15 +10,26 @@ struct ExerciseDetailView: View {
     @Environment(\.horizontalSizeClass) private var hSize
 
     var body: some View {
-        VStack {
-           
-            exerciseSetsList()
+        List {
+            if let exercise {
+                Section("Sätze") {
+                    ForEach(exercise.sets) { set in
+                        HStack {
+                            Text("\(Int(set.weightKg)) kg")
+                            Spacer()
+                            Text("\(set.repetition.value) Whd.")
+                        }
+                    }
+                    .onDelete { offsets in
+                        store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
+                    }
+                }
+            }
         }
-        
-        .safeAreaInset(edge: .bottom) { controlsBar }
         .navigationTitle(exercise?.name ?? "Übung")
         .toolbar { ToolbarItem(placement: .navigationBarTrailing) { EditButton() } }
     }
+
 
     // MARK: - Subviews
 

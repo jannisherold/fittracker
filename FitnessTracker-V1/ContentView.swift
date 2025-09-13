@@ -44,7 +44,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingNew) {
             NavigationStack {
-                Form { TextField("Titel (z. B. Push, Pull, Beine)", text: $newTitle) }
+                Form { TextField("Titel (z. B. Oberkörper, Unterkörper, ...)", text: $newTitle) }
                     .navigationTitle("Training anlegen")
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { showingNew = false } }

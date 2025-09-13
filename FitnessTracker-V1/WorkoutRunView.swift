@@ -3,6 +3,9 @@ import SwiftUI
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
+    
+    @State private var showResetConfirm = false
+
 
     var body: some View {
         List {
@@ -19,6 +22,24 @@ struct WorkoutRunView: View {
             }
         }
         .navigationTitle(training.title)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showResetConfirm = true
+                } label: {
+                    Label("Session zurücksetzen", systemImage: "arrow.counterclockwise")
+                }
+            }
+        }
+        .confirmationDialog("Session zurücksetzen?",
+                            isPresented: $showResetConfirm,
+                            titleVisibility: .visible) {
+            Button("Alle Häkchen entfernen", role: .destructive) {
+                store.resetSession(trainingID: trainingID)
+            }
+            Button("Abbrechen", role: .cancel) { }
+        }
+
     }
 
     // MARK: - Lookup
@@ -26,6 +47,10 @@ struct WorkoutRunView: View {
         store.trainings.first(where: { $0.id == trainingID }) ?? Training(title: "Training")
     }
 }
+
+
+
+
 
 // MARK: - Einzelner Satz als Checklisten-Zeile
 private struct SetRow: View {

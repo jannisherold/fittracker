@@ -20,6 +20,16 @@ final class Store: ObservableObject {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         trainings[t].exercises.append(Exercise(name: name))
     }
+    
+    // Neue Übung direkt mit N Sätzen (0/0) anlegen
+    func addExercise(to trainingID: UUID, name: String, setCount: Int) {
+        guard let tIndex = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        let sets = (0..<max(0, setCount)).map { _ in
+            SetEntry(weightKg: 0, repetition: .init(value: 0), isDone: false)
+        }
+        trainings[tIndex].exercises.append(Exercise(name: name, sets: sets))
+    }
+
 
     func addSet(to exerciseID: UUID, in trainingID: UUID, weight: Double, reps: Int) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
@@ -63,7 +73,16 @@ final class Store: ObservableObject {
     }
 
     
-    
+    // Alle Sätze eines Trainings „un-done“ setzen
+    func resetSession(trainingID: UUID) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        for e in trainings[t].exercises.indices {
+            for s in trainings[t].exercises[e].sets.indices {
+                trainings[t].exercises[e].sets[s].isDone = false
+            }
+        }
+    }
+
     
     
     // MARK: - Persistence
