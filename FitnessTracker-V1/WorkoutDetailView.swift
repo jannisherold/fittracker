@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct TrainingDetailView: View {
+struct WorkoutDetailView: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
 
@@ -49,7 +49,7 @@ struct TrainingDetailView: View {
                     }
                 }
             } label: {
-                Label(editMode?.wrappedValue == .active ? "Fertig" : "Edit",
+                Label(editMode?.wrappedValue == .active ? "Fertig" : "Übungen bearbeiten",
                       systemImage: "pencil")
             }
 
