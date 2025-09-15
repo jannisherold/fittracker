@@ -16,7 +16,7 @@ struct WorkoutRunView: View {
                         .foregroundColor(.blue)  // Farbe
                 ) {
                     notesEditor(for: ex.id)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
+                        .listRowInsets(EdgeInsets(top: 16, leading: 8, bottom: 0, trailing: 8)) //Leading und Trailing, Abstand von Notes zum Rand der Liste links und rechts
                     
                     ForEach(ex.sets) { set in
                         SetRow(
@@ -71,12 +71,83 @@ struct WorkoutRunView: View {
             }
         )
 
-        VStack(alignment: .leading, spacing: 6) {
-            ZstackWithPlaceholder(text: binding)
-        }
-        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+        NotesEditor(text: binding)
+
     }
 }
+
+// MARK: - NotesEditor mit dynamischer Höhe + Placeholder
+private struct NotesEditor: View {
+    @Binding var text: String
+    @State private var dynamicHeight: CGFloat = 0
+
+    private var oneLineHeight: CGFloat {
+        UIFont.preferredFont(forTextStyle: .body).lineHeight + 6
+    }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Notizen zur Übung hinzufügen")
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
+            }
+            GrowingTextView(text: $text, calculatedHeight: $dynamicHeight)
+                .frame(minHeight: max(dynamicHeight, oneLineHeight),
+                       maxHeight: .infinity)
+                .padding(10)
+        }
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - UIKit-Bridge: automatisch wachsende TextView
+private struct GrowingTextView: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var calculatedHeight: CGFloat
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isScrollEnabled = false
+        tv.backgroundColor = .clear
+        tv.font = .preferredFont(forTextStyle: .body)
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.delegate = context.coordinator
+        return tv
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if uiView.text != text { uiView.text = text }
+        recalcHeight(uiView)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    private func recalcHeight(_ uiView: UITextView) {
+        DispatchQueue.main.async {
+            let fitting = uiView.sizeThatFits(
+                CGSize(width: uiView.bounds.width, height: .greatestFiniteMagnitude)
+            )
+            if abs(calculatedHeight - fitting.height) > 0.5 {
+                calculatedHeight = fitting.height
+            }
+        }
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: GrowingTextView
+        init(_ parent: GrowingTextView) { self.parent = parent }
+
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+            parent.recalcHeight(textView)
+        }
+    }
+}
+
 
 // Kleines Hilfs-View für TextEditor mit Placeholder
 private struct ZstackWithPlaceholder: View {
