@@ -28,7 +28,9 @@ struct ContentView: View {
             }
             
             
-            .navigationTitle("Trainings")
+            .navigationTitle("Workouts")
+        
+            
             // 👇 Toolbar AN den NavigationStack hängen – mit topBar-Placements
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

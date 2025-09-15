@@ -16,7 +16,8 @@ struct WorkoutRunView: View {
                         .foregroundColor(.blue)  // Farbe
                 ) {
                     notesEditor(for: ex.id)
-                        .listRowInsets(EdgeInsets(top: 16, leading: 8, bottom: 0, trailing: 8)) //Leading und Trailing, Abstand von Notes zum Rand der Liste links und rechts
+                        //Leading und Trailing, Abstand von Notes zum Rand der Liste links und rechts
+                        .listRowInsets(EdgeInsets(top: 16, leading: 8, bottom: 0, trailing: 8))
                     
                     ForEach(ex.sets) { set in
                         SetRow(
@@ -192,8 +193,9 @@ private struct SetRow: View {
     }
 
     var body: some View {
+        
+        
         HStack(spacing: 12) {
-            
             
             // Checkbox
             Button {
@@ -203,7 +205,8 @@ private struct SetRow: View {
                     .imageScale(.large)
             }
             .buttonStyle(.plain)
-
+                
+              
            
             
             // Gewicht (mit 2 Rädern) + Reps (Stepper)
@@ -216,7 +219,8 @@ private struct SetRow: View {
                         .fontWeight(.semibold)
                     Spacer()
                     Text("\(tempReps) Whd.")
-                        .foregroundStyle(.secondary)
+                        .fontWeight(.semibold)
+                        //.foregroundStyle(.secondary)
                 }
 
                 
@@ -259,10 +263,12 @@ private struct SetRow: View {
                     // -----------------------------
 
                     
+                    
                     Spacer()
                     
                     
-                    // Reps bleiben beim Stepper
+                    
+                    // Reps ändern mit Stepper
                     Stepper(
                         "",
                         value: Binding(
@@ -284,7 +290,11 @@ private struct SetRow: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
             }
+            
+            
         }
+        
+        
         .onAppear {
             // Startwerte aus dem Set übernehmen
             let intPart = max(0, min(500, Int(floor(set.weightKg))))
