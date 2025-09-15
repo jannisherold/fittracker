@@ -171,18 +171,30 @@ private struct ZstackWithPlaceholder: View {
     }
 }
 
-// MARK: - Einzelner Satz als Checklisten-Zeile
+
+// MARK: - Einzelner Satz als Checklisten-Zeile (mit Rad für Gewicht)
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
     let exerciseID: UUID
     let set: SetEntry
 
-    @State private var tempWeight: Double = 0
+    // Reps bleiben als Stepper
     @State private var tempReps: Int = 0
+
+    // Neues Gewichtssystem: zwei Räder
+    @State private var weightInt: Int = 0                   // kg vor dem Komma
+    @State private var weightFracIndex: Int = 0             // Index in 0.125-kg-Schritten
+    private let fracSteps: [Double] = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+
+    private var combinedWeight: Double {
+        Double(weightInt) + fracSteps[weightFracIndex]
+    }
 
     var body: some View {
         HStack(spacing: 12) {
+            
+            
             // Checkbox
             Button {
                 store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
@@ -192,35 +204,65 @@ private struct SetRow: View {
             }
             .buttonStyle(.plain)
 
-            // Gewicht + Wdh. kompakt editieren
+           
+            
+            // Gewicht (mit 2 Rädern) + Reps (Stepper)
             VStack(alignment: .leading, spacing: 4) {
+                
+                
+                //Zeile mit Gewicht und Anzahl der Wdh.
                 HStack {
-                    Text("\(Int(set.weightKg)) kg")
+                    Text("\(combinedWeight, specifier: "%.3f") kg")
                         .fontWeight(.semibold)
                     Spacer()
-                    Text("\(set.repetition.value) Whd.")
+                    Text("\(tempReps) Whd.")
                         .foregroundStyle(.secondary)
                 }
 
+                
+                
+                //Zeile mit Wheel und +/-
                 HStack(spacing: 16) {
-                    Stepper(
-                        "",
-                        value: Binding(
-                            get: { Int(tempWeightRounded) },
-                            set: { new in
-                                store.updateSet(
-                                    in: trainingID,
-                                    exerciseID: exerciseID,
-                                    setID: set.id,
-                                    weight: Double(new)
-                                )
-                            }
-                        ),
-                        in: 0...500
-                    )
-                    .labelsHidden()
-                    .frame(width: 120)
 
+                    // --- Gewicht mit 2 Rädern ---
+                    HStack(spacing: 2) {
+                        // Rad für kg (0...500)
+                        Picker("", selection: $weightInt) {
+                            ForEach(0...500, id: \.self) { Text("\($0)") }
+                        }
+                        .pickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(width: 60, height: 92)
+                        .clipped()
+
+                        Text(",")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+
+                        // Rad für Nachkommastellen (0, 125, 250, ... 875)
+                        Picker("", selection: $weightFracIndex) {
+                            ForEach(0..<fracSteps.count, id: \.self) { idx in
+                                Text(fractionLabel(for: fracSteps[idx])) // zeigt „000“, „125“, ...
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(width: 72, height: 92)
+                        .clipped()
+                    }
+                    .onChange(of: weightInt) { _ in
+                        pushWeight()
+                    }
+                    .onChange(of: weightFracIndex) { _ in
+                        pushWeight()
+                    }
+                    // -----------------------------
+
+                    
+                    Spacer()
+                    
+                    
+                    // Reps bleiben beim Stepper
                     Stepper(
                         "",
                         value: Binding(
@@ -244,17 +286,49 @@ private struct SetRow: View {
             }
         }
         .onAppear {
-            tempWeight = set.weightKg
+            // Startwerte aus dem Set übernehmen
+            let intPart = max(0, min(500, Int(floor(set.weightKg))))
+            let frac = max(0.0, set.weightKg - Double(intPart))
+            weightInt = intPart
+            weightFracIndex = closestFracIndex(to: frac)
             tempReps = set.repetition.value
         }
-        .onChange(of: set.weightKg) { tempWeight = set.weightKg }
+        .onChange(of: set.weightKg) { new in
+            // falls extern geändert wurde, Räder nachziehen
+            let intPart = max(0, min(500, Int(floor(new))))
+            let frac = max(0.0, new - Double(intPart))
+            weightInt = intPart
+            weightFracIndex = closestFracIndex(to: frac)
+        }
         .onChange(of: set.repetition.value) { tempReps = set.repetition.value }
         .opacity(set.isDone ? 0.5 : 1.0)
         .animation(.default, value: set.isDone)
     }
 
-    private var tempWeightRounded: Double {
-        // falls du 2.5er Schritte willst -> hier runden
-        (set.weightKg * 1).rounded() / 1
+    // MARK: - Helpers
+    private func pushWeight() {
+        store.updateSet(
+            in: trainingID,
+            exerciseID: exerciseID,
+            setID: set.id,
+            weight: combinedWeight
+        )
+    }
+
+    private func closestFracIndex(to value: Double) -> Int {
+        var best = 0
+        var bestDelta = Double.greatestFiniteMagnitude
+        for (i, v) in fracSteps.enumerated() {
+            let d = abs(v - value)
+            if d < bestDelta { best = i; bestDelta = d }
+        }
+        return best
+    }
+
+    private func fractionLabel(for frac: Double) -> String {
+        // Zeigt „000“, „125“, „250“, ..., „875“ hinter dem Komma
+        let milli = Int(round(frac * 1000))
+        return String(format: "%03d", milli)
     }
 }
+
