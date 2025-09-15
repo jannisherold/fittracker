@@ -1,12 +1,10 @@
 import SwiftUI
 
-struct WorkoutDetailView: View {
+struct WorkoutEditView: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
 
     @State private var showingNewExercise = false
-    @State private var name = ""
-    @State private var setCount = 3
     @Environment(\.editMode) private var editMode     // ← für eigenen Edit-Schalter
 
     private var training: Training? {
@@ -33,7 +31,12 @@ struct WorkoutDetailView: View {
         // 🔽 Leiste direkt unter dem großen Titel
         .safeAreaInset(edge: .top) { headerControls }
         // (Keine Toolbar mehr für Edit/+)
-        .sheet(isPresented: $showingNewExercise) { addExerciseSheet }
+        
+        .sheet(isPresented: $showingNewExercise) {
+            AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
+                .environmentObject(store)
+        }
+        
     }
 
     // MARK: - Header unter Titel
@@ -69,36 +72,4 @@ struct WorkoutDetailView: View {
         //.shadow(radius: 0.5)
     }
 
-    // MARK: - Sheet: Übung hinzufügen (Name + Satzanzahl)
-    private var addExerciseSheet: some View {
-        NavigationStack {
-            Form {
-                Section("Name") {
-                    TextField("Übungsname", text: $name)
-                }
-                Section("Sätze") {
-                    Stepper(value: $setCount, in: 1...10) {
-                        Text("\(setCount) Sätze")
-                    }
-                }
-            }
-            .navigationTitle("Übung hinzufügen")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { showingNewExercise = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Speichern") {
-                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !n.isEmpty else { return }
-                        store.addExercise(to: trainingID, name: n, setCount: setCount)
-                        name = ""; setCount = 3
-                        showingNewExercise = false
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
 }

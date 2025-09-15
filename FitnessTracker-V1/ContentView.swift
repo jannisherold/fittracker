@@ -21,7 +21,7 @@ struct ContentView: View {
                     // Long-Press Menü: Bearbeiten + Löschen (mit Bestätigung)
                     .contextMenu {
                         NavigationLink {
-                            WorkoutDetailView(trainingID: t.id)
+                            WorkoutEditView(trainingID: t.id)
                         } label: {
                             Label("Bearbeiten", systemImage: "pencil")
                         }

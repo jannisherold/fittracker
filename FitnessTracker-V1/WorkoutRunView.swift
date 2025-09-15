@@ -7,47 +7,75 @@ struct WorkoutRunView: View {
     @State private var showResetConfirm = false
 
     var body: some View {
-        List {
-            ForEach(training.exercises) { ex in
-                Section(
-                    header: Text(ex.name.uppercased()) //Titel der Übungen
-                        .font(.title2)           // Größe
-                        .fontWeight(.bold)       // Gewichtung
-                        .foregroundColor(.blue)  // Farbe
-                ) {
-                    notesEditor(for: ex.id)
+        
+        //Wenn noch keine Übungen zum Workout hinzugefügt wurden
+        if training.exercises.isEmpty {
+            VStack{
+                Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .padding()
+                
+                NavigationLink {
+                    AddExerciseView(trainingID: trainingID, afterSave: .goToEdit)
+                        .environmentObject(store)
+                } label: {
+                    Label("Übungen hinzufügen", systemImage: "plus")
+                        .font(.headline)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.horizontal)
+                
+                Spacer()
+            }
+            .navigationTitle(training.title)
+        } else {
+            //Wenn schon Übungen zum Workout hinzugefügt wurden
+            
+            List {
+                ForEach(training.exercises) { ex in
+                    Section(
+                        header: Text(ex.name.uppercased()) //Titel der Übungen
+                            .font(.title2)           // Größe
+                            .fontWeight(.bold)       // Gewichtung
+                            .foregroundColor(.blue)  // Farbe
+                    ) {
+                        notesEditor(for: ex.id)
                         //Leading und Trailing, Abstand von Notes zum Rand der Liste links und rechts
-                        .listRowInsets(EdgeInsets(top: 16, leading: 8, bottom: 0, trailing: 8))
-                    
-                    ForEach(ex.sets) { set in
-                        SetRow(
-                            trainingID: trainingID,
-                            exerciseID: ex.id,
-                            set: set
-                        )
+                            .listRowInsets(EdgeInsets(top: 16, leading: 8, bottom: 0, trailing: 8))
+                        
+                        ForEach(ex.sets) { set in
+                            SetRow(
+                                trainingID: trainingID,
+                                exerciseID: ex.id,
+                                set: set
+                            )
+                        }
                     }
                 }
             }
-        }
-        .navigationTitle(training.title)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showResetConfirm = true
-                } label: {
-                    Label("Session zurücksetzen", systemImage: "arrow.counterclockwise")
+            .navigationTitle(training.title)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showResetConfirm = true
+                    } label: {
+                        Label("Session zurücksetzen", systemImage: "arrow.counterclockwise")
+                    }
                 }
             }
-        }
-        .confirmationDialog(
-            "Session zurücksetzen?",
-            isPresented: $showResetConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Alle Häkchen entfernen", role: .destructive) {
-                store.resetSession(trainingID: trainingID)
+            .confirmationDialog(
+                "Session zurücksetzen?",
+                isPresented: $showResetConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Alle Häkchen entfernen", role: .destructive) {
+                    store.resetSession(trainingID: trainingID)
+                }
+                Button("Abbrechen", role: .cancel) { }
             }
-            Button("Abbrechen", role: .cancel) { }
         }
     }
 
