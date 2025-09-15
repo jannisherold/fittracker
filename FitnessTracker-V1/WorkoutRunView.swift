@@ -6,19 +6,25 @@ struct WorkoutRunView: View {
     
     @State private var showResetConfirm = false
 
-
     var body: some View {
         List {
             ForEach(training.exercises) { ex in
-                Section(ex.name.uppercased()) {
+                Section(
+                    header: Text(ex.name.uppercased()) //Titel der Übungen
+                        .font(.title2)           // Größe
+                        .fontWeight(.bold)       // Gewichtung
+                        .foregroundColor(.blue)  // Farbe
+                ) {
                     notesEditor(for: ex.id)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
+                        .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
                     
                     ForEach(ex.sets) { set in
                         SetRow(
-                            trainingID: trainingID, exerciseID: ex.id, set: set)
+                            trainingID: trainingID,
+                            exerciseID: ex.id,
+                            set: set
+                        )
                     }
-                    
                 }
             }
         }
@@ -32,15 +38,16 @@ struct WorkoutRunView: View {
                 }
             }
         }
-        .confirmationDialog("Session zurücksetzen?",
-                            isPresented: $showResetConfirm,
-                            titleVisibility: .visible) {
+        .confirmationDialog(
+            "Session zurücksetzen?",
+            isPresented: $showResetConfirm,
+            titleVisibility: .visible
+        ) {
             Button("Alle Häkchen entfernen", role: .destructive) {
                 store.resetSession(trainingID: trainingID)
             }
             Button("Abbrechen", role: .cancel) { }
         }
-
     }
 
     // MARK: - Lookup
@@ -48,52 +55,50 @@ struct WorkoutRunView: View {
         store.trainings.first(where: { $0.id == trainingID }) ?? Training(title: "Training")
     }
     
-    
     // MARK: - Subview: Notizen
-       @ViewBuilder
-       private func notesEditor(for exerciseID: UUID) -> some View {
-           // Binding direkt in den Store (sicher & performant)
-           let binding = Binding<String>(
-               get: {
-                   guard let t = store.trainings.firstIndex(where: { $0.id == trainingID }),
-                         let e = store.trainings[t].exercises.firstIndex(where: { $0.id == exerciseID })
-                   else { return "" }
-                   return store.trainings[t].exercises[e].notes
-               },
-               set: { newValue in
-                   store.updateExerciseNotes(trainingID: trainingID, exerciseID: exerciseID, notes: newValue)
-               }
-           )
+    @ViewBuilder
+    private func notesEditor(for exerciseID: UUID) -> some View {
+        // Binding direkt in den Store (sicher & performant)
+        let binding = Binding<String>(
+            get: {
+                guard let t = store.trainings.firstIndex(where: { $0.id == trainingID }),
+                      let e = store.trainings[t].exercises.firstIndex(where: { $0.id == exerciseID })
+                else { return "" }
+                return store.trainings[t].exercises[e].notes
+            },
+            set: { newValue in
+                store.updateExerciseNotes(trainingID: trainingID, exerciseID: exerciseID, notes: newValue)
+            }
+        )
 
-           VStack(alignment: .leading, spacing: 6) {
-               //Text("Notizen")
-                  // .font(.footnote)
-                  // .foregroundStyle(.secondary)
-
-               ZStack(alignment: .topLeading) {
-                   // Placeholder
-                   if binding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                       Text("Notizen zur Übung")
-                           .foregroundStyle(.tertiary)
-                           .padding(.horizontal, 6)
-                           .padding(.vertical, 8)
-                   }
-                   TextEditor(text: binding)
-                       .frame(minHeight: 90)
-                       .padding(6)
-               }
-               .background(.thinMaterial)
-               .clipShape(RoundedRectangle(cornerRadius: 12))
-           }
-           .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-       }
-    
+        VStack(alignment: .leading, spacing: 6) {
+            ZstackWithPlaceholder(text: binding)
+        }
+        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+    }
 }
 
-
-
-
-
+// Kleines Hilfs-View für TextEditor mit Placeholder
+private struct ZstackWithPlaceholder: View {
+    @Binding var text: String
+    init(text: Binding<String>) { self._text = text }
+    
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Notizen zur Übung hinzufügen")
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 8)
+            }
+            TextEditor(text: $text)
+                .frame(minHeight: 90)
+                .padding(6)
+        }
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
 
 // MARK: - Einzelner Satz als Checklisten-Zeile
 private struct SetRow: View {
@@ -127,19 +132,39 @@ private struct SetRow: View {
                 }
 
                 HStack(spacing: 16) {
-                    Stepper("", value: Binding(
-                        get: { Int(tempWeightRounded) },
-                        set: { new in store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id,
-                                                       weight: Double(new)) }
-                    ), in: 0...500)
+                    Stepper(
+                        "",
+                        value: Binding(
+                            get: { Int(tempWeightRounded) },
+                            set: { new in
+                                store.updateSet(
+                                    in: trainingID,
+                                    exerciseID: exerciseID,
+                                    setID: set.id,
+                                    weight: Double(new)
+                                )
+                            }
+                        ),
+                        in: 0...500
+                    )
                     .labelsHidden()
                     .frame(width: 120)
 
-                    Stepper("", value: Binding(
-                        get: { tempReps },
-                        set: { new in store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id,
-                                                       reps: new) }
-                    ), in: 1...50)
+                    Stepper(
+                        "",
+                        value: Binding(
+                            get: { tempReps },
+                            set: { new in
+                                store.updateSet(
+                                    in: trainingID,
+                                    exerciseID: exerciseID,
+                                    setID: set.id,
+                                    reps: new
+                                )
+                            }
+                        ),
+                        in: 1...50
+                    )
                     .labelsHidden()
                     .frame(width: 90)
                 }
