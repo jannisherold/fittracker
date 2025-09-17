@@ -7,6 +7,8 @@ struct WorkoutRunView: View {
     let trainingID: UUID
     
     @State private var showResetConfirm = false
+    // NEU: zentraler Zustand – genau EIN offener Satz pro WorkoutRunView
+    @State private var expandedSetID: UUID? = nil
 
     var body: some View {
         
@@ -52,7 +54,9 @@ struct WorkoutRunView: View {
                             SetRow(
                                 trainingID: trainingID,
                                 exerciseID: ex.id,
-                                set: set
+                                set: set,
+                                // NEU: Binding weiterreichen
+                                expandedSetID: $expandedSetID
                             )
                         }
                     }
@@ -215,8 +219,10 @@ private struct SetRow: View {
 
     // Reps bleiben als Stepper
     @State private var tempReps: Int = 0
-    @State private var isExpanded: Bool = false
 
+    // NEU: verknüpft mit dem zentralen Zustand aus der Parent-View
+    @Binding var expandedSetID: UUID?
+    private var isExpanded: Bool { expandedSetID == set.id }
 
     // Neues Gewichtssystem: zwei Räder
     @State private var weightInt: Int = 0                   // kg vor dem Komma
@@ -236,117 +242,117 @@ private struct SetRow: View {
 
 
     var body: some View {
-        
-        
-        
-            HStack(alignment: .top,spacing: 12) {
+        HStack(alignment: .top,spacing: 12) {
 
-                // ✅ Checkbox: immer sichtbar
-                Button {
-                    let willBeDone = !set.isDone
-                    store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
-                    if willBeDone {
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        withAnimation(.easeInOut) { isExpanded = false }   // <-- NEU: beim Abhaken einklappen
-                    } else {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            // ✅ Checkbox: immer sichtbar
+            Button {
+                let willBeDone = !set.isDone
+                store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
+                if willBeDone {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    // NEU: beim Abhaken einklappen (falls dieser Satz offen war)
+                    withAnimation(.easeInOut) {
+                        if isExpanded { expandedSetID = nil }
                     }
-
-                } label: {
-                    Image(systemName: set.isDone ? "checkmark.circle.fill" : "circle")
-                        .imageScale(.large)
+                } else {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
-                .buttonStyle(.plain)
+            } label: {
+                Image(systemName: set.isDone ? "checkmark.circle.fill" : "circle")
+                    .imageScale(.large)
+            }
+            .buttonStyle(.plain)
 
-                // Wertezeilen + (ggf.) Controls
-                VStack(alignment: .leading, spacing: 4) {
+            // Wertezeilen + (ggf.) Controls
+            VStack(alignment: .leading, spacing: 4) {
 
-                    // Zeile 1: Anzeige der aktuellen Werte (immer sichtbar)
-                    HStack {
-                        
-                            Text("\(formattedWeight) kg")
-                                .fontWeight(.semibold)
-                                .onTapGesture { withAnimation(.easeInOut) { isExpanded.toggle() } }
-
-                            Spacer()
-
-                            Text("\(tempReps) Whd.")
-                                .fontWeight(.semibold)
-                                .onTapGesture { withAnimation(.easeInOut) { isExpanded.toggle() } }
-                        
-
-                    }
-                    //.contentShape(Rectangle())
-
-                     // Zeile 2: Wheel + Stepper (nur wenn explizit aufgeklappt)
-                     if isExpanded {
-                        HStack(spacing: 16) {
-                            // --- Gewicht mit 2 Rädern ---
-                            HStack(spacing: 2) {
-                                Picker("", selection: $weightInt) {
-                                    ForEach(0...500, id: \.self) { Text("\($0)") }
-                                }
-                                .pickerStyle(.wheel)
-                                .labelsHidden()
-                                .frame(width: 60, height: 92)
-                                .clipped()
-
-                                Text(",").font(.headline).foregroundStyle(.secondary)
-
-                                Picker("", selection: $weightFracIndex) {
-                                    ForEach(0..<fracSteps.count, id: \.self) { idx in
-                                        Text(fractionLabel(for: fracSteps[idx]))
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .labelsHidden()
-                                .frame(width: 72, height: 92)
-                                .clipped()
+                // Zeile 1: Anzeige der aktuellen Werte (immer sichtbar)
+                HStack {
+                    Text("\(formattedWeight) kg")
+                        .fontWeight(.semibold)
+                        .onTapGesture {
+                            withAnimation(.easeInOut) {
+                                expandedSetID = isExpanded ? nil : set.id
                             }
-                            .onChange(of: weightInt) { _ in pushWeight() }
-                            .onChange(of: weightFracIndex) { _ in pushWeight() }
-
-                            Spacer()
-
-                            Stepper(
-                                "",
-                                value: Binding(
-                                    get: { tempReps },
-                                    set: { new in
-                                        store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, reps: new)
-                                    }
-                                ),
-                                in: 0...50
-                            )
-                            .labelsHidden()
-                            .frame(width: 90)
                         }
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .transition(.opacity)
+
+                    Spacer()
+
+                    Text("\(tempReps) Whd.")
+                        .fontWeight(.semibold)
+                        .onTapGesture {
+                            withAnimation(.easeInOut) {
+                                expandedSetID = isExpanded ? nil : set.id
+                            }
+                        }
+                }
+                .contentShape(Rectangle())
+
+                // Zeile 2: Wheel + Stepper (nur wenn explizit aufgeklappt)
+                if isExpanded {
+                    HStack(spacing: 16) {
+                        // --- Gewicht mit 2 Rädern ---
+                        HStack(spacing: 2) {
+                            Picker("", selection: $weightInt) {
+                                ForEach(0...500, id: \.self) { Text("\($0)") }
+                            }
+                            .pickerStyle(.wheel)
+                            .labelsHidden()
+                            .frame(width: 60, height: 92)
+                            .clipped()
+
+                            Text(",").font(.headline).foregroundStyle(.secondary)
+
+                            Picker("", selection: $weightFracIndex) {
+                                ForEach(0..<fracSteps.count, id: \.self) { idx in
+                                    Text(fractionLabel(for: fracSteps[idx]))
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .labelsHidden()
+                            .frame(width: 72, height: 92)
+                            .clipped()
+                        }
+                        .onChange(of: weightInt) { _ in pushWeight() }
+                        .onChange(of: weightFracIndex) { _ in pushWeight() }
+
+                        Spacer()
+
+                        Stepper(
+                            "",
+                            value: Binding(
+                                get: { tempReps },
+                                set: { new in
+                                    store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, reps: new)
+                                }
+                            ),
+                            in: 0...50
+                        )
+                        .labelsHidden()
+                        .frame(width: 90)
                     }
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .transition(.opacity)
                 }
             }
-            .onAppear {
-                let intPart = max(0, min(500, Int(floor(set.weightKg))))
-                let frac = max(0.0, set.weightKg - Double(intPart))
-                weightInt = intPart
-                weightFracIndex = closestFracIndex(to: frac)
-                tempReps = set.repetition.value
-            }
-            .onChange(of: set.weightKg) { new in
-                let intPart = max(0, min(500, Int(floor(new))))
-                let frac = max(0.0, new - Double(intPart))
-                weightInt = intPart
-                weightFracIndex = closestFracIndex(to: frac)
-            }
-            .onChange(of: set.repetition.value) { tempReps = set.repetition.value }
-            .opacity(set.isDone ? 0.5 : 1.0)
-            .animation(.default, value: set.isDone)
-        
-
-        
-        
+        }
+        .onAppear {
+            let intPart = max(0, min(500, Int(floor(set.weightKg))))
+            let frac = max(0.0, set.weightKg - Double(intPart))
+            weightInt = intPart
+            weightFracIndex = closestFracIndex(to: frac)
+            tempReps = set.repetition.value
+        }
+        .onChange(of: set.weightKg) { new in
+            let intPart = max(0, min(500, Int(floor(new))))
+            let frac = max(0.0, new - Double(intPart))
+            weightInt = intPart
+            weightFracIndex = closestFracIndex(to: frac)
+        }
+        .onChange(of: set.repetition.value) { tempReps = set.repetition.value }
+        .opacity(set.isDone ? 0.5 : 1.0)
+        .animation(.default, value: set.isDone)
     }
 
     // MARK: - Helpers
@@ -375,4 +381,3 @@ private struct SetRow: View {
         return String(format: "%03d", milli)
     }
 }
-
