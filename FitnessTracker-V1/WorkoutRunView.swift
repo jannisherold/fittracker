@@ -247,9 +247,11 @@ private struct SetRow: View {
                     store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
                     if willBeDone {
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        withAnimation(.easeInOut) { isExpanded = false }   // <-- NEU: beim Abhaken einklappen
                     } else {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
+
                 } label: {
                     Image(systemName: set.isDone ? "checkmark.circle.fill" : "circle")
                         .imageScale(.large)
@@ -274,7 +276,7 @@ private struct SetRow: View {
                         
 
                     }
-                    .contentShape(Rectangle())
+                    //.contentShape(Rectangle())
 
                      // Zeile 2: Wheel + Stepper (nur wenn explizit aufgeklappt)
                      if isExpanded {
