@@ -37,7 +37,12 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].notes = notes
     }
 
-
+    func moveExercise(in trainingID: UUID, from source: IndexSet, to destination: Int) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        trainings[t].exercises.move(fromOffsets: source, toOffset: destination)
+    }
+    
+    
     func addSet(to exerciseID: UUID, in trainingID: UUID, weight: Double, reps: Int) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }

@@ -50,13 +50,24 @@ struct WorkoutEditView: View {
 
                 Section("ÜBUNGEN") {
                     ForEach(training.exercises) { ex in
-                        NavigationLink(ex.name) {
-                            ExerciseDetailView(trainingID: trainingID, exerciseID: ex.id)
+                        if editMode?.wrappedValue == .active {
+                            // Edit-Modus: kein Chevron, dafür erscheint der Drag-Handle automatisch
+                            Text(ex.name)
+                        } else {
+                            // Normal: Tippen öffnet die Detailansicht
+                            NavigationLink(ex.name) {
+                                ExerciseDetailView(trainingID: trainingID, exerciseID: ex.id)
+                            }
                         }
+                    }
+                    .onMove { indices, newOffset in
+                        store.moveExercise(in: trainingID, from: indices, to: newOffset)
                     }
                     .onDelete { offsets in
                         store.deleteExercise(in: trainingID, at: offsets)
                     }
+
+                
                 }
             }
         }

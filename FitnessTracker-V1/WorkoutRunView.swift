@@ -46,7 +46,7 @@ struct WorkoutRunView: View {
                     ) {
                         notesEditor(for: ex.id)
                         //Leading und Trailing, Abstand von Notes zum Rand der Liste links und rechts
-                            .listRowInsets(EdgeInsets(top: 16, leading: 8, bottom: 0, trailing: 8))
+                            .listRowInsets(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 5))
                         
                         ForEach(ex.sets) { set in
                             SetRow(
