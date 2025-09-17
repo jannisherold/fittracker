@@ -224,6 +224,14 @@ private struct SetRow: View {
     private var combinedWeight: Double {
         Double(weightInt) + fracSteps[weightFracIndex]
     }
+    
+    private var formattedWeight: String {
+        // Reihenfolge passt zu fracSteps: [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        let labels = ["", "125", "25", "375", "5", "625", "75", "875"]
+        let suffix = labels[weightFracIndex]
+        return suffix.isEmpty ? "\(weightInt)" : "\(weightInt),\(suffix)"
+    }
+
 
     var body: some View {
         
@@ -251,7 +259,7 @@ private struct SetRow: View {
 
                     // Zeile 1: Anzeige der aktuellen Werte (immer sichtbar)
                     HStack {
-                        Text("\(combinedWeight, specifier: "%.3f") kg").fontWeight(.semibold)
+                        Text("\(formattedWeight) kg").fontWeight(.semibold)
                         Spacer()
                         Text("\(tempReps) Whd.").fontWeight(.semibold)
                     }
