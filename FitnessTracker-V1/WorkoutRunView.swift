@@ -229,7 +229,7 @@ private struct SetRow: View {
         
         
         
-            HStack(spacing: 12) {
+            HStack(alignment: .top,spacing: 12) {
 
                 // ✅ Checkbox: immer sichtbar
                 Button {
@@ -294,7 +294,7 @@ private struct SetRow: View {
                                         store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, reps: new)
                                     }
                                 ),
-                                in: 1...50
+                                in: 0...50
                             )
                             .labelsHidden()
                             .frame(width: 90)
