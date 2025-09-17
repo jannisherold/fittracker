@@ -215,6 +215,8 @@ private struct SetRow: View {
 
     // Reps bleiben als Stepper
     @State private var tempReps: Int = 0
+    @State private var isExpanded: Bool = false
+
 
     // Neues Gewichtssystem: zwei Räder
     @State private var weightInt: Int = 0                   // kg vor dem Komma
@@ -259,13 +261,23 @@ private struct SetRow: View {
 
                     // Zeile 1: Anzeige der aktuellen Werte (immer sichtbar)
                     HStack {
-                        Text("\(formattedWeight) kg").fontWeight(.semibold)
-                        Spacer()
-                        Text("\(tempReps) Whd.").fontWeight(.semibold)
-                    }
+                        
+                            Text("\(formattedWeight) kg")
+                                .fontWeight(.semibold)
+                                .onTapGesture { withAnimation(.easeInOut) { isExpanded.toggle() } }
 
-                    // Zeile 2: Wheel + Stepper (nur wenn nicht abgehakt)
-                    if !set.isDone {
+                            Spacer()
+
+                            Text("\(tempReps) Whd.")
+                                .fontWeight(.semibold)
+                                .onTapGesture { withAnimation(.easeInOut) { isExpanded.toggle() } }
+                        
+
+                    }
+                    .contentShape(Rectangle())
+
+                     // Zeile 2: Wheel + Stepper (nur wenn explizit aufgeklappt)
+                     if isExpanded {
                         HStack(spacing: 16) {
                             // --- Gewicht mit 2 Rädern ---
                             HStack(spacing: 2) {
