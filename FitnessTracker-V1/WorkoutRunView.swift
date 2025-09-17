@@ -228,135 +228,103 @@ private struct SetRow: View {
     var body: some View {
         
         
-        HStack(spacing: 12) {
-            
-            // Checkbox
-            Button {
-                // Berechne, ob das Set danach als "done" gilt
-                let willBeDone = !set.isDone
+        
+            HStack(spacing: 12) {
 
-                // State ändern
-                store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
-
-                // Differenziertes Feedback
-                if willBeDone {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                } else {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                // ✅ Checkbox: immer sichtbar
+                Button {
+                    let willBeDone = !set.isDone
+                    store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
+                    if willBeDone {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    } else {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                } label: {
+                    Image(systemName: set.isDone ? "checkmark.circle.fill" : "circle")
+                        .imageScale(.large)
                 }
-            } label: {
-                Image(systemName: set.isDone ? "checkmark.circle.fill" : "circle")
-                    .imageScale(.large)
-            }
-            .buttonStyle(.plain)
+                .buttonStyle(.plain)
 
-              
-           
-            
-            // Gewicht (mit 2 Rädern) + Reps (Stepper)
-            VStack(alignment: .leading, spacing: 4) {
-                
-                
-                //Zeile mit Gewicht und Anzahl der Wdh.
-                HStack {
-                    Text("\(combinedWeight, specifier: "%.3f") kg")
-                        .fontWeight(.semibold)
-                    Spacer()
-                    Text("\(tempReps) Whd.")
-                        .fontWeight(.semibold)
-                        //.foregroundStyle(.secondary)
-                }
+                // Wertezeilen + (ggf.) Controls
+                VStack(alignment: .leading, spacing: 4) {
 
-                
-                
-                //Zeile mit Wheel und +/-
-                HStack(spacing: 16) {
+                    // Zeile 1: Anzeige der aktuellen Werte (immer sichtbar)
+                    HStack {
+                        Text("\(combinedWeight, specifier: "%.3f") kg").fontWeight(.semibold)
+                        Spacer()
+                        Text("\(tempReps) Whd.").fontWeight(.semibold)
+                    }
 
-                    // --- Gewicht mit 2 Rädern ---
-                    HStack(spacing: 2) {
-                        // Rad für kg (0...500)
-                        Picker("", selection: $weightInt) {
-                            ForEach(0...500, id: \.self) { Text("\($0)") }
-                        }
-                        .pickerStyle(.wheel)
-                        .labelsHidden()
-                        .frame(width: 60, height: 92)
-                        .clipped()
+                    // Zeile 2: Wheel + Stepper (nur wenn nicht abgehakt)
+                    if !set.isDone {
+                        HStack(spacing: 16) {
+                            // --- Gewicht mit 2 Rädern ---
+                            HStack(spacing: 2) {
+                                Picker("", selection: $weightInt) {
+                                    ForEach(0...500, id: \.self) { Text("\($0)") }
+                                }
+                                .pickerStyle(.wheel)
+                                .labelsHidden()
+                                .frame(width: 60, height: 92)
+                                .clipped()
 
-                        Text(",")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                                Text(",").font(.headline).foregroundStyle(.secondary)
 
-                        // Rad für Nachkommastellen (0, 125, 250, ... 875)
-                        Picker("", selection: $weightFracIndex) {
-                            ForEach(0..<fracSteps.count, id: \.self) { idx in
-                                Text(fractionLabel(for: fracSteps[idx])) // zeigt „000“, „125“, ...
+                                Picker("", selection: $weightFracIndex) {
+                                    ForEach(0..<fracSteps.count, id: \.self) { idx in
+                                        Text(fractionLabel(for: fracSteps[idx]))
+                                    }
+                                }
+                                .pickerStyle(.wheel)
+                                .labelsHidden()
+                                .frame(width: 72, height: 92)
+                                .clipped()
                             }
-                        }
-                        .pickerStyle(.wheel)
-                        .labelsHidden()
-                        .frame(width: 72, height: 92)
-                        .clipped()
-                    }
-                    .onChange(of: weightInt) { _ in
-                        pushWeight()
-                    }
-                    .onChange(of: weightFracIndex) { _ in
-                        pushWeight()
-                    }
-                    // -----------------------------
+                            .onChange(of: weightInt) { _ in pushWeight() }
+                            .onChange(of: weightFracIndex) { _ in pushWeight() }
 
-                    
-                    
-                    Spacer()
-                    
-                    
-                    
-                    // Reps ändern mit Stepper
-                    Stepper(
-                        "",
-                        value: Binding(
-                            get: { tempReps },
-                            set: { new in
-                                store.updateSet(
-                                    in: trainingID,
-                                    exerciseID: exerciseID,
-                                    setID: set.id,
-                                    reps: new
-                                )
-                            }
-                        ),
-                        in: 1...50
-                    )
-                    .labelsHidden()
-                    .frame(width: 90)
+                            Spacer()
+
+                            Stepper(
+                                "",
+                                value: Binding(
+                                    get: { tempReps },
+                                    set: { new in
+                                        store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, reps: new)
+                                    }
+                                ),
+                                in: 1...50
+                            )
+                            .labelsHidden()
+                            .frame(width: 90)
+                        }
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity)
+                    }
                 }
-                .font(.callout)
-                .foregroundStyle(.secondary)
             }
-            
-            
-        }
+            .onAppear {
+                let intPart = max(0, min(500, Int(floor(set.weightKg))))
+                let frac = max(0.0, set.weightKg - Double(intPart))
+                weightInt = intPart
+                weightFracIndex = closestFracIndex(to: frac)
+                tempReps = set.repetition.value
+            }
+            .onChange(of: set.weightKg) { new in
+                let intPart = max(0, min(500, Int(floor(new))))
+                let frac = max(0.0, new - Double(intPart))
+                weightInt = intPart
+                weightFracIndex = closestFracIndex(to: frac)
+            }
+            .onChange(of: set.repetition.value) { tempReps = set.repetition.value }
+            .opacity(set.isDone ? 0.5 : 1.0)
+            .animation(.default, value: set.isDone)
+        
+
         
         
-        .onAppear {
-            // Startwerte aus dem Set übernehmen
-            let intPart = max(0, min(500, Int(floor(set.weightKg))))
-            let frac = max(0.0, set.weightKg - Double(intPart))
-            weightInt = intPart
-            weightFracIndex = closestFracIndex(to: frac)
-            tempReps = set.repetition.value
-        }
-        .onChange(of: set.weightKg) { new in
-            // falls extern geändert wurde, Räder nachziehen
-            let intPart = max(0, min(500, Int(floor(new))))
-            let frac = max(0.0, new - Double(intPart))
-            weightInt = intPart
-            weightFracIndex = closestFracIndex(to: frac)
-        }
-        .onChange(of: set.repetition.value) { tempReps = set.repetition.value }
-        .opacity(set.isDone ? 0.5 : 1.0)
-        .animation(.default, value: set.isDone)
     }
 
     // MARK: - Helpers
