@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+
 
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
@@ -227,13 +229,24 @@ private struct SetRow: View {
             
             // Checkbox
             Button {
+                // Berechne, ob das Set danach als "done" gilt
+                let willBeDone = !set.isDone
+
+                // State ändern
                 store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
+
+                // Differenziertes Feedback
+                if willBeDone {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                } else {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
             } label: {
                 Image(systemName: set.isDone ? "checkmark.circle.fill" : "circle")
                     .imageScale(.large)
             }
             .buttonStyle(.plain)
-                
+
               
            
             
