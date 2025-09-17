@@ -19,6 +19,8 @@ struct AddExerciseView: View {
                     Stepper(value: $setCount, in: 1...10) { Text("\(setCount) Sätze") }
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .onTapGesture { hideKeyboard() }
             .navigationTitle("Übung hinzufügen")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

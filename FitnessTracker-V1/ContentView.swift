@@ -70,6 +70,8 @@ struct ContentView: View {
                 Form {
                     TextField("Titel (z. B. Oberkörper, Unterkörper, ...)", text: $newTitle)
                 }
+                .scrollDismissesKeyboard(.immediately)
+                .onTapGesture { hideKeyboard() }
                 .navigationTitle("Workout anlegen")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

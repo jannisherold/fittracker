@@ -58,6 +58,8 @@ struct WorkoutRunView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .navigationTitle(training.title)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -147,6 +149,7 @@ private struct GrowingTextView: UIViewRepresentable {
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
         tv.delegate = context.coordinator
+        tv.keyboardDismissMode = .interactive
         return tv
     }
 
