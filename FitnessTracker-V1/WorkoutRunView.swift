@@ -130,10 +130,30 @@ private struct NotesEditor: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 10)
             }
-            GrowingTextView(text: $text, calculatedHeight: $dynamicHeight)
-                .frame(minHeight: max(dynamicHeight, oneLineHeight),
-                       maxHeight: .infinity)
-                .padding(10)
+            // ALT:
+            // GrowingTextView(text: $text, calculatedHeight: $dynamicHeight)
+            //     .frame(minHeight: max(dynamicHeight, oneLineHeight),
+            //            maxHeight: .infinity)
+            //     .padding(10)
+
+            // NEU:
+            GeometryReader { proxy in
+                // 10pt Padding links + 10pt rechts -> daher -20
+                GrowingTextView(
+                    text: $text,
+                    calculatedHeight: $dynamicHeight,
+                    fixedWidth: proxy.size.width - 20
+                )
+                // ⬇️ WICHTIG: Breite auch fürs Rendering fix setzen
+                .frame(
+                    width: proxy.size.width - 20,
+                    height: max(dynamicHeight, oneLineHeight)
+                )
+            }
+            .frame(minHeight: max(dynamicHeight, oneLineHeight))
+            .padding(10)
+
+
         }
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -144,6 +164,7 @@ private struct NotesEditor: View {
 private struct GrowingTextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var calculatedHeight: CGFloat
+    let fixedWidth: CGFloat
 
     func makeUIView(context: Context) -> UITextView {
         let tv = UITextView()
@@ -152,8 +173,11 @@ private struct GrowingTextView: UIViewRepresentable {
         tv.font = .preferredFont(forTextStyle: .body)
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
+        tv.textContainer.widthTracksTextView = true
         tv.delegate = context.coordinator
         tv.keyboardDismissMode = .interactive
+        // verhindert, dass die View in der Horizontalen „drückt“
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return tv
     }
 
@@ -162,18 +186,20 @@ private struct GrowingTextView: UIViewRepresentable {
         recalcHeight(uiView)
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
     private func recalcHeight(_ uiView: UITextView) {
         DispatchQueue.main.async {
+            // WICHTIG: gegen feste Breite messen -> automatischer Zeilenumbruch
             let fitting = uiView.sizeThatFits(
-                CGSize(width: uiView.bounds.width, height: .greatestFiniteMagnitude)
+                CGSize(width: fixedWidth, height: .greatestFiniteMagnitude)
             )
             if abs(calculatedHeight - fitting.height) > 0.5 {
                 calculatedHeight = fitting.height
             }
         }
     }
+    
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: GrowingTextView
