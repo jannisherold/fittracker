@@ -1,19 +1,19 @@
 import SwiftUI
 import UIKit
 
-
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
     
     @State private var showResetConfirm = false
-    // NEU: zentraler Zustand – genau EIN offener Satz pro WorkoutRunView
     @State private var expandedSetID: UUID? = nil
 
+    // ⬇️ NEU: programmgesteuerte Navigation zur Edit-View
+    @State private var goEdit = false
+
     var body: some View {
-        
-        //Wenn noch keine Übungen zum Workout hinzugefügt wurden
         if training.exercises.isEmpty {
+            // --- Leerer Zustand ---
             VStack{
                 Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt")
                     .multilineTextAlignment(.center)
@@ -36,31 +36,72 @@ struct WorkoutRunView: View {
             }
             .navigationTitle(training.title)
         } else {
-            //Wenn schon Übungen zum Workout hinzugefügt wurden
-            
-            List {
-                ForEach(training.exercises) { ex in
-                    Section(
-                        header: Text(ex.name.uppercased()) //Titel der Übungen
-                            .font(.title2)           // Größe
-                            .fontWeight(.bold)       // Gewichtung
-                            .foregroundColor(.blue)  // Farbe
-                    ) {
-                        notesEditor(for: ex.id)
-                        //Leading und Trailing, Abstand von Notes zum Rand der Liste links und rechts
-                            .listRowInsets(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 5))
-                        
-                        ForEach(ex.sets) { set in
-                            SetRow(
-                                trainingID: trainingID,
-                                exerciseID: ex.id,
-                                set: set,
-                                // NEU: Binding weiterreichen
-                                expandedSetID: $expandedSetID
-                            )
+            // --- Mit Übungen ---
+            ZStack {
+                List {
+                    // Übungen + Notizen + Sets
+                    ForEach(training.exercises) { ex in
+                        Section(
+                            header: Text(ex.name.uppercased())
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+                        ) {
+                            notesEditor(for: ex.id)
+                                .listRowInsets(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 5))
+                            
+                            ForEach(ex.sets) { set in
+                                SetRow(
+                                    trainingID: trainingID,
+                                    exerciseID: ex.id,
+                                    set: set,
+                                    expandedSetID: $expandedSetID
+                                )
+                            }
                         }
                     }
+                    
+                    // ⬇️ Letzte Section: Chip-Button ohne Chevron
+                    Section {
+                        HStack {
+                            Spacer()
+                            Button {
+                                goEdit = true
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "pencil")
+                                        .imageScale(.large)
+                                        .foregroundStyle(.secondary)
+                                    Text("Workout bearbeiten")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(.systemBackground))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                                //.shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .listRowBackground(Color.clear)
                 }
+
+                // ⬇️ Versteckter Link (programmgesteuerte Navigation, kein Chevron)
+                NavigationLink(
+                    destination: WorkoutEditView(trainingID: trainingID).environmentObject(store),
+                    isActive: $goEdit
+                ) { EmptyView() }
+                .hidden()
             }
             .scrollDismissesKeyboard(.immediately)
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
@@ -95,7 +136,6 @@ struct WorkoutRunView: View {
     // MARK: - Subview: Notizen
     @ViewBuilder
     private func notesEditor(for exerciseID: UUID) -> some View {
-        // Binding direkt in den Store (sicher & performant)
         let binding = Binding<String>(
             get: {
                 guard let t = store.trainings.firstIndex(where: { $0.id == trainingID }),
@@ -107,11 +147,12 @@ struct WorkoutRunView: View {
                 store.updateExerciseNotes(trainingID: trainingID, exerciseID: exerciseID, notes: newValue)
             }
         )
-
         NotesEditor(text: binding)
-
     }
 }
+
+// … (NotesEditor, GrowingTextView, SetRow bleiben unverändert)
+
 
 // MARK: - NotesEditor mit dynamischer Höhe + Placeholder
 private struct NotesEditor: View {
@@ -130,21 +171,12 @@ private struct NotesEditor: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 10)
             }
-            // ALT:
-            // GrowingTextView(text: $text, calculatedHeight: $dynamicHeight)
-            //     .frame(minHeight: max(dynamicHeight, oneLineHeight),
-            //            maxHeight: .infinity)
-            //     .padding(10)
-
-            // NEU:
             GeometryReader { proxy in
-                // 10pt Padding links + 10pt rechts -> daher -20
                 GrowingTextView(
                     text: $text,
                     calculatedHeight: $dynamicHeight,
                     fixedWidth: proxy.size.width - 20
                 )
-                // ⬇️ WICHTIG: Breite auch fürs Rendering fix setzen
                 .frame(
                     width: proxy.size.width - 20,
                     height: max(dynamicHeight, oneLineHeight)
@@ -152,15 +184,13 @@ private struct NotesEditor: View {
             }
             .frame(minHeight: max(dynamicHeight, oneLineHeight))
             .padding(10)
-
-
         }
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
-// MARK: - UIKit-Bridge: automatisch wachsende TextView
+// MARK: - UIKit-Bridge
 private struct GrowingTextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var calculatedHeight: CGFloat
@@ -176,7 +206,6 @@ private struct GrowingTextView: UIViewRepresentable {
         tv.textContainer.widthTracksTextView = true
         tv.delegate = context.coordinator
         tv.keyboardDismissMode = .interactive
-        // verhindert, dass die View in der Horizontalen „drückt“
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return tv
     }
@@ -188,7 +217,6 @@ private struct GrowingTextView: UIViewRepresentable {
 
     private func recalcHeight(_ uiView: UITextView) {
         DispatchQueue.main.async {
-            // WICHTIG: gegen feste Breite messen -> automatischer Zeilenumbruch
             let fitting = uiView.sizeThatFits(
                 CGSize(width: fixedWidth, height: .greatestFiniteMagnitude)
             )
@@ -200,11 +228,9 @@ private struct GrowingTextView: UIViewRepresentable {
     
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: GrowingTextView
         init(_ parent: GrowingTextView) { self.parent = parent }
-
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text
             parent.recalcHeight(textView)
@@ -212,74 +238,36 @@ private struct GrowingTextView: UIViewRepresentable {
     }
 }
 
-
-// Kleines Hilfs-View für TextEditor mit Placeholder
-private struct ZstackWithPlaceholder: View {
-    @Binding var text: String
-    init(text: Binding<String>) { self._text = text }
-    
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("Notizen zur Übung hinzufügen")
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 8)
-            }
-            TextEditor(text: $text)
-                .frame(minHeight: 90)
-                .padding(6)
-        }
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-
-// MARK: - Einzelner Satz als Checklisten-Zeile (mit Rad für Gewicht)
+// MARK: - SetRow
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
     let exerciseID: UUID
     let set: SetEntry
 
-    // Reps bleiben als Stepper
     @State private var tempReps: Int = 0
-
-    // NEU: verknüpft mit dem zentralen Zustand aus der Parent-View
     @Binding var expandedSetID: UUID?
     private var isExpanded: Bool { expandedSetID == set.id }
 
-    // Neues Gewichtssystem: zwei Räder
-    @State private var weightInt: Int = 0                   // kg vor dem Komma
-    @State private var weightFracIndex: Int = 0             // Index in 0.125-kg-Schritten
+    @State private var weightInt: Int = 0
+    @State private var weightFracIndex: Int = 0
     private let fracSteps: [Double] = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
 
-    private var combinedWeight: Double {
-        Double(weightInt) + fracSteps[weightFracIndex]
-    }
-    
+    private var combinedWeight: Double { Double(weightInt) + fracSteps[weightFracIndex] }
     private var formattedWeight: String {
-        // Reihenfolge passt zu fracSteps: [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
         let labels = ["", "125", "25", "375", "5", "625", "75", "875"]
         let suffix = labels[weightFracIndex]
         return suffix.isEmpty ? "\(weightInt)" : "\(weightInt),\(suffix)"
     }
 
-
     var body: some View {
         HStack(alignment: .top,spacing: 12) {
-
-            // ✅ Checkbox: immer sichtbar
             Button {
                 let willBeDone = !set.isDone
                 store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
                 if willBeDone {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    // NEU: beim Abhaken einklappen (falls dieser Satz offen war)
-                    withAnimation(.easeInOut) {
-                        if isExpanded { expandedSetID = nil }
-                    }
+                    withAnimation(.easeInOut) { if isExpanded { expandedSetID = nil } }
                 } else {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
@@ -289,35 +277,20 @@ private struct SetRow: View {
             }
             .buttonStyle(.plain)
 
-            // Wertezeilen + (ggf.) Controls
             VStack(alignment: .leading, spacing: 4) {
-
-                // Zeile 1: Anzeige der aktuellen Werte (immer sichtbar)
                 HStack {
                     Text("\(formattedWeight) kg")
                         .fontWeight(.semibold)
-                        .onTapGesture {
-                            withAnimation(.easeInOut) {
-                                expandedSetID = isExpanded ? nil : set.id
-                            }
-                        }
-
+                        .onTapGesture { withAnimation(.easeInOut) { expandedSetID = isExpanded ? nil : set.id } }
                     Spacer()
-
                     Text("\(tempReps) Whd.")
                         .fontWeight(.semibold)
-                        .onTapGesture {
-                            withAnimation(.easeInOut) {
-                                expandedSetID = isExpanded ? nil : set.id
-                            }
-                        }
+                        .onTapGesture { withAnimation(.easeInOut) { expandedSetID = isExpanded ? nil : set.id } }
                 }
                 .contentShape(Rectangle())
 
-                // Zeile 2: Wheel + Stepper (nur wenn explizit aufgeklappt)
                 if isExpanded {
                     HStack(spacing: 16) {
-                        // --- Gewicht mit 2 Rädern ---
                         HStack(spacing: 2) {
                             Picker("", selection: $weightInt) {
                                 ForEach(0...500, id: \.self) { Text("\($0)") }
@@ -383,17 +356,11 @@ private struct SetRow: View {
 
     // MARK: - Helpers
     private func pushWeight() {
-        store.updateSet(
-            in: trainingID,
-            exerciseID: exerciseID,
-            setID: set.id,
-            weight: combinedWeight
-        )
+        store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, weight: combinedWeight)
     }
 
     private func closestFracIndex(to value: Double) -> Int {
-        var best = 0
-        var bestDelta = Double.greatestFiniteMagnitude
+        var best = 0, bestDelta = Double.greatestFiniteMagnitude
         for (i, v) in fracSteps.enumerated() {
             let d = abs(v - value)
             if d < bestDelta { best = i; bestDelta = d }
@@ -402,7 +369,6 @@ private struct SetRow: View {
     }
 
     private func fractionLabel(for frac: Double) -> String {
-        // Zeigt „000“, „125“, „250“, ..., „875“ hinter dem Komma
         let milli = Int(round(frac * 1000))
         return String(format: "%03d", milli)
     }
