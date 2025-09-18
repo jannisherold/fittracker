@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ExerciseDetailView: View {
+struct ExerciseEditView: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
     let exerciseID: UUID

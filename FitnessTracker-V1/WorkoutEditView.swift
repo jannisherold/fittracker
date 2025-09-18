@@ -55,7 +55,7 @@ struct WorkoutEditView: View {
                                 Text(ex.name)
                             } else {
                                 NavigationLink {
-                                    ExerciseDetailView(trainingID: trainingID, exerciseID: ex.id)
+                                    ExerciseEditView(trainingID: trainingID, exerciseID: ex.id)
                                 } label: {
                                     Text(ex.name)
                                 }
