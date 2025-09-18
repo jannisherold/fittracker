@@ -5,123 +5,151 @@ struct ExerciseEditView: View {
     let trainingID: UUID
     let exerciseID: UUID
 
-    @State private var weight: Double = 20
-    @State private var reps: Int = 8
-    @Environment(\.horizontalSizeClass) private var hSize
+    // Titel-Editing analog WorkoutEditView
+    @State private var isEditingTitle = false
+    @State private var draftTitle = ""
+    @FocusState private var titleFocused: Bool
+
+    // Nur für Delete-Edit (kein Reorder)
+    @Environment(\.editMode) private var editMode
 
     var body: some View {
-        List {
-            if let exercise {
-                Section("Sätze") {
-                    ForEach(exercise.sets) { set in
-                        HStack {
-                            Text("\(Int(set.weightKg)) kg")
-                            Spacer()
-                            Text("\(set.repetition.value) Whd.")
+        ZStack {
+            List {
+                if let exercise {
+                    // -- Editierbarer Titel-Kasten (analog Workout) --
+                    Section {
+                        Group {
+                            if isEditingTitle {
+                                TextField("Übungsname", text: $draftTitle)
+                                    .font(.system(size: 34, weight: .bold))
+                                    .textInputAutocapitalization(.words)
+                                    .disableAutocorrection(true)
+                                    .focused($titleFocused)
+                                    .onAppear {
+                                        draftTitle = exercise.name
+                                        DispatchQueue.main.async { titleFocused = true }
+                                    }
+                                    .onSubmit { commitTitle() }
+                            } else {
+                                Text(exercise.name)
+                                    .font(.system(size: 34, weight: .bold))
+                                    .onTapGesture { isEditingTitle = true }
+                            }
                         }
+                        .padding(.vertical, 4)
                     }
-                    .onDelete { offsets in
-                        store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
-                    }
-                    
-                    Button {
-                        store.addSet(to: exerciseID, in: trainingID)
-                    } label: {
-                        Label("Satz hinzufügen", systemImage: "plus")
-                    }
-                                
-                }
-            }
-        }
-        .navigationTitle(exercise?.name ?? "Übung")
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { EditButton() } }
-    }
+                    // wirkt wie ein großer Titel
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    // -- Ende Titel --
 
-
-    // MARK: - Subviews
-
-    private func exerciseSetsList() -> some View {
-        List {
-            if let exercise {
-                Section("SÄTZE") {
-                    ForEach(exercise.sets) { set in
-                        HStack {
-                            Text("\(Int(set.weightKg)) kg")
-                            Spacer()
-                            Text("\(set.repetition.value) Whd.")
+                    // -- Sätze-Liste mit Header & Stift (ohne Verschieben) --
+                    Section {
+                        ForEach(exercise.sets) { set in
+                            HStack {
+                                Text("\(Int(set.weightKg)) kg")
+                                Spacer()
+                                Text("\(set.repetition.value) Whd.")
+                            }
                         }
+                        .onDelete { offsets in
+                            store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
+                        }
+                    } header: {
+                        HStack {
+                            Text("SÄTZE")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+                            Button {
+                                withAnimation {
+                                    // nur Delete-Modus toggeln (kein .onMove)
+                                    if editMode?.wrappedValue == .active {
+                                        editMode?.wrappedValue = .inactive
+                                    } else {
+                                        editMode?.wrappedValue = .active
+                                    }
+                                }
+                            } label: {
+                                if editMode?.wrappedValue == .active {
+                                    Text("Fertig")
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.blue)
+                                } else {
+                                    Image(systemName: "pencil")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .font(.system(size: 18, weight: .semibold))
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Sätze bearbeiten")
+                            .contentShape(Rectangle())
+                            .padding(.vertical, 8)
+                        }
+                        .textCase(nil)
+                        .padding(.horizontal, 0)
+                        .padding(.leading, 4)
+                        .padding(.trailing, 4)
                     }
-                    .onDelete { offsets in
-                        store.deleteSet(in: trainingID, exerciseID: exerciseID, at: offsets)
+                    // -- Ende Sätze-Liste --
+
+                    // -- Großer, prominenter Button: „Satz hinzufügen“ (analog „Übung hinzufügen“) --
+                    Section {
+                        HStack {
+                            Spacer()
+                            Button {
+                                store.addSet(to: exerciseID, in: trainingID)
+                            } label: {
+                                Label("Satz hinzufügen", systemImage: "plus")
+                                    .fontWeight(.semibold)
+                            }
+                            .labelStyle(.titleAndIcon)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .listRowBackground(Color.clear)
+                } else {
+                    Text("Übung nicht gefunden").foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("") // eigener großer Titel oben in der Liste
+            .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: titleFocused) { focused in
+                if !focused && isEditingTitle { commitTitle() }
+            }
+        }
+        // Tap außerhalb speichert den Titel (wie bei WorkoutEditView)
+        .background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if isEditingTitle {
+                        titleFocused = false // löst commitTitle() über onChange aus
                     }
                 }
-            } else {
-                Text("Übung nicht gefunden").foregroundStyle(.secondary)
-            }
-        }
+        )
     }
 
-    
-    private var controlsBar: some View {
-        Group {
-            if hSize == .compact {         // iPhone hochkant
-                VStack(spacing: 12) {
-                    weightControl
-                    repsControl
-                    addButton
-                }
-            } else {                        // Querformat / iPad
-                HStack(spacing: 16) {
-                    weightControl
-                    repsControl
-                    addButton
-                }
-            }
+    // MARK: - Helpers
+
+    private func commitTitle() {
+        let new = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !new.isEmpty else {
+            isEditingTitle = false
+            return
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
+        // Übungsnamen im Store aktualisieren
+        if let tIdx = store.trainings.firstIndex(where: { $0.id == trainingID }),
+           let eIdx = store.trainings[tIdx].exercises.firstIndex(where: { $0.id == exerciseID }) {
+            store.trainings[tIdx].exercises[eIdx].name = new
+        }
+        isEditingTitle = false
     }
 
-    private var weightControl: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Gewicht: \(weight, specifier: "%.1f") kg")
-                .font(.body)
-                .monospacedDigit()
-                .lineLimit(1)
-            Stepper(value: $weight, in: 0...500, step: 2.5) {
-                EmptyView()
-            }
-            .labelsHidden()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var repsControl: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Wdh.: \(reps)")
-                .font(.body)
-                .monospacedDigit()
-                .lineLimit(1)
-            Stepper(value: $reps, in: 1...50) {
-                EmptyView()
-            }
-            .labelsHidden()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var addButton: some View {
-        Button {
-            store.addSet(to: exerciseID, in: trainingID, weight: weight, reps: reps)
-        } label: {
-            Label("Hinzufügen", systemImage: "plus.circle.fill")
-                .font(.headline)
-        }
-        .buttonStyle(.borderedProminent)
-    }
-
-    // Dein Lookup (exercise) wie gehabt:
     private var exercise: Exercise? {
         guard let t = store.trainings.firstIndex(where: { $0.id == trainingID }) else { return nil }
         return store.trainings[t].exercises.first(where: { $0.id == exerciseID })
