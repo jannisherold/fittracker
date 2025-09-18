@@ -48,13 +48,11 @@ struct WorkoutEditView: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 // -- Ende: Editierbarer Titel --
 
-                Section("ÜBUNGEN") {
+                Section {
                     ForEach(training.exercises) { ex in
                         if editMode?.wrappedValue == .active {
-                            // Edit-Modus: kein Chevron, dafür erscheint der Drag-Handle automatisch
                             Text(ex.name)
                         } else {
-                            // Normal: Tippen öffnet die Detailansicht
                             NavigationLink(ex.name) {
                                 ExerciseDetailView(trainingID: trainingID, exerciseID: ex.id)
                             }
@@ -66,9 +64,36 @@ struct WorkoutEditView: View {
                     .onDelete { offsets in
                         store.deleteExercise(in: trainingID, at: offsets)
                     }
-
-                
+                } header: {
+                    HStack {
+                        Text("ÜBUNGEN")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button {
+                            withAnimation {
+                                if editMode?.wrappedValue == .active {
+                                    editMode?.wrappedValue = .inactive
+                                } else {
+                                    editMode?.wrappedValue = .active
+                                }
+                            }
+                        } label: {
+                            // 👉 Nur Icon im Default, nur Text "Fertig" im Edit-Modus
+                            if editMode?.wrappedValue == .active {
+                                Text("Fertig")
+                                    .fontWeight(.semibold)
+                            } else {
+                                Image(systemName: "pencil")
+                            }
+                        }
+                        .buttonStyle(.plain) // optisch wie im Mockup
+                        .accessibilityLabel("Übungen bearbeiten")
+                    }
+                    .padding(.horizontal, 16)
                 }
+
                 
                 Section {
                     HStack {
@@ -93,38 +118,12 @@ struct WorkoutEditView: View {
         }
         .navigationTitle("")     // wir zeigen unten unseren eigenen großen Titel
         .navigationBarTitleDisplayMode(.inline)
-        // 🔽 Leiste direkt unter dem großen Titel
-        .safeAreaInset(edge: .top) { headerControls }
-        // (Keine Toolbar mehr für Edit/+)
         
         .sheet(isPresented: $showingNewExercise) {
             AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
                 .environmentObject(store)
         }
         
-    }
-
-    // MARK: - Header unter Titel
-    private var headerControls: some View {
-        HStack {
-            Button {
-                // Toggle Edit-Modus der List
-                withAnimation {
-                    if editMode?.wrappedValue == .active {
-                        editMode?.wrappedValue = .inactive
-                    } else {
-                        editMode?.wrappedValue = .active
-                    }
-                }
-            } label: {
-                Label(editMode?.wrappedValue == .active ? "Fertig" : "Übungen bearbeiten",
-                      systemImage: "pencil")
-            }
-        }
-        .padding(.horizontal)
-        .padding(.bottom, 8)
-        //.background(.ultraThinMaterial)   // dezente Fläche unter dem Titel
-        //.shadow(radius: 0.5)
     }
 
     // MARK: - Titel speichern
