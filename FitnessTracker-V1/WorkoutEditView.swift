@@ -5,12 +5,14 @@ struct WorkoutEditView: View {
     let trainingID: UUID
 
     @State private var showingNewExercise = false
-    @Environment(\.editMode) private var editMode     // ← für eigenen Edit-Schalter
-    
+    @Environment(\.editMode) private var editMode
+
     @State private var isEditingTitle = false
     @State private var draftTitle = ""
     @FocusState private var titleFocused: Bool
 
+    // Programmgesteuerte Navigation in die Run-View
+    @State private var goRun = false
 
     private var training: Training? {
         store.trainings.first(where: { $0.id == trainingID })
@@ -20,35 +22,31 @@ struct WorkoutEditView: View {
         ZStack {
             List {
                 if let training {
-                    // -- Editierbarer Titel --
+                    // MARK: - Editierbarer Titel
                     Section {
                         Group {
                             if isEditingTitle {
                                 TextField("Workout-Titel", text: $draftTitle)
-                                    .font(.system(size: 34, weight: .bold))      // Optik wie großer Titel
+                                    .font(.system(size: 34, weight: .bold))
                                     .textInputAutocapitalization(.words)
                                     .disableAutocorrection(true)
                                     .focused($titleFocused)
                                     .onAppear {
                                         draftTitle = training.title
-                                        // Tastatur sofort öffnen
                                         DispatchQueue.main.async { titleFocused = true }
                                     }
                                     .onSubmit { commitTitle() }
                             } else {
                                 Text(training.title)
                                     .font(.system(size: 34, weight: .bold))
-                                    .onTapGesture {
-                                        isEditingTitle = true
-                                    }
+                                    .onTapGesture { isEditingTitle = true }
                             }
                         }
                         .padding(.vertical, 4)
                     }
-                    // etwas enger an den Rand, sieht wie ein Titel aus
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                    // -- Ende: Editierbarer Titel --
-                    
+
+                    // MARK: - Übungen
                     Section {
                         ForEach(training.exercises) { ex in
                             if editMode?.wrappedValue == .active {
@@ -70,9 +68,8 @@ struct WorkoutEditView: View {
                     } header: {
                         HStack {
                             Text("ÜBUNGEN")
-                                .font(.system(size: 15, weight: .semibold))   // größer
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.secondary)
-                            
                             Spacer()
                             Button {
                                 withAnimation {
@@ -83,7 +80,6 @@ struct WorkoutEditView: View {
                                     }
                                 }
                             } label: {
-                                // 👉 Nur Icon im Default, nur Text "Fertig" im Edit-Modus
                                 if editMode?.wrappedValue == .active {
                                     Text("Fertig")
                                         .fontWeight(.semibold)
@@ -94,20 +90,18 @@ struct WorkoutEditView: View {
                                 }
                             }
                             .font(.system(size: 18, weight: .semibold))
-                            .buttonStyle(.plain) // optisch wie im Mockup
+                            .buttonStyle(.plain)
                             .accessibilityLabel("Übungen bearbeiten")
                             .contentShape(Rectangle())
                             .padding(.vertical, 8)
-                            
                         }
                         .textCase(nil)
                         .padding(.horizontal, 0)
                         .padding(.leading, 4)
                         .padding(.trailing, 4)
-                        
                     }
-                    
-                    
+
+                    // MARK: - Übung hinzufügen (blauer CTA)
                     Section {
                         HStack {
                             Spacer()
@@ -124,32 +118,65 @@ struct WorkoutEditView: View {
                         }
                         .padding(.vertical, 8)
                     }
-                    // sorgt dafür, dass die Reihe wie „frei schwebend“ wirkt
                     .listRowBackground(Color.clear)
-                    
                 }
             }
-            
-            
-            .navigationTitle("")     // wir zeigen unten unseren eigenen großen Titel
-            .navigationBarTitleDisplayMode(.inline)
-            
-            .sheet(isPresented: $showingNewExercise) {
-                AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
-                    .environmentObject(store)
-            }
-            .onChange(of: titleFocused) { focused in
-                if !focused && isEditingTitle {
-                    commitTitle()
+
+            // ⬇️ Versteckter NavigationLink außerhalb der List (verhindert leere Zeile)
+            NavigationLink(
+                destination: WorkoutRunView(trainingID: trainingID).environmentObject(store),
+                isActive: $goRun
+            ) { EmptyView() }
+            .hidden()
+        }
+        // MARK: - View Modifiers (am ZStack, nicht am NavigationLink!)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingNewExercise) {
+            AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
+                .environmentObject(store)
+        }
+        .onChange(of: titleFocused) { focused in
+            if !focused && isEditingTitle { commitTitle() }
+        }
+        // MARK: - Bottom-Button wie im Mockup
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Button {
+                    goRun = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "play.fill")
+                            .imageScale(.large)
+                            .foregroundStyle(.blue)
+                        Text("Workout starten")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(.systemBackground))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
                 }
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
         }
         .background(
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if isEditingTitle {
-                        titleFocused = false   // beendet Edit und speichert via commitTitle()
+                        titleFocused = false // löst commitTitle() aus
                     }
                 }
         )
@@ -158,7 +185,6 @@ struct WorkoutEditView: View {
     // MARK: - Titel speichern
     private func commitTitle() {
         let new = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Leer? -> Abbrechen, zurück zu Anzeige
         guard !new.isEmpty else {
             isEditingTitle = false
             return
@@ -168,5 +194,4 @@ struct WorkoutEditView: View {
         }
         isEditingTitle = false
     }
-
 }
