@@ -97,7 +97,7 @@ struct WorkoutEditView: View {
                         .padding(.vertical, 8)
 
                     }
-                    .textCase(nil) 
+                    .textCase(nil)
                     .padding(.horizontal, 0)
                     .padding(.leading, 4)
                     .padding(.trailing, 4)
@@ -126,6 +126,15 @@ struct WorkoutEditView: View {
 
             }
         }
+        
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                if isEditingTitle {
+                    titleFocused = false   // löst oben .onChange aus → commitTitle()
+                }
+            }
+        )
+
         .navigationTitle("")     // wir zeigen unten unseren eigenen großen Titel
         .navigationBarTitleDisplayMode(.inline)
         
@@ -133,6 +142,12 @@ struct WorkoutEditView: View {
             AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
                 .environmentObject(store)
         }
+        .onChange(of: titleFocused) { focused in
+            if !focused && isEditingTitle {
+                commitTitle()
+            }
+        }
+
         
     }
 
