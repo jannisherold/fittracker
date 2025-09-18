@@ -67,9 +67,9 @@ struct WorkoutEditView: View {
                 } header: {
                     HStack {
                         Text("ÜBUNGEN")
-                            .font(.caption)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 15, weight: .semibold))   // größer
                             .foregroundColor(.secondary)
+
                         Spacer()
                         Button {
                             withAnimation {
@@ -84,14 +84,24 @@ struct WorkoutEditView: View {
                             if editMode?.wrappedValue == .active {
                                 Text("Fertig")
                                     .fontWeight(.semibold)
+                                    .foregroundColor(.blue)
                             } else {
                                 Image(systemName: "pencil")
+                                    .foregroundColor(.blue)
                             }
                         }
+                        .font(.system(size: 18, weight: .semibold))
                         .buttonStyle(.plain) // optisch wie im Mockup
                         .accessibilityLabel("Übungen bearbeiten")
+                        .contentShape(Rectangle())
+                        .padding(.vertical, 8)
+
                     }
-                    .padding(.horizontal, 16)
+                    .textCase(nil) 
+                    .padding(.horizontal, 0)
+                    .padding(.leading, 4)
+                    .padding(.trailing, 4)
+
                 }
 
                 
