@@ -69,6 +69,26 @@ struct WorkoutEditView: View {
 
                 
                 }
+                
+                Section {
+                    HStack {
+                        Spacer()
+                        Button {
+                            showingNewExercise = true
+                        } label: {
+                            Label("Übung hinzufügen", systemImage: "plus")
+                                .fontWeight(.semibold)
+                        }
+                        .labelStyle(.titleAndIcon)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
+                // sorgt dafür, dass die Reihe wie „frei schwebend“ wirkt
+                .listRowBackground(Color.clear)
+
             }
         }
         .navigationTitle("")     // wir zeigen unten unseren eigenen großen Titel
@@ -100,16 +120,6 @@ struct WorkoutEditView: View {
                 Label(editMode?.wrappedValue == .active ? "Fertig" : "Übungen bearbeiten",
                       systemImage: "pencil")
             }
-
-            Spacer()
-
-            Button {
-                showingNewExercise = true
-            } label: {
-                Label("Übung", systemImage: "plus")
-                    .fontWeight(.semibold)
-            }
-            .buttonStyle(.borderedProminent)
         }
         .padding(.horizontal)
         .padding(.bottom, 8)
