@@ -14,52 +14,85 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack(path: $router.path) {
-            List {
-                ForEach(store.trainings) { t in
-                    // Tippen startet das Workout (Route)
-                    NavigationLink(t.title, value: Route.workoutRun(trainingID: t.id))
+            ZStack {
+                // Hintergrund wie im Mockup
+                Color(.systemGray6).ignoresSafeArea()
 
-                    // Long-Press Menü: Bearbeiten + Löschen (mit Bestätigung)
-                    .contextMenu {
-                        NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
-                            Label("Bearbeiten", systemImage: "pencil")
-                        }
+                VStack(alignment: .leading, spacing: 16) {
 
-                        Button(role: .destructive) {
-                            pendingDeleteID = t.id
-                            showDeleteAlert = true
+                    // 1) Oben zentriert: "progress."
+                    Text("progress.")
+                        .font(.title2.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 8)
+
+                    // 2) Zeile mit blauem "Workouts" + schwarzem Plus rechts
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Workouts")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(Color(.systemBlue))
+                            .accessibilityAddTraits(.isHeader)
+
+                        Spacer()
+
+                        Button {
+                            showingNew = true
                         } label: {
-                            Label("Löschen", systemImage: "trash")
+                            Image(systemName: "plus")
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 2)
+                                .contentShape(Rectangle())
                         }
-                    }
-                }
-                // 👉 kein .onDelete hier – Löschen erfolgt nur über Long-Press mit Alert
-            }
-            .navigationTitle("Workouts")
-            .toolbar {
-                // Nur noch der "+"-Button
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingNew = true } label: { Image(systemName: "plus") }
                         .accessibilityLabel("Neues Training")
-                }
-            }
-            // Sicherheitsabfrage vor dem Löschen
-            .alert("Workout löschen?", isPresented: $showDeleteAlert) {
-                Button("Löschen", role: .destructive) {
-                    if let id = pendingDeleteID,
-                       let idx = store.trainings.firstIndex(where: { $0.id == id }) {
-                        store.deleteTraining(at: IndexSet(integer: idx))
                     }
-                    pendingDeleteID = nil
-                }
-                Button("Abbrechen", role: .cancel) {
-                    pendingDeleteID = nil
-                }
-            } message: {
-                Text("Dieser Vorgang kann nicht rückgängig gemacht werden.")
-            }
+                    .padding(.top, 4)
 
-            // Route -> konkrete Views
+                    // 3) Karten-Liste mit Schatten
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            ForEach(store.trainings) { t in
+                                NavigationLink(value: Route.workoutRun(trainingID: t.id)) {
+                                    HStack {
+                                        Text(t.title)
+                                            .font(.body)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.headline)
+                                            .foregroundColor(.gray.opacity(0.5))
+                                    }
+                                    .padding(.vertical, 14)
+                                    .padding(.horizontal, 18)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(Color.white)
+                                            //.shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 0)
+                                    )
+                                }
+                                // Long-Press: Bearbeiten / Löschen (wie vorher)
+                                .contextMenu {
+                                    NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
+                                        Label("Bearbeiten", systemImage: "pencil")
+                                    }
+                                    Button(role: .destructive) {
+                                        pendingDeleteID = t.id
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Label("Löschen", systemImage: "trash")
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 20)
+            }
+            // Routing bleibt identisch
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .workoutRun(let id):
@@ -76,10 +109,11 @@ struct ContentView: View {
                         .environmentObject(store)
                 }
             }
+            // Wichtig: Keine .navigationTitle / .toolbar mehr, Header ist nun custom
         }
         .environmentObject(router) // Router global verfügbar
 
-        // Sheet zum Anlegen eines neuen Trainings (wie gehabt)
+        // Sheet zum Anlegen eines neuen Trainings (unverändert)
         .sheet(isPresented: $showingNew) {
             NavigationStack {
                 Form {
@@ -105,6 +139,21 @@ struct ContentView: View {
                 }
             }
             .presentationDetents([.height(220)])
+        }
+        // Sicherheitsabfrage vor dem Löschen (unverändert)
+        .alert("Workout löschen?", isPresented: $showDeleteAlert) {
+            Button("Löschen", role: .destructive) {
+                if let id = pendingDeleteID,
+                   let idx = store.trainings.firstIndex(where: { $0.id == id }) {
+                    store.deleteTraining(at: IndexSet(integer: idx))
+                }
+                pendingDeleteID = nil
+            }
+            Button("Abbrechen", role: .cancel) {
+                pendingDeleteID = nil
+            }
+        } message: {
+            Text("Dieser Vorgang kann nicht rückgängig gemacht werden.")
         }
     }
 }
