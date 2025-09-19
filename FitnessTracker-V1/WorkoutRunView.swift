@@ -3,13 +3,12 @@ import UIKit
 
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject private var router: Router
+
     let trainingID: UUID
     
     @State private var showResetConfirm = false
     @State private var expandedSetID: UUID? = nil
-
-    // ⬇️ NEU: programmgesteuerte Navigation zur Edit-View
-    @State private var goEdit = false
 
     var body: some View {
         if training.exercises.isEmpty {
@@ -20,10 +19,8 @@ struct WorkoutRunView: View {
                     .foregroundColor(.secondary)
                     .padding()
                 
-                NavigationLink {
-                    AddExerciseView(trainingID: trainingID, afterSave: .goToEdit)
-                        .environmentObject(store)
-                } label: {
+                // Push zur AddExercise; nach Speichern -> zurück zur Edit (per Router)
+                NavigationLink(value: Route.addExercise(trainingID: trainingID)) {
                     Label("Übungen hinzufügen", systemImage: "plus")
                         .font(.headline)
                         .padding()
@@ -35,6 +32,13 @@ struct WorkoutRunView: View {
                 Spacer()
             }
             .navigationTitle(training.title)
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel("Zur Startansicht")
+                }
+            }
         } else {
             // --- Mit Übungen ---
             ZStack {
@@ -57,16 +61,17 @@ struct WorkoutRunView: View {
                                     set: set,
                                     expandedSetID: $expandedSetID
                                 )
+                                .environmentObject(store)
                             }
                         }
                     }
                     
-                    // ⬇️ Letzte Section: Chip-Button ohne Chevron
+                    // Letzte Section: Chip-Button „Workout bearbeiten“ (ohne Chevron)
                     Section {
                         HStack {
                             Spacer()
                             Button {
-                                goEdit = true
+                                router.go(.workoutEdit(trainingID: trainingID))
                             } label: {
                                 HStack(spacing: 10) {
                                     Image(systemName: "pencil")
@@ -86,7 +91,6 @@ struct WorkoutRunView: View {
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
-                                //.shadow(color: .black.opacity(0.06), radius: 6, y: 2)
                             }
                             .buttonStyle(.plain)
                             Spacer()
@@ -95,18 +99,16 @@ struct WorkoutRunView: View {
                     }
                     .listRowBackground(Color.clear)
                 }
-
-                // ⬇️ Versteckter Link (programmgesteuerte Navigation, kein Chevron)
-                NavigationLink(
-                    destination: WorkoutEditView(trainingID: trainingID).environmentObject(store),
-                    isActive: $goEdit
-                ) { EmptyView() }
-                .hidden()
             }
             .scrollDismissesKeyboard(.immediately)
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .navigationTitle(training.title)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel("Zur Startansicht")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showResetConfirm = true
@@ -151,8 +153,7 @@ struct WorkoutRunView: View {
     }
 }
 
-// … (NotesEditor, GrowingTextView, SetRow bleiben unverändert)
-
+// … (NotesEditor, GrowingTextView bleiben unverändert aus deinem Stand)
 
 // MARK: - NotesEditor mit dynamischer Höhe + Placeholder
 private struct NotesEditor: View {
@@ -238,7 +239,7 @@ private struct GrowingTextView: UIViewRepresentable {
     }
 }
 
-// MARK: - SetRow
+// MARK: - SetRow (unverändert außer Environment und Helper-Aufrufen)
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID

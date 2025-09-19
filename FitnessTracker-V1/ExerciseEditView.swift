@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ExerciseEditView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject private var router: Router
+
     let trainingID: UUID
     let exerciseID: UUID
 
@@ -94,7 +96,7 @@ struct ExerciseEditView: View {
                     }
                     // -- Ende Sätze-Liste --
 
-                    // -- Großer, prominenter Button: „Satz hinzufügen“ (analog „Übung hinzufügen“) --
+                    // -- Großer, prominenter Button: „Satz hinzufügen“ --
                     Section {
                         HStack {
                             Spacer()
@@ -132,6 +134,18 @@ struct ExerciseEditView: View {
                     }
                 }
         )
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    // immer zurück zur WorkoutEditView für dasselbe Training
+                    router.replaceTop(with: .workoutEdit(trainingID: trainingID))
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Zur Workout-Bearbeitung")
+            }
+        }
     }
 
     // MARK: - Helpers

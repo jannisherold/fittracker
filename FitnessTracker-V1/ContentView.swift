@@ -3,6 +3,8 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var store: Store
 
+    @StateObject private var router = Router()   // zentraler Router/Path
+
     @State private var showingNew = false
     @State private var newTitle = ""
 
@@ -11,18 +13,15 @@ struct ContentView: View {
     @State private var pendingDeleteID: UUID? = nil   // Training.ID (UUID)
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $router.path) {
             List {
                 ForEach(store.trainings) { t in
-                    // Standard: Tippen startet das Workout
-                    NavigationLink(t.title) {
-                        WorkoutRunView(trainingID: t.id)
-                    }
+                    // Tippen startet das Workout (Route)
+                    NavigationLink(t.title, value: Route.workoutRun(trainingID: t.id))
+
                     // Long-Press Menü: Bearbeiten + Löschen (mit Bestätigung)
                     .contextMenu {
-                        NavigationLink {
-                            WorkoutEditView(trainingID: t.id)
-                        } label: {
+                        NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
                             Label("Bearbeiten", systemImage: "pencil")
                         }
 
@@ -40,12 +39,8 @@ struct ContentView: View {
             .toolbar {
                 // Nur noch der "+"-Button
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingNew = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Neues Training")
+                    Button { showingNew = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("Neues Training")
                 }
             }
             // Sicherheitsabfrage vor dem Löschen
@@ -63,8 +58,28 @@ struct ContentView: View {
             } message: {
                 Text("Dieser Vorgang kann nicht rückgängig gemacht werden.")
             }
+
+            // Route -> konkrete Views
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .workoutRun(let id):
+                    WorkoutRunView(trainingID: id)
+                        .environmentObject(store)
+                case .workoutEdit(let id):
+                    WorkoutEditView(trainingID: id)
+                        .environmentObject(store)
+                case .exerciseEdit(let tid, let eid):
+                    ExerciseEditView(trainingID: tid, exerciseID: eid)
+                        .environmentObject(store)
+                case .addExercise(let tid):
+                    AddExerciseView(trainingID: tid, afterSave: .goToEdit)
+                        .environmentObject(store)
+                }
+            }
         }
-        // Sheet zum Anlegen eines neuen Trainings
+        .environmentObject(router) // Router global verfügbar
+
+        // Sheet zum Anlegen eines neuen Trainings (wie gehabt)
         .sheet(isPresented: $showingNew) {
             NavigationStack {
                 Form {

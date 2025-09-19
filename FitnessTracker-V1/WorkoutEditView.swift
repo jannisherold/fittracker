@@ -2,6 +2,8 @@ import SwiftUI
 
 struct WorkoutEditView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject private var router: Router
+
     let trainingID: UUID
 
     @State private var showingNewExercise = false
@@ -10,9 +12,6 @@ struct WorkoutEditView: View {
     @State private var isEditingTitle = false
     @State private var draftTitle = ""
     @FocusState private var titleFocused: Bool
-
-    // Programmgesteuerte Navigation in die Run-View
-    @State private var goRun = false
 
     private var training: Training? {
         store.trainings.first(where: { $0.id == trainingID })
@@ -52,9 +51,7 @@ struct WorkoutEditView: View {
                             if editMode?.wrappedValue == .active {
                                 Text(ex.name)
                             } else {
-                                NavigationLink {
-                                    ExerciseEditView(trainingID: trainingID, exerciseID: ex.id)
-                                } label: {
+                                NavigationLink(value: Route.exerciseEdit(trainingID: trainingID, exerciseID: ex.id)) {
                                     Text(ex.name)
                                 }
                             }
@@ -105,9 +102,7 @@ struct WorkoutEditView: View {
                     Section {
                         HStack {
                             Spacer()
-                            Button {
-                                showingNewExercise = true
-                            } label: {
+                            Button { showingNewExercise = true } label: {
                                 Label("Übung hinzufügen", systemImage: "plus")
                                     .fontWeight(.semibold)
                             }
@@ -121,20 +116,27 @@ struct WorkoutEditView: View {
                     .listRowBackground(Color.clear)
                 }
             }
-
-            // ⬇️ Versteckter NavigationLink außerhalb der List (verhindert leere Zeile)
-            NavigationLink(
-                destination: WorkoutRunView(trainingID: trainingID).environmentObject(store),
-                isActive: $goRun
-            ) { EmptyView() }
-            .hidden()
         }
-        // MARK: - View Modifiers (am ZStack, nicht am NavigationLink!)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    // Egal woher: zurück in die Run-View dieses Workouts
+                    router.setRoot([.workoutRun(trainingID: trainingID)])
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Zur Workout-Ansicht")
+            }
+        }
         .sheet(isPresented: $showingNewExercise) {
-            AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
-                .environmentObject(store)
+            // Stack HIER, nicht in AddExerciseView (damit Titel/Buttons angezeigt werden)
+            NavigationStack {
+                AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
+                    .environmentObject(store)
+            }
         }
         .onChange(of: titleFocused) { focused in
             if !focused && isEditingTitle { commitTitle() }
@@ -143,7 +145,7 @@ struct WorkoutEditView: View {
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Button {
-                    goRun = true
+                    router.go(.workoutRun(trainingID: trainingID))
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "play.fill")
