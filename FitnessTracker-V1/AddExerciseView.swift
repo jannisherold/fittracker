@@ -24,6 +24,7 @@ struct AddExerciseView: View {
         .onTapGesture { hideKeyboard() }
         .navigationTitle("Übung hinzufügen")
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {

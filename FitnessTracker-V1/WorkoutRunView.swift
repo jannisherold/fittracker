@@ -33,6 +33,7 @@ struct WorkoutRunView: View {
             }
             .navigationTitle(training.title)
             .navigationBarBackButtonHidden(true)
+            .toolbar(.hidden, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
@@ -104,6 +105,7 @@ struct WorkoutRunView: View {
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .navigationTitle(training.title)
             .navigationBarBackButtonHidden(true)
+            .toolbar(.hidden, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
@@ -152,6 +154,7 @@ struct WorkoutRunView: View {
         NotesEditor(text: binding)
     }
 }
+    
 
 // … (NotesEditor, GrowingTextView bleiben unverändert aus deinem Stand)
 

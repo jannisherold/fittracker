@@ -135,6 +135,7 @@ struct ExerciseEditView: View {
                 }
         )
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
