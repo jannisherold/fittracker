@@ -52,6 +52,7 @@ struct ContentView: View {
                     ScrollView {
                         VStack(spacing: 8) {
                             ForEach(store.trainings) { t in
+                                
                                 NavigationLink(value: Route.workoutRun(trainingID: t.id)) {
                                     HStack {
                                         Text(t.title)
@@ -66,7 +67,7 @@ struct ContentView: View {
                                     .padding(.vertical, 14)
                                     .padding(.horizontal, 18)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 15, style: .continuous)
                                             .fill(Color.white)
                                             //.shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 0)
                                     )

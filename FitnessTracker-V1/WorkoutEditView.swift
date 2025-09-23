@@ -147,6 +147,7 @@ struct WorkoutEditView: View {
             HStack {
                 Button {
                     router.go(.workoutRun(trainingID: trainingID))
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "play.fill")

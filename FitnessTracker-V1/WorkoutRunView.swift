@@ -53,7 +53,7 @@ struct WorkoutRunView: View {
                                 .foregroundColor(.blue)
                         ) {
                             notesEditor(for: ex.id)
-                                .listRowInsets(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 5))
+                                .listRowInsets(EdgeInsets(top: 5, leading: 5, bottom: 5, trailing: 5))
                             
                             ForEach(ex.sets) { set in
                                 SetRow(
@@ -287,7 +287,7 @@ private struct SetRow: View {
                         .fontWeight(.semibold)
                         .onTapGesture { withAnimation(.easeInOut) { expandedSetID = isExpanded ? nil : set.id } }
                     Spacer()
-                    Text("\(tempReps) Whd.")
+                    Text("\(tempReps) Wdh.")
                         .fontWeight(.semibold)
                         .onTapGesture { withAnimation(.easeInOut) { expandedSetID = isExpanded ? nil : set.id } }
                 }
@@ -327,6 +327,8 @@ private struct SetRow: View {
                                 get: { tempReps },
                                 set: { new in
                                     store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, reps: new)
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                
                                 }
                             ),
                             in: 0...50
