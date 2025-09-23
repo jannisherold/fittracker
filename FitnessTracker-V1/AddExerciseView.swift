@@ -39,12 +39,7 @@ struct AddExerciseView: View {
                 }
                 .accessibilityLabel("Zur Workout-Bearbeitung")
             }
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Abbrechen") {
-                    (afterSave == .dismiss) ? dismiss()
-                                            : router.replaceTop(with: .workoutEdit(trainingID: trainingID))
-                }
-            }
+            
             ToolbarItem(placement: .confirmationAction) {
                 Button("Speichern") {
                     let n = name.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -187,7 +187,7 @@ private struct NotesEditor: View {
             .padding(10)
         }
         .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
