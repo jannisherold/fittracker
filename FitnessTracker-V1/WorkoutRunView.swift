@@ -112,12 +112,15 @@ struct WorkoutRunView: View {
                         .accessibilityLabel("Zur Startansicht")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showResetConfirm = true
-                    } label: {
-                        Label("Session zurücksetzen", systemImage: "arrow.counterclockwise")
+                    if hasAnyCompletedSets {
+                        Button {
+                            showResetConfirm = true
+                        } label: {
+                            Label("Session zurücksetzen", systemImage: "arrow.counterclockwise")
+                        }
                     }
                 }
+
             }
             .confirmationDialog(
                 "Session zurücksetzen?",
@@ -136,6 +139,13 @@ struct WorkoutRunView: View {
     private var training: Training {
         store.trainings.first(where: { $0.id == trainingID }) ?? Training(title: "Training")
     }
+    
+    private var hasAnyCompletedSets: Bool {
+        training.exercises.contains { ex in
+            ex.sets.contains { $0.isDone }
+        }
+    }
+
     
     // MARK: - Subview: Notizen
     @ViewBuilder
