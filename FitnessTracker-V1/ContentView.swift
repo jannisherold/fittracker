@@ -72,6 +72,11 @@ struct ContentView: View {
                                             //.shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 0)
                                     )
                                 }
+                                .simultaneousGesture(
+                                    TapGesture().onEnded {
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    }
+                                )
                                 // Long-Press: Bearbeiten / Löschen (wie vorher)
                                 .contextMenu {
                                     NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
