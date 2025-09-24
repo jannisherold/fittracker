@@ -18,7 +18,7 @@ struct WorkoutRunView: View {
         if training.exercises.isEmpty {
             // --- Leerer Zustand ---
             VStack{
-                Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt")
+                Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt.")
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding()
@@ -88,11 +88,11 @@ struct WorkoutRunView: View {
                                 .padding(.vertical, 12)
                                 .padding(.horizontal, 16)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 25, style: .continuous)
                                         .fill(Color(.systemBackground))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 25, style: .continuous)
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
                             }
@@ -125,7 +125,7 @@ struct WorkoutRunView: View {
                 }
                 Button("Abbrechen", role: .cancel) { }
             } message: {
-                Text("Die Session wird beendet und die Bestwerte je Übung gespeichert.")
+                Text("Das Training wird beendet und die Bestwerte je Übung gespeichert.")
             }
         }
     }

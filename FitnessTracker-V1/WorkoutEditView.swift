@@ -50,9 +50,11 @@ struct WorkoutEditView: View {
                         ForEach(training.exercises) { ex in
                             if editMode?.wrappedValue == .active {
                                 Text(ex.name)
+                                    .font(.system(size: 16, weight: .semibold))
                             } else {
                                 NavigationLink(value: Route.exerciseEdit(trainingID: trainingID, exerciseID: ex.id)) {
                                     Text(ex.name)
+                                        .font(.system(size: 16, weight: .semibold))
                                 }
                             }
                         }
@@ -160,14 +162,14 @@ struct WorkoutEditView: View {
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
                     .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
                             .fill(Color(.systemBackground))
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    /*.overlay(
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
-                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)*/
                 }
                 .buttonStyle(.plain)
             }

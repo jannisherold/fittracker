@@ -16,11 +16,12 @@ struct WorkoutView: View {
             List {
                 if store.trainings.isEmpty {
                     Section {
-                        Text("Noch keine Workouts vorhanden.")
+                        Text("Tippe oben rechts auf „+“ um ein Workout anzulegen.")
                             .foregroundStyle(.secondary)
-                        Text("Tippe oben rechts auf „+“, um ein Training anzulegen.")
+                        
+                        /*Text("Tippe oben rechts auf „+“, um ein Training anzulegen.")
                             .font(.subheadline)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.tertiary)*/
                     }
                 } else {
                     ForEach(store.trainings) { t in

@@ -11,7 +11,7 @@ struct ProgressDetailView: View {
         List {
             if training.exercises.isEmpty {
                 Section {
-                    Text("Dieses Workout hat noch keine Übungen.")
+                    Text("Dieses Workout hat noch keine Übungen")
                         .foregroundStyle(.secondary)
                 }
             } else {
@@ -22,7 +22,7 @@ struct ProgressDetailView: View {
                                 .font(.headline)
 
                             if points(for: ex.id).isEmpty {
-                                Text("Noch keine Daten aus Sessions.")
+                                Text("Noch keine Daten aus Sessions")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             } else {
@@ -63,7 +63,7 @@ struct ProgressDetailView: View {
 
                                 // Kleiner Meta-Block unten
                                 if let last = lastPoint(for: ex.id) {
-                                    Text("Aktuell: \(formatKg(last.weight)) kg • \(last.date.formatted(date: .abbreviated, time: .omitted))")
+                                    Text("Aktuell: \(formatKg(last.weight)) kg - \(last.date.formatted(date: .abbreviated, time: .omitted))")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
