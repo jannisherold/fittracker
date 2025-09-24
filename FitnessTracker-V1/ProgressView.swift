@@ -1,5 +1,4 @@
 import SwiftUI
-
 /// Einstieg in den Progress-Tab:
 /// Zeigt alle Workouts an. Tippt man eines an, geht es zur Trainings-Progress-Ansicht.
 struct ProgressView: View {
@@ -18,11 +17,11 @@ struct ProgressView: View {
                     }
                 } else {
                     ForEach(store.trainings) { t in
-                        NavigationLink {
-                            TrainingProgressView(trainingID: t.id)
-                        } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 6) {
+                        Section {
+                            NavigationLink {
+                                TrainingProgressView(trainingID: t.id)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
                                     Text(t.title)
                                         .font(.headline)
                                     if let last = t.sessions.first?.endedAt {
@@ -35,16 +34,16 @@ struct ProgressView: View {
                                             .foregroundStyle(.secondary)
                                     }
                                 }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.tertiary)
+                                .padding(.vertical, 2)
                             }
-                            .padding(.vertical, 4)
                         }
                     }
                 }
             }
             .navigationTitle("Progress")
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
+            
         }
     }
 }
