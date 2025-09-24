@@ -12,7 +12,7 @@ struct RootTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             // 1) WORKOUT
-            ContentView()
+            WorkoutView()
                 .environmentObject(store)
                 .tabItem {
                     Label("Workout", systemImage: "dumbbell")

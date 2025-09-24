@@ -54,6 +54,7 @@ struct AddExerciseView: View {
                     }
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .foregroundColor(.blue)
             }
         }
     }

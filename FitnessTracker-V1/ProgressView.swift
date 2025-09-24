@@ -19,7 +19,7 @@ struct ProgressView: View {
                     ForEach(store.trainings) { t in
                         Section {
                             NavigationLink {
-                                TrainingProgressView(trainingID: t.id)
+                                ProgressDetailView(trainingID: t.id)
                             } label: {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(t.title)

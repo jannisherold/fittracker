@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 /// Zeigt pro Übung eines Workouts einen kleinen Verlauf (X = Sessions, Y = Gewicht).
-struct TrainingProgressView: View {
+struct ProgressDetailView: View {
     @EnvironmentObject var store: Store
 
     let trainingID: UUID
