@@ -6,8 +6,12 @@ struct WorkoutRunView: View {
     @EnvironmentObject private var router: Router
 
     let trainingID: UUID
-    
-    @State private var showResetConfirm = false
+
+    // Session-Handling
+    @State private var didStartSession = false
+    @State private var showEndConfirm = false
+
+    // UI-State
     @State private var expandedSetID: UUID? = nil
 
     var body: some View {
@@ -18,8 +22,7 @@ struct WorkoutRunView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding()
-                
-                // Push zur AddExercise; nach Speichern -> zurück zur Edit (per Router)
+
                 NavigationLink(value: Route.addExercise(trainingID: trainingID)) {
                     Label("Übungen hinzufügen", systemImage: "plus")
                         .font(.headline)
@@ -28,7 +31,7 @@ struct WorkoutRunView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal)
-                
+
                 Spacer()
             }
             .navigationTitle(training.title)
@@ -40,11 +43,11 @@ struct WorkoutRunView: View {
                         .accessibilityLabel("Zur Startansicht")
                 }
             }
+            .onAppear { startSessionIfNeeded() }
         } else {
             // --- Mit Übungen ---
             ZStack {
                 List {
-                    // Übungen + Notizen + Sets
                     ForEach(training.exercises) { ex in
                         Section(
                             header: Text(ex.name.uppercased())
@@ -54,7 +57,7 @@ struct WorkoutRunView: View {
                         ) {
                             notesEditor(for: ex.id)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 5, bottom: 5, trailing: 5))
-                            
+
                             ForEach(ex.sets) { set in
                                 SetRow(
                                     trainingID: trainingID,
@@ -66,8 +69,8 @@ struct WorkoutRunView: View {
                             }
                         }
                     }
-                    
-                    // Letzte Section: Chip-Button „Workout bearbeiten“ (ohne Chevron)
+
+                    // Letzte Section: Chip-Button „Workout bearbeiten“
                     Section {
                         HStack {
                             Spacer()
@@ -108,29 +111,21 @@ struct WorkoutRunView: View {
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
-                        .accessibilityLabel("Zur Startansicht")
+                    Button {
+                        showEndConfirm = true
+                    } label: { Image(systemName: "chevron.left") }
+                    .accessibilityLabel("Workout beenden")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if hasAnyCompletedSets {
-                        Button {
-                            showResetConfirm = true
-                        } label: {
-                            Label("Session zurücksetzen", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
-
+                // ⛔️ Kein Reset-Button mehr
             }
-            .confirmationDialog(
-                "Session zurücksetzen?",
-                isPresented: $showResetConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Alle Häkchen entfernen", role: .destructive) {
-                    store.resetSession(trainingID: trainingID)
+            .onAppear { startSessionIfNeeded() }
+            .alert("Workout beenden?", isPresented: $showEndConfirm) {
+                Button("Bestätigen", role: .destructive) {
+                    endSessionAndLeave()
                 }
                 Button("Abbrechen", role: .cancel) { }
+            } message: {
+                Text("Die Session wird beendet und die Bestwerte je Übung gespeichert.")
             }
         }
     }
@@ -139,14 +134,21 @@ struct WorkoutRunView: View {
     private var training: Training {
         store.trainings.first(where: { $0.id == trainingID }) ?? Training(title: "Training")
     }
-    
-    private var hasAnyCompletedSets: Bool {
-        training.exercises.contains { ex in
-            ex.sets.contains { $0.isDone }
-        }
+
+    // MARK: - Session
+    private func startSessionIfNeeded() {
+        guard !didStartSession else { return }
+        didStartSession = true
+        store.beginSession(trainingID: trainingID) // setzt alle Sätze auf „abgehakt“
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    
+    private func endSessionAndLeave() {
+        store.endSession(trainingID: trainingID)   // speichert Max-Gewichte + Enddatum
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        router.popToRoot()
+    }
+
     // MARK: - Subview: Notizen
     @ViewBuilder
     private func notesEditor(for exerciseID: UUID) -> some View {
@@ -164,11 +166,8 @@ struct WorkoutRunView: View {
         NotesEditor(text: binding)
     }
 }
-    
 
-// … (NotesEditor, GrowingTextView bleiben unverändert aus deinem Stand)
-
-// MARK: - NotesEditor mit dynamischer Höhe + Placeholder
+// MARK: - NotesEditor (unverändert)
 private struct NotesEditor: View {
     @Binding var text: String
     @State private var dynamicHeight: CGFloat = 0
@@ -239,7 +238,7 @@ private struct GrowingTextView: UIViewRepresentable {
             }
         }
     }
-    
+
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject, UITextViewDelegate {
@@ -252,7 +251,7 @@ private struct GrowingTextView: UIViewRepresentable {
     }
 }
 
-// MARK: - SetRow (unverändert außer Environment und Helper-Aufrufen)
+// MARK: - SetRow (wie gehabt; keine Session-spezifischen Änderungen nötig)
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
@@ -338,7 +337,6 @@ private struct SetRow: View {
                                 set: { new in
                                     store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, reps: new)
                                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                
                                 }
                             ),
                             in: 0...50
@@ -370,7 +368,6 @@ private struct SetRow: View {
         .animation(.default, value: set.isDone)
     }
 
-    // MARK: - Helpers
     private func pushWeight() {
         store.updateSet(in: trainingID, exerciseID: exerciseID, setID: set.id, weight: combinedWeight)
     }

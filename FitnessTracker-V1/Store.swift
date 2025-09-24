@@ -104,6 +104,31 @@ final class Store: ObservableObject {
         }
     }
 
+    // Alle Sätze eines Trainings auf "abgehakt" setzen – Sessionstart
+    func beginSession(trainingID: UUID) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        for e in trainings[t].exercises.indices {
+            for s in trainings[t].exercises[e].sets.indices {
+                trainings[t].exercises[e].sets[s].isDone = false
+            }
+        }
+    }
+
+    // Session beenden: je Übung Maximalgewicht berechnen + speichern
+    func endSession(trainingID: UUID) {
+        guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
+        let exs = trainings[t].exercises
+
+        var map: [UUID: Double] = [:]
+        for ex in exs {
+            let maxW = ex.sets.map { $0.weightKg }.max() ?? 0
+            map[ex.id] = maxW
+        }
+
+        let session = WorkoutSession(endedAt: Date(), maxWeightPerExercise: map)
+        trainings[t].sessions.insert(session, at: 0)
+    }
+
     
     
     // MARK: - Persistence

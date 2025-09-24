@@ -34,4 +34,13 @@ struct Training: Identifiable, Codable {
     var title: String
     var date: Date = .now
     var exercises: [Exercise] = []
+    var sessions: [WorkoutSession] = [] 
+}
+
+// Session-Modell: speichert je Übung das Maximalgewicht + Enddatum
+struct WorkoutSession: Identifiable, Codable {
+    var id: UUID = UUID()
+    var endedAt: Date
+    // Mapping: Exercise.ID -> Maximalgewicht innerhalb dieser Session
+    var maxWeightPerExercise: [UUID: Double]
 }
