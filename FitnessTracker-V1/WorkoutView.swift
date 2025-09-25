@@ -10,6 +10,10 @@ struct WorkoutView: View {
     // Löschen-Bestätigung (unverändert)
     @State private var showDeleteAlert = false
     @State private var pendingDeleteID: UUID? = nil
+    
+    @State private var showStartAlert = false
+    @State private var pendingStartID: UUID? = nil
+
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -26,12 +30,31 @@ struct WorkoutView: View {
                 } else {
                     ForEach(store.trainings) { t in
                         Section {
-                            NavigationLink(value: Route.workoutRun(trainingID: t.id)) {
-                                Text(t.title)
-                                    .font(.headline)
-                                    .padding(.vertical, 2)
+                            // Statt direktem NavigationLink: erst bestätigen lassen
+                            Button {
+                                if t.exercises.isEmpty {
+                                        // direkt weiterleiten ohne Alert
+                                        router.go(.workoutRun(trainingID: t.id))
+                                } else {
+                                    pendingStartID = t.id
+                                    showStartAlert = true
+                                }
+                            } label: {
+                                HStack {
+                                    Text(t.title)
+                                        .font(.headline)
+                                        .padding(.vertical, 8) // optional: größere Hit-Area
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading) // nimmt die ganze Zellbreite
+                                .contentShape(Rectangle()) // macht die ganze Fläche tappbar
                             }
-                            // Long-Press: Bearbeiten / Löschen (wie gehabt)
+                            .buttonStyle(.plain)
+
+
+                            // Long-Press: Bearbeiten / Löschen (unverändert)
                             .contextMenu {
                                 NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
                                     Label("Bearbeiten", systemImage: "pencil")
@@ -45,6 +68,7 @@ struct WorkoutView: View {
                             }
                         }
                     }
+
                 }
             }
             .listStyle(.insetGrouped)
@@ -109,6 +133,23 @@ struct WorkoutView: View {
             }
             .presentationDetents([.height(220)])
         }
+        .alert("Workout starten?", isPresented: $showStartAlert) {
+            Button("Abbrechen", role: .cancel) {
+                pendingStartID = nil
+            }
+            Button("Bestätigen") {
+                if let id = pendingStartID {
+                    // Navigation wie bisher per Router/Route
+                    router.go(.workoutRun(trainingID: id))
+
+                }
+                pendingStartID = nil
+            }
+            .keyboardShortcut(.defaultAction) // macht den Button blau (iOS 26 UI)
+        } message: {
+            Text("Bist du bereit, hart zu trainieren?")
+        }
+
         // Sicherheitsabfrage vor dem Löschen (unverändert)
         .alert("Workout löschen?", isPresented: $showDeleteAlert) {
             Button("Löschen", role: .destructive) {
