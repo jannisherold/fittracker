@@ -120,7 +120,7 @@ struct WorkoutRunView: View {
             }
             .onAppear { startSessionIfNeeded() }
             .alert("Workout beenden?", isPresented: $showEndConfirm) {
-                Button("Bestätigen", role: .destructive) {
+                Button("Beenden", role: .destructive) {
                     endSessionAndLeave()
                 }
                 Button("Abbrechen", role: .cancel) { }

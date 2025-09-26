@@ -137,7 +137,7 @@ struct WorkoutView: View {
             Button("Abbrechen", role: .cancel) {
                 pendingStartID = nil
             }
-            Button("Bestätigen") {
+            Button("Starten") {
                 if let id = pendingStartID {
                     // Navigation wie bisher per Router/Route
                     router.go(.workoutRun(trainingID: id))
@@ -147,7 +147,7 @@ struct WorkoutView: View {
             }
             .keyboardShortcut(.defaultAction) // macht den Button blau (iOS 26 UI)
         } message: {
-            Text("Bist du bereit, hart zu trainieren?")
+            Text("Mach dich bereit zum Trainieren")
         }
 
         // Sicherheitsabfrage vor dem Löschen (unverändert)
