@@ -40,17 +40,7 @@ struct ProgressDetailView: View {
                                     )
                                     .foregroundStyle(.blue)
                                 }
-                                .chartXAxis {
-                                    AxisMarks(values: .stride(by: 1)) { value in
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel {
-                                            if let i = value.as(Int.self) {
-                                                Text(String(i))
-                                            }
-                                        }
-                                    }
-                                }
+                                .chartXAxis(.hidden)
                                 .chartYAxis {
                                     AxisMarks() { value in
                                         AxisGridLine()
