@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		838D3E492E89A0B40070F462 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 838D3E482E89A0B40070F462 /* FirebaseAnalytics */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		834CDA0D2E60616B00896DD1 /* FitnessTracker-V1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FitnessTracker-V1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				838D3E492E89A0B40070F462 /* FirebaseAnalytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = "FitnessTracker-V1";
 			packageProductDependencies = (
+				838D3E482E89A0B40070F462 /* FirebaseAnalytics */,
 			);
 			productName = "FitnessTracker-V1";
 			productReference = 834CDA0D2E60616B00896DD1 /* FitnessTracker-V1.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 834CDA042E60616B00896DD1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				838D3E472E89A0B40070F462 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 834CDA0E2E60616B00896DD1 /* Products */;
 			projectDirPath = "";
@@ -324,6 +333,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		838D3E472E89A0B40070F462 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		838D3E482E89A0B40070F462 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 838D3E472E89A0B40070F462 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 834CDA052E60616B00896DD1 /* Project object */;
 }
