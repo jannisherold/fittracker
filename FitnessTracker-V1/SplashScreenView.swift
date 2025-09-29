@@ -6,7 +6,7 @@ struct SplashScreenView: View {
     var body: some View {
         Group {
             if isActive {
-                RootTabView()  // Deine eigentliche Start-View
+                RootAuthGate()  // Deine eigentliche Start-View
             } else {
                 ZStack {
                     Color.white.ignoresSafeArea() // Hintergrundfarbe

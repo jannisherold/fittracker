@@ -1,6 +1,7 @@
 import SwiftUI
 
 import FirebaseCore
+import FirebaseAuth
 
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -20,16 +21,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 @main
 struct FitnessTrackerV1App: App {
-    // register app delegate for Firebase setup
-
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-
     @StateObject private var store = Store()
+    @StateObject private var authVM = AuthViewModel()
 
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
                 .environmentObject(store)
+                .environmentObject(authVM)
         }
     }
 }
