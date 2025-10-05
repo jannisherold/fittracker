@@ -17,7 +17,7 @@ struct WorkoutRunView: View {
     var body: some View {
         if training.exercises.isEmpty {
             // --- Leerer Zustand ---
-            VStack{
+            VStack {
                 Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt.")
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
@@ -38,12 +38,20 @@ struct WorkoutRunView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
+                // Chevron wie gehabt: direkt zurück ohne Bestätigung
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
-                        .accessibilityLabel("Zur Startansicht")
+                    Button {
+                        router.popToRoot()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .accessibilityLabel("Zur Startansicht")
                 }
             }
+            // 🔻 NEU: Bottom-Toolbar mit destruktivem Button (gleiches Verhalten wie Chevron im leeren Zustand)
+          
             .onAppear { startSessionIfNeeded() }
+
         } else {
             // --- Mit Übungen ---
             ZStack {
@@ -110,13 +118,27 @@ struct WorkoutRunView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
+                // Chevron öffnet wie gehabt die Bestätigung
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showEndConfirm = true
-                    } label: { Image(systemName: "chevron.left") }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                    }
                     .accessibilityLabel("Workout beenden")
                 }
-                // ⛔️ Kein Reset-Button mehr
+            }
+            // 🔻 NEU: Bottom-Toolbar mit destruktivem Button (öffnet denselben Alert wie der Chevron)
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    Button(action: {
+                        showEndConfirm = true
+                    }) {
+                        Text("Workout beenden")
+                            .fontWeight(.semibold)             // Schrift dicker machen
+                            .foregroundColor(.red)         // Schrift rot färben
+                    }
+                }
             }
             .onAppear { startSessionIfNeeded() }
             .alert("Workout beenden?", isPresented: $showEndConfirm) {
@@ -164,6 +186,12 @@ struct WorkoutRunView: View {
             }
         )
         NotesEditor(text: binding)
+    }
+
+    // MARK: - Keyboard
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                        to: nil, from: nil, for: nil)
     }
 }
 
@@ -251,7 +279,7 @@ private struct GrowingTextView: UIViewRepresentable {
     }
 }
 
-// MARK: - SetRow (wie gehabt; keine Session-spezifischen Änderungen nötig)
+// MARK: - SetRow (keine Session-spezifischen Änderungen)
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
@@ -274,7 +302,7 @@ private struct SetRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top,spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             Button {
                 let willBeDone = !set.isDone
                 store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
@@ -313,7 +341,9 @@ private struct SetRow: View {
                             .frame(width: 60, height: 92)
                             .clipped()
 
-                            Text(",").font(.headline).foregroundStyle(.secondary)
+                            Text(",")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
 
                             Picker("", selection: $weightFracIndex) {
                                 ForEach(0..<fracSteps.count, id: \.self) { idx in
@@ -363,7 +393,9 @@ private struct SetRow: View {
             weightInt = intPart
             weightFracIndex = closestFracIndex(to: frac)
         }
-        .onChange(of: set.repetition.value) { tempReps = set.repetition.value }
+        .onChange(of: set.repetition.value) {
+            tempReps = set.repetition.value
+        }
         .opacity(set.isDone ? 0.5 : 1.0)
         .animation(.default, value: set.isDone)
     }
@@ -373,7 +405,8 @@ private struct SetRow: View {
     }
 
     private func closestFracIndex(to value: Double) -> Int {
-        var best = 0, bestDelta = Double.greatestFiniteMagnitude
+        var best = 0
+        var bestDelta = Double.greatestFiniteMagnitude
         for (i, v) in fracSteps.enumerated() {
             let d = abs(v - value)
             if d < bestDelta { best = i; bestDelta = d }
