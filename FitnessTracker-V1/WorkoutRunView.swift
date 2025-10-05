@@ -131,7 +131,7 @@ struct WorkoutRunView: View {
                 }
                 Button("Abbrechen", role: .cancel) { }
             } message: {
-                Text("Das Training wird beendet und die Bestwerte je Übung gespeichert.")
+                Text("Das Training wird beendet und die Werte je Übung gespeichert.")
             }
         }
     }

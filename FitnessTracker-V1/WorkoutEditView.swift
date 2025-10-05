@@ -59,16 +59,25 @@ struct WorkoutEditView: View {
 
                     // MARK: - Übungen
                     if hasExercises {
-                        // Mit Überschrift, wenn es Übungen gibt
                         Section {
                             ForEach(training.exercises) { ex in
                                 if editMode?.wrappedValue == .active {
-                                    Text(ex.name)
-                                        .font(.system(size: 16, weight: .semibold))
-                                } else {
-                                    NavigationLink(value: Route.exerciseEdit(trainingID: trainingID, exerciseID: ex.id)) {
+                                    VStack(alignment: .leading, spacing: 2) {
                                         Text(ex.name)
                                             .font(.system(size: 16, weight: .semibold))
+                                        Text(setCountText(for: ex))
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.secondary)
+                                    }
+                                } else {
+                                    NavigationLink(value: Route.exerciseEdit(trainingID: trainingID, exerciseID: ex.id)) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(ex.name)
+                                                .font(.system(size: 16, weight: .semibold))
+                                            Text(setCountText(for: ex))
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.secondary)
+                                        }
                                     }
                                 }
                             }
@@ -103,7 +112,7 @@ struct WorkoutEditView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
 
-        // Top-Leiste: links zurück, rechts Bearbeiten-Stift (nur wenn Übungen vorhanden)
+        // Top-Leiste
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { dismiss() } label: {
@@ -146,7 +155,7 @@ struct WorkoutEditView: View {
             }
         }
 
-        // AddExercise in Sheet
+        // AddExercise Sheet
         .sheet(isPresented: $showingNewExercise) {
             NavigationStack {
                 AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
@@ -189,6 +198,16 @@ struct WorkoutEditView: View {
         .controlSize(.large)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.top, 8)
+    }
+
+    // MARK: - Satz-Anzeige-Logik
+    private func setCountText(for exercise: Exercise) -> String {
+        let count = exercise.sets.count
+        if count == 1 {
+            return "1 Satz"
+        } else {
+            return "\(count) Sätze"
+        }
     }
 
     // MARK: - Titel speichern
