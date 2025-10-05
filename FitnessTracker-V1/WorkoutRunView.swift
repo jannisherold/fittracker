@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import SpriteKit // NEU
 
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
@@ -152,7 +153,8 @@ struct WorkoutRunView: View {
     private func endSessionAndLeave() {
         store.endSession(trainingID: trainingID)   // speichert Max-Gewichte + Enddatum
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        router.popToRoot()
+        showGlobalConfettiOverlay(duration: 2.0)   // NEU: Apple-eigene Konfetti-Animation als Fenster-Overlay
+        router.popToRoot()                         // Navigation unverändert sofort
     }
 
     // MARK: - Subview: Notizen
@@ -402,4 +404,65 @@ private struct SetRow: View {
         let milli = Int(round(frac * 1000))
         return String(format: "%03d", milli)
     }
+}
+
+// MARK: - Apple-only Konfetti-Overlay (SpriteKit) – Fensterweit, keine Layout-/Navigationsänderung
+private final class ConfettiScene: SKScene {
+    private let colors: [SKColor] = [.systemPink, .systemBlue, .systemGreen, .systemOrange, .systemYellow, .systemPurple]
+
+    override func didMove(to view: SKView) {
+        backgroundColor = .clear
+        let spawn = SKAction.run { [weak self] in self?.spawnConfetti() }
+        run(.repeatForever(.sequence([spawn, .wait(forDuration: 0.06)])))
+    }
+
+    private func spawnConfetti() {
+        let x = CGFloat.random(in: 0...size.width)
+        let start = CGPoint(x: x, y: size.height + 20)
+
+        let w = CGFloat.random(in: 6...10)
+        let h = CGFloat.random(in: 12...18)
+        let node = SKShapeNode(rectOf: CGSize(width: w, height: h), cornerRadius: 2)
+        node.fillColor = colors.randomElement() ?? .white
+        node.strokeColor = .clear
+        node.position = start
+        node.alpha = 0.95
+        addChild(node)
+
+        let dur = TimeInterval.random(in: 2.2...3.4)
+        let end = CGPoint(x: x + CGFloat.random(in: -120...120), y: -40)
+        node.run(.sequence([.group([.move(to: end, duration: dur),
+                                    .rotate(byAngle: .pi * CGFloat.random(in: 2...5), duration: dur)]),
+                            .fadeOut(withDuration: 0.25),
+                            .removeFromParent()]))
+    }
+}
+
+/// Zeigt ein globales Konfetti-Overlay oben auf dem Key-Window, unabhängig von der aktuellen View.
+/// ➜ Navigation bleibt unverändert (sofort), die Konfetti laufen sichtbar darüber und verschwinden automatisch.
+private func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
+    guard
+        let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+        let window = scene.windows.first(where: { $0.isKeyWindow })
+    else { return }
+
+    let skView = SKView(frame: window.bounds)
+    skView.backgroundColor = .clear
+    skView.isUserInteractionEnabled = false
+    skView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    skView.accessibilityIdentifier = "GlobalConfettiOverlay"
+
+    let confetti = ConfettiScene(size: skView.bounds.size)
+    confetti.scaleMode = .resizeFill
+    confetti.backgroundColor = .clear
+    skView.presentScene(confetti)
+
+    window.addSubview(skView)
+
+    // Automatisch ausblenden & entfernen
+    UIView.animate(withDuration: 0.25, delay: duration, options: [.beginFromCurrentState, .curveEaseOut], animations: {
+        skView.alpha = 0
+    }, completion: { _ in
+        skView.removeFromSuperview()
+    })
 }
