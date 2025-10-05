@@ -4,6 +4,9 @@ struct WorkoutEditView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject private var router: Router
 
+    // Neu: systematisches Zurück zum vorherigen Screen (WorkoutView ODER WorkoutRunView)
+    @Environment(\.dismiss) private var dismiss
+
     let trainingID: UUID
 
     @State private var showingNewExercise = false
@@ -126,12 +129,14 @@ struct WorkoutEditView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    // Egal woher: zurück in die Run-View dieses Workouts
-                    router.setRoot([.workoutRun(trainingID: trainingID)])
+                    // NEU: immer nur einen Schritt zurück auf dem aktuellen NavigationStack
+                    // -> Kommt man aus WorkoutView: zurück dorthin
+                    // -> Kommt man aus WorkoutRunView: zurück dorthin
+                    dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
                 }
-                .accessibilityLabel("Zur Workout-Ansicht")
+                .accessibilityLabel("Zurück")
             }
         }
         .sheet(isPresented: $showingNewExercise) {
@@ -165,11 +170,6 @@ struct WorkoutEditView: View {
                         RoundedRectangle(cornerRadius: 25, style: .continuous)
                             .fill(Color(.systemBackground))
                     )
-                    /*.overlay(
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.06), radius: 6, y: 2)*/
                 }
                 .buttonStyle(.plain)
             }
