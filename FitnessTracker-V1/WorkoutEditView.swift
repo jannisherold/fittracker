@@ -3,15 +3,14 @@ import SwiftUI
 struct WorkoutEditView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject private var router: Router
-
-    // Neu: systematisches Zurück zum vorherigen Screen (WorkoutView ODER WorkoutRunView)
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.editMode) private var editMode
 
     let trainingID: UUID
 
     @State private var showingNewExercise = false
-    @Environment(\.editMode) private var editMode
 
+    // Titel-Editing
     @State private var isEditingTitle = false
     @State private var draftTitle = ""
     @FocusState private var titleFocused: Bool
@@ -68,42 +67,15 @@ struct WorkoutEditView: View {
                             store.deleteExercise(in: trainingID, at: offsets)
                         }
                     } header: {
-                        HStack {
-                            Text("ÜBUNGEN")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Button {
-                                withAnimation {
-                                    if editMode?.wrappedValue == .active {
-                                        editMode?.wrappedValue = .inactive
-                                    } else {
-                                        editMode?.wrappedValue = .active
-                                    }
-                                }
-                            } label: {
-                                if editMode?.wrappedValue == .active {
-                                    Text("Fertig")
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.blue)
-                                } else {
-                                    Image(systemName: "pencil")
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .font(.system(size: 18, weight: .semibold))
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Übungen bearbeiten")
-                            .contentShape(Rectangle())
-                            .padding(.vertical, 8)
-                        }
-                        .textCase(nil)
-                        .padding(.horizontal, 0)
-                        .padding(.leading, 4)
-                        .padding(.trailing, 4)
+                        // Nur Überschrift – der Bearbeiten-Button ist jetzt in der Toolbar (rechts)
+                        Text("ÜBUNGEN")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(nil)
+                            .padding(.leading, 4)
                     }
 
-                    // MARK: - Übung hinzufügen (blauer CTA)
+                    // MARK: - Übung hinzufügen
                     Section {
                         HStack {
                             Spacer()
@@ -122,61 +94,70 @@ struct WorkoutEditView: View {
                 }
             }
         }
-        .navigationTitle("")
+        .navigationTitle(training?.title ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
+
+        // Top-Leiste: links zurück, rechts Bearbeiten-Stift (toggt Edit-Mode)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    // NEU: immer nur einen Schritt zurück auf dem aktuellen NavigationStack
-                    // -> Kommt man aus WorkoutView: zurück dorthin
-                    // -> Kommt man aus WorkoutRunView: zurück dorthin
+                    // Zur vorherigen View zurück (WorkoutView ODER WorkoutRunView)
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
                 }
                 .accessibilityLabel("Zurück")
             }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    withAnimation {
+                        if editMode?.wrappedValue == .active {
+                            editMode?.wrappedValue = .inactive
+                        } else {
+                            editMode?.wrappedValue = .active
+                        }
+                    }
+                } label: {
+                    if editMode?.wrappedValue == .active {
+                        Text("Fertig").fontWeight(.semibold)
+                    } else {
+                        Image(systemName: "pencil")
+                    }
+                }
+                .accessibilityLabel("Übungen bearbeiten")
+            }
         }
+
+        // Untere Leiste: „Workout starten“ wie in WorkoutRunView die .bottomBar
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+                Button {
+                    router.go(.workoutRun(trainingID: trainingID))
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } label: {
+                    Text("Workout starten")
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+
+        // AddExercise in Sheet mit NavigationStack (für Titel/Buttons)
         .sheet(isPresented: $showingNewExercise) {
-            // Stack HIER, nicht in AddExerciseView (damit Titel/Buttons angezeigt werden)
             NavigationStack {
                 AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
                     .environmentObject(store)
             }
         }
+
+        // Titel automatisch committen, wenn Fokus verloren geht
         .onChange(of: titleFocused) { focused in
             if !focused && isEditingTitle { commitTitle() }
         }
-        // MARK: - Bottom-Button wie im Mockup
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Button {
-                    router.go(.workoutRun(trainingID: trainingID))
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "play.fill")
-                            .imageScale(.large)
-                            .foregroundStyle(.blue)
-                        Text("Workout starten")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .fill(Color(.systemBackground))
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
-        }
+
+        // Tap außerhalb: Fokus lösen -> commit
         .background(
             Color.clear
                 .contentShape(Rectangle())
