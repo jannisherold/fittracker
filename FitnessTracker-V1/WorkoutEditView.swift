@@ -98,7 +98,7 @@ struct WorkoutEditView: View {
                 }
             }
         }
-        .navigationTitle(training?.title ?? "")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
