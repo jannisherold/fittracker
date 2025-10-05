@@ -53,7 +53,7 @@ struct WorkoutEditView: View {
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-                    // MARK: - Übungen
+                    //Übungen
                     Section {
                         ForEach(training.exercises) { ex in
                             if editMode?.wrappedValue == .active {
@@ -79,24 +79,18 @@ struct WorkoutEditView: View {
                             .foregroundColor(.secondary)
                             .textCase(nil)
                             .padding(.leading, 4)
-                    }
-
-                    // MARK: - Übung hinzufügen
-                    Section {
-                        HStack {
-                            Spacer()
-                            Button { showingNewExercise = true } label: {
-                                Label("Übung hinzufügen", systemImage: "plus")
-                                    .fontWeight(.semibold)
-                            }
-                            .labelStyle(.titleAndIcon)
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            Spacer()
+                    } footer: {
+                        // <-- Button rückt als Footer direkt unter die Liste
+                        Button { showingNewExercise = true } label: {
+                            Label("Übung hinzufügen", systemImage: "plus")
+                                .fontWeight(.semibold)
                         }
-                        .padding(.vertical, 8)
+                        .labelStyle(.titleAndIcon)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 8)
                     }
-                    .listRowBackground(Color.clear)
                 }
             }
         }
