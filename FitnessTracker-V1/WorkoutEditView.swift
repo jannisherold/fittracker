@@ -19,7 +19,6 @@ struct WorkoutEditView: View {
         store.trainings.first(where: { $0.id == trainingID })
     }
 
-    // Nur anzeigen/ermöglichen, wenn es Übungen gibt
     private var hasExercises: Bool {
         (training?.exercises.isEmpty == false)
     }
@@ -59,40 +58,42 @@ struct WorkoutEditView: View {
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
                     // MARK: - Übungen
-                    Section {
-                        ForEach(training.exercises) { ex in
-                            if editMode?.wrappedValue == .active {
-                                Text(ex.name)
-                                    .font(.system(size: 16, weight: .semibold))
-                            } else {
-                                NavigationLink(value: Route.exerciseEdit(trainingID: trainingID, exerciseID: ex.id)) {
+                    if hasExercises {
+                        // Mit Überschrift, wenn es Übungen gibt
+                        Section {
+                            ForEach(training.exercises) { ex in
+                                if editMode?.wrappedValue == .active {
                                     Text(ex.name)
                                         .font(.system(size: 16, weight: .semibold))
+                                } else {
+                                    NavigationLink(value: Route.exerciseEdit(trainingID: trainingID, exerciseID: ex.id)) {
+                                        Text(ex.name)
+                                            .font(.system(size: 16, weight: .semibold))
+                                    }
                                 }
                             }
+                            .onMove { indices, newOffset in
+                                store.moveExercise(in: trainingID, from: indices, to: newOffset)
+                            }
+                            .onDelete { offsets in
+                                store.deleteExercise(in: trainingID, at: offsets)
+                            }
+                        } header: {
+                            Text("ÜBUNGEN")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .textCase(nil)
+                                .padding(.leading, 4)
+                        } footer: {
+                            addExerciseButton
                         }
-                        .onMove { indices, newOffset in
-                            store.moveExercise(in: trainingID, from: indices, to: newOffset)
+                    } else {
+                        // Keine Überschrift, nur der Add-Button
+                        Section {
+                            EmptyView()
+                        } footer: {
+                            addExerciseButton
                         }
-                        .onDelete { offsets in
-                            store.deleteExercise(in: trainingID, at: offsets)
-                        }
-                    } header: {
-                        Text("ÜBUNGEN")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .textCase(nil)
-                            .padding(.leading, 4)
-                    } footer: {
-                        Button { showingNewExercise = true } label: {
-                            Label("Übung hinzufügen", systemImage: "plus")
-                                .fontWeight(.semibold)
-                        }
-                        .labelStyle(.titleAndIcon)
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 8)
                     }
                 }
             }
@@ -105,15 +106,11 @@ struct WorkoutEditView: View {
         // Top-Leiste: links zurück, rechts Bearbeiten-Stift (nur wenn Übungen vorhanden)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                 }
                 .accessibilityLabel("Zurück")
             }
-
-            // Stift NUR anzeigen, wenn hasExercises == true
             if hasExercises {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -157,12 +154,12 @@ struct WorkoutEditView: View {
             }
         }
 
-        // Titel automatisch committen, wenn Fokus verloren geht
+        // Titel automatisch committen
         .onChange(of: titleFocused) { focused in
             if !focused && isEditingTitle { commitTitle() }
         }
 
-        // Falls keine Übungen vorhanden sind, Edit-Modus sicher deaktivieren
+        // Edit-Modus deaktivieren, wenn keine Übungen mehr
         .onChange(of: hasExercises) { available in
             if !available, editMode?.wrappedValue == .active {
                 editMode?.wrappedValue = .inactive
@@ -175,10 +172,23 @@ struct WorkoutEditView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if isEditingTitle {
-                        titleFocused = false // löst commitTitle() aus
+                        titleFocused = false
                     }
                 }
         )
+    }
+
+    // MARK: - Komponenten
+    private var addExerciseButton: some View {
+        Button { showingNewExercise = true } label: {
+            Label("Übung hinzufügen", systemImage: "plus")
+                .fontWeight(.semibold)
+        }
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 8)
     }
 
     // MARK: - Titel speichern
