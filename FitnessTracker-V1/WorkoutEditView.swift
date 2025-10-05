@@ -44,6 +44,12 @@ struct WorkoutEditView: View {
                             }
                         }
                         .padding(.vertical, 4)
+                    } header: {
+                        Text("TITEL")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(nil)
+                            .padding(.leading, 4)
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
