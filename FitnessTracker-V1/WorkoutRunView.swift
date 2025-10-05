@@ -38,7 +38,7 @@ struct WorkoutRunView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
-                // Chevron wie gehabt: direkt zurück ohne Bestätigung
+                // Links: zurück (ohne Bestätigung im leeren Zustand)
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         router.popToRoot()
@@ -47,9 +47,16 @@ struct WorkoutRunView: View {
                     }
                     .accessibilityLabel("Zur Startansicht")
                 }
+                // Rechts: Workout bearbeiten (Pencil)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        router.go(.workoutEdit(trainingID: trainingID))
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .accessibilityLabel("Workout bearbeiten")
+                }
             }
-            // 🔻 NEU: Bottom-Toolbar mit destruktivem Button (gleiches Verhalten wie Chevron im leeren Zustand)
-          
             .onAppear { startSessionIfNeeded() }
 
         } else {
@@ -77,39 +84,7 @@ struct WorkoutRunView: View {
                             }
                         }
                     }
-
-                    // Letzte Section: Chip-Button „Workout bearbeiten“
-                    Section {
-                        HStack {
-                            Spacer()
-                            Button {
-                                router.go(.workoutEdit(trainingID: trainingID))
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "pencil")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.secondary)
-                                    Text("Workout bearbeiten")
-                                        .font(.headline)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                        .fill(Color(.systemBackground))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    .listRowBackground(Color.clear)
+                    // ⛔️ Entfernt: die Section mit dem Chip-Button "Workout bearbeiten"
                 }
             }
             .scrollDismissesKeyboard(.immediately)
@@ -118,7 +93,7 @@ struct WorkoutRunView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
-                // Chevron öffnet wie gehabt die Bestätigung
+                // Links: Chevron öffnet Bestätigungsdialog "Workout beenden?"
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showEndConfirm = true
@@ -127,16 +102,25 @@ struct WorkoutRunView: View {
                     }
                     .accessibilityLabel("Workout beenden")
                 }
+                // Rechts: Workout bearbeiten (Pencil)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        router.go(.workoutEdit(trainingID: trainingID))
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .accessibilityLabel("Workout bearbeiten")
+                }
             }
-            // 🔻 NEU: Bottom-Toolbar mit destruktivem Button (öffnet denselben Alert wie der Chevron)
+            // Untere Leiste: „Workout beenden“ bleibt unverändert
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
                     Button(action: {
                         showEndConfirm = true
                     }) {
                         Text("Workout beenden")
-                            .fontWeight(.semibold)             // Schrift dicker machen
-                            .foregroundColor(.red)         // Schrift rot färben
+                            .fontWeight(.semibold)
+                            .foregroundColor(.red)
                     }
                 }
             }
@@ -279,7 +263,7 @@ private struct GrowingTextView: UIViewRepresentable {
     }
 }
 
-// MARK: - SetRow (keine Session-spezifischen Änderungen)
+// MARK: - SetRow (unverändert)
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
