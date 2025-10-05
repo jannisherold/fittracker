@@ -19,6 +19,11 @@ struct WorkoutEditView: View {
         store.trainings.first(where: { $0.id == trainingID })
     }
 
+    // Nur anzeigen/ermöglichen, wenn es Übungen gibt
+    private var hasExercises: Bool {
+        (training?.exercises.isEmpty == false)
+    }
+
     var body: some View {
         ZStack {
             List {
@@ -28,7 +33,7 @@ struct WorkoutEditView: View {
                         Group {
                             if isEditingTitle {
                                 TextField("Workout-Titel", text: $draftTitle)
-                                    .font(.system(size: 34, weight: .bold))
+                                    .font(.system(size: 24, weight: .bold))
                                     .textInputAutocapitalization(.words)
                                     .disableAutocorrection(true)
                                     .focused($titleFocused)
@@ -39,13 +44,13 @@ struct WorkoutEditView: View {
                                     .onSubmit { commitTitle() }
                             } else {
                                 Text(training.title)
-                                    .font(.system(size: 34, weight: .bold))
+                                    .font(.system(size: 24, weight: .bold))
                                     .onTapGesture { isEditingTitle = true }
                             }
                         }
                         .padding(.vertical, 4)
                     } header: {
-                        Text("TITEL")
+                        Text("WORKOUT-TITEL")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.secondary)
                             .textCase(nil)
@@ -53,7 +58,7 @@ struct WorkoutEditView: View {
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-                    //Übungen
+                    // MARK: - Übungen
                     Section {
                         ForEach(training.exercises) { ex in
                             if editMode?.wrappedValue == .active {
@@ -73,14 +78,12 @@ struct WorkoutEditView: View {
                             store.deleteExercise(in: trainingID, at: offsets)
                         }
                     } header: {
-                        // Nur Überschrift – der Bearbeiten-Button ist jetzt in der Toolbar (rechts)
                         Text("ÜBUNGEN")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.secondary)
                             .textCase(nil)
                             .padding(.leading, 4)
                     } footer: {
-                        // <-- Button rückt als Footer direkt unter die Liste
                         Button { showingNewExercise = true } label: {
                             Label("Übung hinzufügen", systemImage: "plus")
                                 .fontWeight(.semibold)
@@ -99,11 +102,10 @@ struct WorkoutEditView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
 
-        // Top-Leiste: links zurück, rechts Bearbeiten-Stift (toggt Edit-Mode)
+        // Top-Leiste: links zurück, rechts Bearbeiten-Stift (nur wenn Übungen vorhanden)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    // Zur vorherigen View zurück (WorkoutView ODER WorkoutRunView)
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
@@ -111,27 +113,30 @@ struct WorkoutEditView: View {
                 .accessibilityLabel("Zurück")
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    withAnimation {
+            // Stift NUR anzeigen, wenn hasExercises == true
+            if hasExercises {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation {
+                            if editMode?.wrappedValue == .active {
+                                editMode?.wrappedValue = .inactive
+                            } else {
+                                editMode?.wrappedValue = .active
+                            }
+                        }
+                    } label: {
                         if editMode?.wrappedValue == .active {
-                            editMode?.wrappedValue = .inactive
+                            Text("Fertig").fontWeight(.semibold)
                         } else {
-                            editMode?.wrappedValue = .active
+                            Image(systemName: "pencil")
                         }
                     }
-                } label: {
-                    if editMode?.wrappedValue == .active {
-                        Text("Fertig").fontWeight(.semibold)
-                    } else {
-                        Image(systemName: "pencil")
-                    }
+                    .accessibilityLabel("Übungen bearbeiten")
                 }
-                .accessibilityLabel("Übungen bearbeiten")
             }
         }
 
-        // Untere Leiste: „Workout starten“ wie in WorkoutRunView die .bottomBar
+        // Untere Leiste: „Workout starten”
         .toolbar {
             ToolbarItem(placement: .bottomBar) {
                 Button {
@@ -144,7 +149,7 @@ struct WorkoutEditView: View {
             }
         }
 
-        // AddExercise in Sheet mit NavigationStack (für Titel/Buttons)
+        // AddExercise in Sheet
         .sheet(isPresented: $showingNewExercise) {
             NavigationStack {
                 AddExerciseView(trainingID: trainingID, afterSave: .dismiss)
@@ -155,6 +160,13 @@ struct WorkoutEditView: View {
         // Titel automatisch committen, wenn Fokus verloren geht
         .onChange(of: titleFocused) { focused in
             if !focused && isEditingTitle { commitTitle() }
+        }
+
+        // Falls keine Übungen vorhanden sind, Edit-Modus sicher deaktivieren
+        .onChange(of: hasExercises) { available in
+            if !available, editMode?.wrappedValue == .active {
+                editMode?.wrappedValue = .inactive
+            }
         }
 
         // Tap außerhalb: Fokus lösen -> commit
