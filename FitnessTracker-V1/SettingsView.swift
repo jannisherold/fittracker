@@ -83,9 +83,9 @@ private struct ProfileSettingsView: View {
     var body: some View {
         List {
             Section {
+                Label("Abonnement", systemImage: "receipt")
                 Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
                 Label("Profil löschen", systemImage: "trash")
-                Label("Abonnement", systemImage: "receipt")
             } footer: {
                 Text("Dies sind Platzhalter. Wir füllen die Funktionen später.")
             }
