@@ -1,8 +1,10 @@
 import SwiftUI
+
 /// Einstieg in den Progress-Tab:
 /// Zeigt alle Workouts an. Tippt man eines an, geht es zur Trainings-Progress-Ansicht.
 struct ProgressView: View {
     @EnvironmentObject var store: Store
+    @State private var showInfo = false
 
     var body: some View {
         NavigationStack {
@@ -11,9 +13,6 @@ struct ProgressView: View {
                     Section {
                         Text("Noch keine Workouts angelegt.")
                             .foregroundStyle(.secondary)
-                        /*Text("Lege in „Workout“ ein Training an und starte Sessions – dann erscheinen hier deine Verläufe.")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)*/
                     }
                 } else {
                     ForEach(store.trainings) { t in
@@ -43,7 +42,32 @@ struct ProgressView: View {
             .navigationTitle("Progress")
             .listStyle(.insetGrouped)
             .listSectionSpacing(.compact)
-            
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
+                    Button {
+                        showInfo.toggle()
+                    } label: {
+                        Image(systemName: "info")
+                    }
+                    .accessibilityLabel("Info")
+                    // Das Popover ist direkt am Button verankert, kompakt und inhaltsbasiert.
+                    .popover(isPresented: $showInfo,
+                             attachmentAnchor: .point(.topTrailing),
+                             arrowEdge: .top) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Durch Tippen auf eines deiner Workouts bekommst du für jede Übung deinen Fortschritt visualisiert.")
+                                .font(.body)
+                                .multilineTextAlignment(.leading)
+                                .lineLimit(nil)
+                        }
+                        .padding(16)
+                        .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
+                        .presentationSizing(.fitted)               // nur so groß wie der Inhalt
+                        .presentationCompactAdaptation(.popover)   // iPhone bleibt Popover (kein Sheet)
+                    }
+                }
+            }
         }
     }
 }
