@@ -15,7 +15,7 @@ struct RootTabView: View {
             WorkoutView()
                 .environmentObject(store)
                 .tabItem {
-                    Label("Workout", systemImage: "dumbbell")
+                    Label("Workouts", systemImage: "dumbbell")
                 }
                 .tag(AppTab.workout)
 
@@ -31,7 +31,7 @@ struct RootTabView: View {
             SettingsView()
                 .environmentObject(store)
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape")
+                    Label("Einstellungen", systemImage: "gearshape")
                 }
                 .tag(AppTab.settings)
         }
