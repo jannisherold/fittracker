@@ -125,7 +125,16 @@ struct WorkoutRunView: View {
                     }
                 }
             }
-            .onAppear { startSessionIfNeeded() }
+            .onAppear {
+                startSessionIfNeeded()
+                // Ersten Satz der ersten Übung einmalig öffnen:
+                if expandedSetID == nil,
+                   let firstExercise = training.exercises.first,
+                   let firstSet = firstExercise.sets.first {
+                    expandedSetID = firstSet.id
+                }
+            }
+
             .alert("Workout beenden?", isPresented: $showEndConfirm) {
                 Button("Beenden", role: .destructive) {
                     endSessionAndLeave()
