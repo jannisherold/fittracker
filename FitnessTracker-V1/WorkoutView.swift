@@ -133,7 +133,7 @@ struct WorkoutView: View {
             }
             .presentationDetents([.height(220)])
         }
-        .alert("Workout starten?", isPresented: $showStartAlert) {
+        .alert("\(store.trainings.first(where: { $0.id == pendingStartID })?.title ?? "Workout")-Workout starten?", isPresented: $showStartAlert) {
             Button("Abbrechen", role: .cancel) {
                 pendingStartID = nil
             }
