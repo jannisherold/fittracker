@@ -139,18 +139,14 @@ struct WorkoutEditView: View {
                     }
                     .accessibilityLabel("Übungen bearbeiten")
                 }
-            }
-        }
-
-        // Untere Leiste: „Workout starten”
-        .toolbar {
-            ToolbarItem(placement: .bottomBar) {
-                Button {
-                    router.go(.workoutRun(trainingID: trainingID))
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                } label: {
-                    Text("Workout starten")
-                        .fontWeight(.semibold)
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        router.go(.workoutRun(trainingID: trainingID))
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    } label: {
+                        Text("Workout starten")
+                            .fontWeight(.semibold)
+                    }
                 }
             }
         }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WorkoutView: View {
     @EnvironmentObject var store: Store
-    @StateObject private var router = Router()   // Routing unverändert
+    @StateObject private var router = Router()
 
     @State private var showingNew = false
     @State private var newTitle = ""
@@ -10,10 +10,6 @@ struct WorkoutView: View {
     // Löschen-Bestätigung (unverändert)
     @State private var showDeleteAlert = false
     @State private var pendingDeleteID: UUID? = nil
-    
-    @State private var showStartAlert = false
-    @State private var pendingStartID: UUID? = nil
-
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -22,39 +18,26 @@ struct WorkoutView: View {
                     Section {
                         Text("Tippe oben rechts auf „+“ um ein Workout anzulegen.")
                             .foregroundStyle(.secondary)
-                        
-                        /*Text("Tippe oben rechts auf „+“, um ein Training anzulegen.")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)*/
                     }
                 } else {
                     ForEach(store.trainings) { t in
                         Section {
-                            // Statt direktem NavigationLink: erst bestätigen lassen
+                            // Jetzt: Direkter Sprung zur Inspect-View (kein Start-Alert mehr hier)
                             Button {
-                                if t.exercises.isEmpty {
-                                        // direkt weiterleiten ohne Alert
-                                        router.go(.workoutRun(trainingID: t.id))
-                                } else {
-                                    pendingStartID = t.id
-                                    showStartAlert = true
-                                }
+                                router.go(.workoutInspect(trainingID: t.id))
                             } label: {
                                 HStack {
                                     Text(t.title)
                                         .font(.headline)
-                                        .padding(.vertical, 8) // optional: größere Hit-Area
+                                        .padding(.vertical, 8)
                                     Spacer()
                                     Image(systemName: "chevron.right")
                                         .foregroundStyle(.tertiary)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading) // nimmt die ganze Zellbreite
-                                .contentShape(Rectangle()) // macht die ganze Fläche tappbar
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-
-
-                            // Long-Press: Bearbeiten / Löschen (unverändert)
                             .contextMenu {
                                 NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
                                     Label("Bearbeiten", systemImage: "pencil")
@@ -68,7 +51,6 @@ struct WorkoutView: View {
                             }
                         }
                     }
-
                 }
             }
             .listStyle(.insetGrouped)
@@ -85,18 +67,25 @@ struct WorkoutView: View {
                     .accessibilityLabel("Neues Training")
                 }
             }
-            // Navigation bleibt wie vorher über Route:
+            // Navigation inkl. neuer Inspect-Route
             .navigationDestination(for: Route.self) { route in
                 switch route {
+                case .workoutInspect(let id):
+                    WorkoutInspectView(trainingID: id)
+                        .environmentObject(store)
+
                 case .workoutRun(let id):
                     WorkoutRunView(trainingID: id)
                         .environmentObject(store)
+
                 case .workoutEdit(let id):
                     WorkoutEditView(trainingID: id)
                         .environmentObject(store)
+
                 case .exerciseEdit(let tid, let eid):
                     ExerciseEditView(trainingID: tid, exerciseID: eid)
                         .environmentObject(store)
+
                 case .addExercise(let tid):
                     AddExerciseView(trainingID: tid, afterSave: .goToEdit)
                         .environmentObject(store)
@@ -105,7 +94,7 @@ struct WorkoutView: View {
         }
         .environmentObject(router)
 
-        // Sheet zum Anlegen eines neuen Trainings (unverändert)
+        // Neues Workout anlegen (unverändert)
         .sheet(isPresented: $showingNew) {
             NavigationStack {
                 Form {
@@ -133,22 +122,6 @@ struct WorkoutView: View {
             }
             .presentationDetents([.height(220)])
         }
-        .alert("\(store.trainings.first(where: { $0.id == pendingStartID })?.title ?? "Workout")-Workout starten?", isPresented: $showStartAlert) {
-            Button("Abbrechen", role: .cancel) {
-                pendingStartID = nil
-            }
-            Button("Starten") {
-                if let id = pendingStartID {
-                    // Navigation wie bisher per Router/Route
-                    router.go(.workoutRun(trainingID: id))
-
-                }
-                pendingStartID = nil
-            }
-            .keyboardShortcut(.defaultAction) // macht den Button blau (iOS 26 UI)
-        } message: {
-            Text("Mach dich bereit zum Trainieren")
-        }
 
         // Sicherheitsabfrage vor dem Löschen (unverändert)
         .alert("Workout löschen?", isPresented: $showDeleteAlert) {
@@ -166,5 +139,4 @@ struct WorkoutView: View {
             Text("Dieser Vorgang kann nicht rückgängig gemacht werden.")
         }
     }
-    
 }

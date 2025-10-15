@@ -49,14 +49,14 @@ struct WorkoutRunView: View {
                     .accessibilityLabel("Zur Startansicht")
                 }
                 // Rechts: Workout bearbeiten (Pencil)
-                ToolbarItem(placement: .topBarTrailing) {
+                /*ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         router.go(.workoutEdit(trainingID: trainingID))
                     } label: {
                         Image(systemName: "pencil")
                     }
                     .accessibilityLabel("Workout bearbeiten")
-                }
+                }*/
             }
             .onAppear { startSessionIfNeeded() }
 
@@ -104,14 +104,14 @@ struct WorkoutRunView: View {
                     .accessibilityLabel("Workout beenden")
                 }
                 // Rechts: Workout bearbeiten (Pencil)
-                ToolbarItem(placement: .topBarTrailing) {
+                /*ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         router.go(.workoutEdit(trainingID: trainingID))
                     } label: {
                         Image(systemName: "pencil")
                     }
                     .accessibilityLabel("Workout bearbeiten")
-                }
+                }*/
             }
             // Untere Leiste: „Workout beenden“ bleibt unverändert
             .toolbar {
