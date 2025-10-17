@@ -50,6 +50,7 @@ struct WorkoutInspectView: View {
                                                 //.font(.headline)
                                                 .fontWeight(.regular)
                                                 .foregroundColor(.secondary)
+                                                .font(.system(size: 14))
                                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                                             Text("\(formatWeight(set.weightKg)) kg  x  \(set.repetition.value) Wdh.")
