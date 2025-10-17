@@ -44,18 +44,22 @@ struct WorkoutInspectView: View {
                                     ForEach(Array(ex.sets.enumerated()), id: \.element.id) { idx, set in
                                        
                                         Divider().padding(.horizontal, 16)
-                                       
-                                        HStack(alignment: .firstTextBaseline) {
+        
+                                        VStack(){
                                             Text("\(idx + 1). Satz")
-                                                .font(.headline)
-                                                .fontWeight(.semibold)
+                                                //.font(.headline)
+                                                .fontWeight(.regular)
                                                 .foregroundColor(.secondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
 
                                             Text("\(formatWeight(set.weightKg)) kg  x  \(set.repetition.value) Wdh.")
                                                 .font(.headline)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
                                         }
                                         .padding(.vertical, 14)
                                         .padding(.horizontal, 16)
+                                        
+                                        
                                     }
 
                                 
