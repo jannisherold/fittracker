@@ -56,8 +56,10 @@ struct ExerciseEditView: View {
                         ForEach(exercise.sets) { set in
                             HStack {
                                 Text("\(Int(set.weightKg)) kg")
+                                    .fontWeight(.semibold)
                                 Spacer()
                                 Text("\(set.repetition.value) Wdh.")
+                                    .fontWeight(.semibold)
                             }
                         }
                         .onDelete { offsets in
