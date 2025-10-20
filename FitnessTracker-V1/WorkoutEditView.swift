@@ -134,11 +134,12 @@ struct WorkoutEditView: View {
                         if editMode?.wrappedValue == .active {
                             Text("Fertig").fontWeight(.semibold)
                         } else {
-                            Image(systemName: "pencil")
+                            Image(systemName: "list.bullet")
                         }
                     }
                     .accessibilityLabel("Übungen bearbeiten")
                 }
+                /*
                 ToolbarItem(placement: .bottomBar) {
                     Button {
                         router.go(.workoutRun(trainingID: trainingID))
@@ -147,7 +148,7 @@ struct WorkoutEditView: View {
                         Text("Workout starten")
                             .fontWeight(.semibold)
                     }
-                }
+                }*/
             }
         }
 
