@@ -24,11 +24,11 @@ struct ProgressView: View {
                                     Text(t.title)
                                         .font(.headline)
                                     if let last = t.sessions.first?.endedAt {
-                                        Text("Letztes Training: \(last.formatted(date: .abbreviated, time: .omitted))")
+                                        Text("Letztes Workout: \(last.formatted(date: .abbreviated, time: .omitted))")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     } else {
-                                        Text("Noch keine Trainings absolviert")
+                                        Text("Noch keine Workouts absolviert")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
