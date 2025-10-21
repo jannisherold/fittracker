@@ -21,7 +21,6 @@ final class Store: ObservableObject {
         trainings[t].exercises.append(Exercise(name: name))
     }
     
-    // Neue Übung direkt mit N Sätzen (0/0) anlegen
     func addExercise(to trainingID: UUID, name: String, setCount: Int) {
         guard let tIndex = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         let sets = (0..<max(0, setCount)).map { _ in
@@ -30,7 +29,6 @@ final class Store: ObservableObject {
         trainings[tIndex].exercises.append(Exercise(name: name, sets: sets))
     }
 
-    // Notizen einer Übung setzen
     func updateExerciseNotes(trainingID: UUID, exerciseID: UUID, notes: String) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
@@ -42,14 +40,12 @@ final class Store: ObservableObject {
         trainings[t].exercises.move(fromOffsets: source, toOffset: destination)
     }
     
-    
     func addSet(to exerciseID: UUID, in trainingID: UUID, weight: Double, reps: Int) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         trainings[t].exercises[e].sets.append(SetEntry(weightKg: weight, repetition: .init(value: reps)))
     }
     
-    // Neuen Satz mit Standardwerten hinzufügen
     func addSet(to exerciseID: UUID, in trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
@@ -57,26 +53,21 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].sets.append(newSet)
     }
 
-
-    // Trainings löschen (aus Listen .onDelete)
     func deleteTraining(at offsets: IndexSet) {
         trainings.remove(atOffsets: offsets)
     }
 
-    // Übungen löschen (innerhalb eines Trainings)
     func deleteExercise(in trainingID: UUID, at offsets: IndexSet) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         trainings[t].exercises.remove(atOffsets: offsets)
     }
 
-    // Sätze löschen (innerhalb einer Übung)
     func deleteSet(in trainingID: UUID, exerciseID: UUID, at offsets: IndexSet) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         trainings[t].exercises[e].sets.remove(atOffsets: offsets)
     }
 
-    // Satz als erledigt/unerledigt markieren
     func toggleSetDone(in trainingID: UUID, exerciseID: UUID, setID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
@@ -84,7 +75,6 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].sets[s].isDone.toggle()
     }
 
-    // Gewicht / Wiederholungen eines Satzes ändern
     func updateSet(in trainingID: UUID, exerciseID: UUID, setID: UUID, weight: Double? = nil, reps: Int? = nil) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
@@ -93,8 +83,6 @@ final class Store: ObservableObject {
         if let r = reps { trainings[t].exercises[e].sets[s].repetition.value = r }
     }
 
-    
-    // Alle Sätze eines Trainings „un-done“ setzen
     func resetSession(trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         for e in trainings[t].exercises.indices {
@@ -102,9 +90,10 @@ final class Store: ObservableObject {
                 trainings[t].exercises[e].sets[s].isDone = false
             }
         }
+        trainings[t].currentSessionStart = nil
     }
 
-    // Alle Sätze eines Trainings auf "abgehakt" setzen – Sessionstart
+    // ✅ Sessionstart: alle Sätze auf „nicht erledigt“ + Startzeit setzen
     func beginSession(trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         for e in trainings[t].exercises.indices {
@@ -112,9 +101,10 @@ final class Store: ObservableObject {
                 trainings[t].exercises[e].sets[s].isDone = false
             }
         }
+        trainings[t].currentSessionStart = Date()
     }
 
-    // Session beenden: je Übung Maximalgewicht berechnen + speichern
+    // ✅ Session beenden: Max-Gewichte berechnen, Session (mit startedAt/endedAt) speichern, Start löschen
     func endSession(trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         let exs = trainings[t].exercises
@@ -125,12 +115,13 @@ final class Store: ObservableObject {
             map[ex.id] = maxW
         }
 
-        let session = WorkoutSession(endedAt: Date(), maxWeightPerExercise: map)
+        let ended = Date()
+        let started = trainings[t].currentSessionStart ?? ended
+        let session = WorkoutSession(startedAt: started, endedAt: ended, maxWeightPerExercise: map)
         trainings[t].sessions.insert(session, at: 0)
+        trainings[t].currentSessionStart = nil
     }
 
-    
-    
     // MARK: - Persistence
     private func save() {
         do {
@@ -146,8 +137,7 @@ final class Store: ObservableObject {
             let data = try Data(contentsOf: url)
             trainings = try JSONDecoder().decode([Training].self, from: data)
         } catch {
-            trainings = [] // Erststart oder Datei fehlt -> ok
+            trainings = []
         }
     }
 }
-

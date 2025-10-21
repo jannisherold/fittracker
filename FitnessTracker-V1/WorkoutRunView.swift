@@ -39,24 +39,10 @@ struct WorkoutRunView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
-                // Links: zurück (ohne Bestätigung im leeren Zustand)
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        router.popToRoot()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                    }
-                    .accessibilityLabel("Zur Startansicht")
+                    Button { router.popToRoot() } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel("Zur Startansicht")
                 }
-                // Rechts: Workout bearbeiten (Pencil)
-                /*ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        router.go(.workoutEdit(trainingID: trainingID))
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .accessibilityLabel("Workout bearbeiten")
-                }*/
             }
             .onAppear { startSessionIfNeeded() }
 
@@ -85,40 +71,37 @@ struct WorkoutRunView: View {
                             }
                         }
                     }
-                    // ⛔️ Entfernt: die Section mit dem Chip-Button "Workout bearbeiten"
                 }
             }
             .scrollDismissesKeyboard(.immediately)
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
-            .navigationTitle(training.title)
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
+            // ✅ Eigener Titelbereich: Workoutname + Stoppuhr (aktualisiert sich jede Sekunde)
             .toolbar {
-                // Links: Chevron öffnet Bestätigungsdialog "Workout beenden?"
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showEndConfirm = true
-                    } label: {
-                        Image(systemName: "chevron.left")
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        Text(training.title)
+                            .font(.headline)
+                        if let start = training.currentSessionStart {
+                            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                                Text("- \(formatElapsed(since: start))")
+                                    .monospacedDigit()
+                                    .font(.headline)
+                            }
+                        }
                     }
-                    .accessibilityLabel("Workout beenden")
                 }
-                // Rechts: Workout bearbeiten (Pencil)
-                /*ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        router.go(.workoutEdit(trainingID: trainingID))
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .accessibilityLabel("Workout bearbeiten")
-                }*/
+                // Links: Chevron -> „Workout beenden?“-Dialog
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showEndConfirm = true } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel("Workout beenden")
+                }
             }
-            // Untere Leiste: „Workout beenden“ bleibt unverändert
+            // Untere Leiste: „Workout beenden“ (unverändert)
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
-                    Button(action: {
-                        showEndConfirm = true
-                    }) {
+                    Button(action: { showEndConfirm = true }) {
                         Text("Workout beenden")
                             .fontWeight(.semibold)
                             .foregroundColor(.red)
@@ -127,18 +110,14 @@ struct WorkoutRunView: View {
             }
             .onAppear {
                 startSessionIfNeeded()
-                // Ersten Satz der ersten Übung einmalig öffnen:
                 if expandedSetID == nil,
                    let firstExercise = training.exercises.first,
                    let firstSet = firstExercise.sets.first {
                     expandedSetID = firstSet.id
                 }
             }
-
             .alert("Workout beenden?", isPresented: $showEndConfirm) {
-                Button("Beenden", role: .destructive) {
-                    endSessionAndLeave()
-                }
+                Button("Beenden", role: .destructive) { endSessionAndLeave() }
                 Button("Abbrechen", role: .cancel) { }
             } message: {
                 Text("Das Training wird beendet und die Werte je Übung gespeichert.")
@@ -155,15 +134,16 @@ struct WorkoutRunView: View {
     private func startSessionIfNeeded() {
         guard !didStartSession else { return }
         didStartSession = true
-        store.beginSession(trainingID: trainingID) // setzt alle Sätze auf „abgehakt“
+        // Setzt alle Sätze auf „nicht erledigt“ und setzt currentSessionStart
+        store.beginSession(trainingID: trainingID)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func endSessionAndLeave() {
-        store.endSession(trainingID: trainingID)   // speichert Max-Gewichte + Enddatum
+        store.endSession(trainingID: trainingID)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        showGlobalConfettiOverlay(duration: 2.0)   // NEU: Apple-eigene Konfetti-Animation als Fenster-Overlay
-        router.popToRoot()                         // Navigation unverändert sofort
+        showGlobalConfettiOverlay(duration: 2.0)
+        router.popToRoot()
     }
 
     // MARK: - Subview: Notizen
@@ -183,6 +163,21 @@ struct WorkoutRunView: View {
         NotesEditor(text: binding)
     }
 
+    // MARK: - Timer-Format
+    private func formatElapsed(since start: Date) -> String {
+        let total = max(0, Int(Date().timeIntervalSince(start)))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 {
+            // HH:mm:ss
+            return String(format: "%02d:%02d:%02d", h, m, s)
+        } else {
+            // mm:ss
+            return String(format: "%02d:%02d", m, s)
+        }
+    }
+
     // MARK: - Keyboard
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
@@ -190,7 +185,7 @@ struct WorkoutRunView: View {
     }
 }
 
-// MARK: - NotesEditor (unverändert)
+// MARK: - NotesEditor & GrowingTextView & SetRow & Konfetti (unverändert)
 private struct NotesEditor: View {
     @Binding var text: String
     @State private var dynamicHeight: CGFloat = 0
@@ -226,7 +221,6 @@ private struct NotesEditor: View {
     }
 }
 
-// MARK: - UIKit-Bridge
 private struct GrowingTextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var calculatedHeight: CGFloat
@@ -274,7 +268,6 @@ private struct GrowingTextView: UIViewRepresentable {
     }
 }
 
-// MARK: - SetRow (unverändert)
 private struct SetRow: View {
     @EnvironmentObject var store: Store
     let trainingID: UUID
@@ -327,7 +320,6 @@ private struct SetRow: View {
 
                 if isExpanded {
                     HStack(spacing: 16) {
-                        
                         HStack(spacing: 2) {
                             Picker("", selection: $weightInt) {
                                 ForEach(0...500, id: \.self) { Text("\($0)") }
@@ -371,7 +363,6 @@ private struct SetRow: View {
                         .frame(width: 90)
                     }
                     .font(.callout)
-                    //-.foregroundStyle(.secondary)
                     .transition(.opacity)
                 }
             }
@@ -416,7 +407,7 @@ private struct SetRow: View {
     }
 }
 
-// MARK: - Apple-only Konfetti-Overlay (SpriteKit) – Fensterweit, keine Layout-/Navigationsänderung
+// MARK: - Apple-only Konfetti-Overlay (SpriteKit)
 private final class ConfettiScene: SKScene {
     private let colors: [SKColor] = [.systemPink, .systemBlue, .systemGreen, .systemOrange, .systemYellow, .systemPurple]
 
@@ -448,8 +439,6 @@ private final class ConfettiScene: SKScene {
     }
 }
 
-/// Zeigt ein globales Konfetti-Overlay oben auf dem Key-Window, unabhängig von der aktuellen View.
-/// ➜ Navigation bleibt unverändert (sofort), die Konfetti laufen sichtbar darüber und verschwinden automatisch.
 private func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
     guard
         let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -469,7 +458,6 @@ private func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
 
     window.addSubview(skView)
 
-    // Automatisch ausblenden & entfernen
     UIView.animate(withDuration: 0.25, delay: duration, options: [.beginFromCurrentState, .curveEaseOut], animations: {
         skView.alpha = 0
     }, completion: { _ in
