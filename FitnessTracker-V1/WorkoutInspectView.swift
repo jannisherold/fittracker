@@ -138,7 +138,9 @@ struct WorkoutInspectView: View {
         // Top-Leiste: Chevron & Pencil (Pencil bleibt auch im Empty State verfügbar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: { Image(systemName: "chevron.left") }
+                Button {
+                    dismiss()
+                } label: { Image(systemName: "chevron.left") }
                     .accessibilityLabel("Zurück")
             }
             

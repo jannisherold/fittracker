@@ -4,6 +4,7 @@ struct ExerciseEditView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject private var router: Router
     @Environment(\.editMode) private var editMode
+    @Environment(\.dismiss) private var dismiss
 
     let trainingID: UUID
     let exerciseID: UUID
@@ -120,11 +121,11 @@ struct ExerciseEditView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    router.replaceTop(with: .workoutEdit(trainingID: trainingID))
+                    dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
                 }
-                .accessibilityLabel("Zur Workout-Bearbeitung")
+                .accessibilityLabel("Zurück")
             }
 
             ToolbarItem(placement: .topBarTrailing) {

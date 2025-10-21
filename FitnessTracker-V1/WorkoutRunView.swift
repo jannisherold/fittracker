@@ -327,6 +327,7 @@ private struct SetRow: View {
 
                 if isExpanded {
                     HStack(spacing: 16) {
+                        
                         HStack(spacing: 2) {
                             Picker("", selection: $weightInt) {
                                 ForEach(0...500, id: \.self) { Text("\($0)") }
@@ -370,7 +371,7 @@ private struct SetRow: View {
                         .frame(width: 90)
                     }
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    //-.foregroundStyle(.secondary)
                     .transition(.opacity)
                 }
             }

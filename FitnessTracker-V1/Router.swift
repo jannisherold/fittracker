@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum Route: Hashable {
-    case workoutInspect(trainingID: UUID)      // NEU: Zwischenansicht
+    case workoutInspect(trainingID: UUID)
     case workoutRun(trainingID: UUID)
     case workoutEdit(trainingID: UUID)
     case exerciseEdit(trainingID: UUID, exerciseID: UUID)

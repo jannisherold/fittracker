@@ -115,7 +115,9 @@ struct WorkoutEditView: View {
         // Top-Leiste
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
+                Button {
+                    dismiss()
+                } label: {
                     Image(systemName: "chevron.left")
                 }
                 .accessibilityLabel("Zurück")
