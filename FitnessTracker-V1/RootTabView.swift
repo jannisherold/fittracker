@@ -38,6 +38,7 @@ struct RootTabView: View {
         // Optional: Klare visuelle Trennung gem. HIG, aber Standard reicht meist
         .toolbarBackground(.visible, for: .tabBar)
         .toolbar(.visible, for: .tabBar)
+        .tabBarMinimizeBehavior(.onScrollDown)
         // A11y: klare, kurze Bezeichnungen sind wichtig – hast du über Label()
     }
 }
