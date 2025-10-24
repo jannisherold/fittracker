@@ -39,6 +39,9 @@ struct ProgressView: View {
                     }
                 }
             }
+            .navigationDestination(for: Training.ID.self) { id in
+                ProgressDetailView(trainingID: id)  // wird jetzt erst beim Tippen erstellt
+            }
             .navigationTitle("Progress")
             .listStyle(.insetGrouped)
             .listSectionSpacing(.compact)
