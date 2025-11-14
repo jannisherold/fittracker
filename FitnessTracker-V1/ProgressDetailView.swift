@@ -28,17 +28,20 @@ struct ProgressDetailView: View {
                             } else {
                                 Chart(points(for: ex.id)) { p in
                                     LineMark(
-                                        x: .value("Session", p.index),
-                                        y: .value("Gewicht (kg)", p.weight)
+                                        
+                                            x: .value("Session", p.index),
+                                            y: .value("Gewicht (kg)", p.weight)
+                                        
                                     )
                                     .interpolationMethod(.catmullRom)
                                     .foregroundStyle(.blue)
-
+                                    /*
                                     PointMark(
                                         x: .value("Session", p.index),
                                         y: .value("Gewicht (kg)", p.weight)
                                     )
                                     .foregroundStyle(.blue)
+                                     */
                                 }
                                 .chartXAxis(.hidden)
                                 .chartYAxis {
