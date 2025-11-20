@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import UIKit
 
 /// Zeigt pro Übung eines Workouts einen kleinen Verlauf (X = Sessions, Y = Gewicht).
 struct ProgressDetailView: View {
@@ -7,6 +8,11 @@ struct ProgressDetailView: View {
 
     let trainingID: UUID
 
+    // Neu: Ausgewählte Übung + Punkt für das Crosshair
+    @State private var selectedExerciseID: UUID?          // welche Übung gerade "aktiv" ist
+    @State private var selectedPoint: ExercisePoint?      // welcher Datenpunkt dort ausgewählt ist
+    @State private var impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+    
     var body: some View {
         List {
             if training.exercises.isEmpty {
@@ -21,27 +27,45 @@ struct ProgressDetailView: View {
                             Text(ex.name)
                                 .font(.headline)
 
-                            if points(for: ex.id).isEmpty {
+                            let data = points(for: ex.id) // Neu: einmal berechnet, mehrfach genutzt
+
+                            if data.isEmpty {
                                 Text("Noch keine Daten aus Sessions")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             } else {
-                                Chart(points(for: ex.id)) { p in
-                                    LineMark(
-                                        
+                                Chart {
+                                    // Bisherige Linie + Punkte
+                                    ForEach(data) { p in
+                                        LineMark(
                                             x: .value("Session", p.index),
                                             y: .value("Gewicht (kg)", p.weight)
-                                        
-                                    )
-                                    .interpolationMethod(.catmullRom)
-                                    .foregroundStyle(.blue)
-                                    /*
-                                    PointMark(
-                                        x: .value("Session", p.index),
-                                        y: .value("Gewicht (kg)", p.weight)
-                                    )
-                                    .foregroundStyle(.blue)
-                                     */
+                                        )
+                                        .interpolationMethod(.catmullRom)
+                                        .foregroundStyle(.blue)
+                                        /*
+                                        PointMark(
+                                            x: .value("Session", p.index),
+                                            y: .value("Gewicht (kg)", p.weight)
+                                        )
+                                        .foregroundStyle(.blue)
+                                         */
+                                    }
+
+                                    // Neu: Crosshair + hervorgehobener Punkt
+                                    if selectedExerciseID == ex.id, let sp = selectedPoint {
+                                        RuleMark(
+                                            x: .value("Session", sp.index)
+                                        )
+                                        .foregroundStyle(.gray)
+                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+
+                                        PointMark(
+                                            x: .value("Session", sp.index),
+                                            y: .value("Gewicht (kg)", sp.weight)
+                                        )
+                                        .symbolSize(80) // etwas größer als die normalen Punkte
+                                    }
                                 }
                                 .chartXAxis(.hidden)
                                 .chartYAxis {
@@ -51,15 +75,57 @@ struct ProgressDetailView: View {
                                         AxisValueLabel()
                                     }
                                 }
+                                .chartXScale(domain: (data.first?.index ?? 0)...(data.last?.index ?? 0))
                                 .frame(height: 160)
                                 .padding(.top, 4)
-                                .chartXScale(domain: points(for: ex.id).first!.index ... points(for: ex.id).last!.index)
-                                .chartPlotStyle { plot in
-                                    plot.padding(.horizontal, 0)
+                                // Neu: Chart interaktiv machen (Drag → Crosshair)
+                                .chartOverlay { proxy in
+                                    GeometryReader { geo in
+                                        Rectangle()
+                                            .fill(.clear) // unsichtbares Overlay
+                                            .contentShape(Rectangle()) // macht die ganze Fläche tappbar
+                                            .gesture(
+                                                DragGesture()
+                                                    .onChanged { value in
+                                                        // Plot-Area im Parent-Coordinate-Space
+                                                        let frame = geo[proxy.plotAreaFrame]
+
+                                                        // Nur reagieren, wenn Finger innerhalb der Plot-Area ist
+                                                        guard frame.contains(value.location) else { return }
+
+                                                        // X-Wert (Session-Index) aus der Fingerposition lesen
+                                                        if let sessionIndex: Int = proxy.value(atX: value.location.x, as: Int.self) {
+                                                            // Nächstgelegenen Datenpunkt finden
+                                                            if let nearest = data.min(by: { abs($0.index - sessionIndex) < abs($1.index - sessionIndex) }) {
+
+                                                                // ⬇️ NEU: Nur wenn wir auf einen anderen Punkt springen → Haptik
+                                                                if nearest.index != selectedPoint?.index {
+                                                                    impactFeedback.impactOccurred()
+                                                                }
+
+                                                                selectedExerciseID = ex.id
+                                                                selectedPoint = nearest
+                                                            }
+                                                        }
+                                                    }
+                                                    .onEnded { _ in
+                                                        // Verhalten wie Aktien-App: Crosshair wieder ausblenden
+                                                        selectedExerciseID = nil
+                                                        selectedPoint = nil
+                                                    }
+                                            )
+                                    }
                                 }
 
                                 // Kleiner Meta-Block unten
-                                if let last = lastPoint(for: ex.id) {
+                                if let sp = (selectedExerciseID == ex.id ? selectedPoint : nil) {
+                                    // Neu: wenn ein Punkt ausgewählt ist, dessen Infos anzeigen
+                                    Text("Gewicht: \(formatKg(sp.weight)) kg - \(sp.date.formatted(date: .abbreviated, time: .omitted))")
+                                        .font(.footnote)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                } else if let last = lastPoint(for: ex.id) {
+                                    // Fallback: wie bisher "Aktuell"
                                     Text("Aktuell: \(formatKg(last.weight)) kg - \(last.date.formatted(date: .abbreviated, time: .omitted))")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
@@ -75,7 +141,7 @@ struct ProgressDetailView: View {
     }
 
     // MARK: - Datenmodell für die Charts
-    private struct ExercisePoint: Identifiable {
+    private struct ExercisePoint: Identifiable, Equatable { // Neu: Equatable für Vergleiche
         let id = UUID()
         let index: Int     // 1...N (chronologisch)
         let date: Date
