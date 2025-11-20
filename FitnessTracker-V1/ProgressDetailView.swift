@@ -53,6 +53,10 @@ struct ProgressDetailView: View {
                                 }
                                 .frame(height: 160)
                                 .padding(.top, 4)
+                                .chartXScale(domain: points(for: ex.id).first!.index ... points(for: ex.id).last!.index)
+                                .chartPlotStyle { plot in
+                                    plot.padding(.horizontal, 0)
+                                }
 
                                 // Kleiner Meta-Block unten
                                 if let last = lastPoint(for: ex.id) {
