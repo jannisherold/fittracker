@@ -1,6 +1,8 @@
 import SwiftUI
 import UIKit
-import SpriteKit // NEU
+import SpriteKit
+import AudioToolbox
+
 
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
@@ -138,11 +140,30 @@ struct WorkoutRunView: View {
         store.beginSession(trainingID: trainingID)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
+    
+    private func playSuccessSound() {
+        //wooosh Mail versenden
+        //AudioServicesPlaySystemSound(1001)
+        
+        //wiuuuu (Mail
+        //AudioServicesPlaySystemSound(1003)
+        
+        //düdüdüm
+        //AudioServicesPlaySystemSound(1007)
+        
+        //Trompete
+        AudioServicesPlaySystemSound(1025)
+        
+        //Ding
+        //AudioServicesPlaySystemSound(1054)
+        
+    }
 
     private func endSessionAndLeave() {
         store.endSession(trainingID: trainingID)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         showGlobalConfettiOverlay(duration: 2.0)
+        playSuccessSound()
         router.popToRoot()
     }
 
