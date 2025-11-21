@@ -41,7 +41,7 @@ struct ProgressDetailView: View {
                                             x: .value("Session", p.index),
                                             y: .value("Gewicht (kg)", p.weight)
                                         )
-                                        .interpolationMethod(.catmullRom)
+                                        .interpolationMethod(.linear)
                                         .foregroundStyle(.blue)
                                         /*
                                         PointMark(
@@ -195,5 +195,106 @@ struct ProgressDetailView: View {
             return String(format: "%.1f", value)
         }
         return "\(intPart),\(label)"
+    }
+}
+
+// MARK: - Preview
+
+struct ProgressDetailView_Previews: PreviewProvider {
+
+    static var sampleTraining: Training {
+        // Beispiel-Exercises
+        let bench = Exercise(name: "Bankdrücken", sets: [
+            SetEntry(weightKg: 60, repetition: .init(value: 8)),
+            SetEntry(weightKg: 65, repetition: .init(value: 6)),
+            SetEntry(weightKg: 70, repetition: .init(value: 4))
+        ])
+
+        let squat = Exercise(name: "Kniebeuge", sets: [
+            SetEntry(weightKg: 80, repetition: .init(value: 8)),
+            SetEntry(weightKg: 90, repetition: .init(value: 5))
+        ])
+
+        let deadlift = Exercise(name: "Kreuzheben", sets: [
+            SetEntry(weightKg: 100, repetition: .init(value: 5)),
+            SetEntry(weightKg: 110, repetition: .init(value: 3))
+        ])
+
+        let exercises = [bench, squat, deadlift]
+
+        let now = Date()
+        let day: TimeInterval = 24 * 60 * 60
+
+        // Beispiel-Sessions für Chart-Daten
+        let session1 = WorkoutSession(
+            startedAt: now.addingTimeInterval(-14 * day),
+            endedAt: now.addingTimeInterval(-14 * day + 3000),
+            maxWeightPerExercise: [
+                bench.id: 60,
+                squat.id: 85,
+                deadlift.id: 100
+            ]
+        )
+
+        let session2 = WorkoutSession(
+            startedAt: now.addingTimeInterval(-7 * day),
+            endedAt: now.addingTimeInterval(-7 * day + 2800),
+            maxWeightPerExercise: [
+                bench.id: 70,
+                squat.id: 90,
+                deadlift.id: 105
+            ]
+        )
+
+        let session3 = WorkoutSession(
+            startedAt: now.addingTimeInterval(-1 * day),
+            endedAt: now.addingTimeInterval(-1 * day + 2500),
+            maxWeightPerExercise: [
+                bench.id: 95,
+                squat.id: 0,       // → zum Testen deiner 0-Filter-Logik
+                deadlift.id: 110
+            ]
+        )
+        
+        let session4 = WorkoutSession(
+            startedAt: now.addingTimeInterval(-1 * day),
+            endedAt: now.addingTimeInterval(-1 * day + 2500),
+            maxWeightPerExercise: [
+                bench.id: 95,
+                squat.id: 0,       // → zum Testen deiner 0-Filter-Logik
+                deadlift.id: 110
+            ]
+        )
+        
+        let session5 = WorkoutSession(
+            startedAt: now.addingTimeInterval(-1 * day),
+            endedAt: now.addingTimeInterval(-1 * day + 2500),
+            maxWeightPerExercise: [
+                bench.id: 95,
+                squat.id: 0,       // → zum Testen deiner 0-Filter-Logik
+                deadlift.id: 110
+            ]
+        )
+
+        return Training(
+            title: "Push / Pull / Legs",
+            exercises: exercises,
+            sessions: [session5,session4,session3, session2, session1]
+        )
+    }
+
+    static var previews: some View {
+
+        let store = Store()
+
+        // Trainingsspeicher füllen
+        let t = sampleTraining
+        store.trainings = [t]
+
+        return NavigationStack {
+            ProgressDetailView(trainingID: t.id)
+                .environmentObject(store)
+        }
+        .previewDisplayName("Progress Detail Preview")
     }
 }
