@@ -16,7 +16,7 @@ struct WorkoutView: View {
             List {
                 if store.trainings.isEmpty {
                     Section {
-                        Text("Tippe oben rechts auf „+“ um ein Workout anzulegen.")
+                        Text("Tippe oben rechts auf + um ein Workout anzulegen.")
                             .foregroundStyle(.secondary)
                     }
                 } else {
