@@ -21,17 +21,16 @@ struct WorkoutInspectView: View {
         ZStack {
             Color(.secondarySystemBackground).ignoresSafeArea()
             
-            //Mit Übungen: Mockup-Kartenlayout
             if hasExercises {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 20) {
                         
                         //Überscnrift der ganzen Seite
                         VStack(spacing: 0){
-                            Text(training.title)
-                                .font(.system(size: 34, weight: .bold))
+                            Text(training.title.uppercased())
+                                .font(.system(size: 28, weight: .bold))
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 25)
                                 .foregroundColor(.blue)
                             
                             if let last = training.sessions.first?.endedAt {
@@ -39,14 +38,14 @@ struct WorkoutInspectView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, 25)
                                     .foregroundColor(.secondary)
                             } else {
                                 Text("Noch keine Workouts absolviert")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, 25)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -56,29 +55,45 @@ struct WorkoutInspectView: View {
                         ForEach(training.exercises) { ex in
                             VStack(alignment: .leading, spacing: 5) {
                                 
-                                Text(ex.name.uppercased())
+                                Text(ex.name)
                                     .font(.title2.weight(.bold))
-                                //.foregroundColor(.blue)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, 30)
                                 
                                 VStack(alignment: .leading, spacing: 0) {
                                     ForEach(Array(ex.sets.enumerated()), id: \.element.id) { idx, set in
                                         
-                                        Divider().padding(.horizontal, 16)
+                                        if(idx>0){
+                                            Divider().padding(.horizontal, 16)
+                                        }
                                         
                                         VStack(){
+                                            
                                             Text("\(idx + 1). Satz")
-                                            //.font(.headline)
                                                 .fontWeight(.regular)
                                                 .foregroundColor(.secondary)
                                                 .font(.system(size: 14))
                                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                            
-                                            Text("\(formatWeight(set.weightKg)) kg  x  \(set.repetition.value) Wdh.")
-                                                .font(.headline)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                
+                                            HStack{
+                                                //Image(systemName: "dumbbell.fill")
+                                                Image(systemName: "scalemass.fill")
+                                                    .foregroundColor(.secondary)
+                                                
+                                                    
+                                                Text("\(formatWeight(set.weightKg)) kg")
+                                                    .fontWeight(.semibold)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                
+                                                Image(systemName: "repeat")
+                                                    .foregroundColor(.secondary)
+                                                
+                                                Text("\(set.repetition.value) Wdh.")
+                                                    .fontWeight(.semibold)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                            }
+                                                
                                         }
-                                        .padding(.vertical, 14)
+                                        .padding(.vertical, 10)
                                         .padding(.horizontal, 16)
                                         
                                         
@@ -87,10 +102,11 @@ struct WorkoutInspectView: View {
                                     
                                 }
                                 .background(Color(.systemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                                //.shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 .padding(.horizontal, 16)
+                                
                             }
+                            .padding(.vertical, 2)
                         }
                         
                         Spacer(minLength: 80)
@@ -99,7 +115,7 @@ struct WorkoutInspectView: View {
                 .scrollIndicators(.never)
                 
             } else {
-                // Kein Inhalt: Empty State wie in WorkoutRunView
+                // Keine Übungen angelegt
                 ScrollView {
                     VStack(spacing: 24) {
                         Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt.")
@@ -116,7 +132,6 @@ struct WorkoutInspectView: View {
                                 .font(.headline)
                                 .fontWeight(.medium)
                                 .frame(maxWidth: .infinity)
-                            //.padding(.vertical, 16)
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
@@ -135,7 +150,7 @@ struct WorkoutInspectView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
         
-        // Top-Leiste: Chevron & Pencil (Pencil bleibt auch im Empty State verfügbar)
+        // Top-Leiste: Chevron immer sichtbar
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -146,7 +161,7 @@ struct WorkoutInspectView: View {
             
         }
         
-        // Untere Leiste: „Workout starten“ nur wenn Übungen vorhanden
+        // „Workout starten“ und Pencil nur wenn Übungen vorhanden
         .toolbar {
             if hasExercises {
                 ToolbarItem(placement: .bottomBar) {
@@ -186,5 +201,103 @@ struct WorkoutInspectView: View {
         nf.maximumFractionDigits = 3
         nf.decimalSeparator = ","
         return nf.string(from: NSNumber(value: value)) ?? String(value).replacingOccurrences(of: ".", with: ",")
+    }
+}
+
+// MARK: - Previews
+
+fileprivate extension Training {
+    /// Beispiel-Training MIT Übungen für Previews
+    static var previewWithExercises: Training {
+        let sets = [
+            SetEntry(weightKg: 80.25, repetition: Repetition(value: 8)),
+            SetEntry(weightKg: 75, repetition: Repetition(value: 10)),
+            SetEntry(weightKg: 70, repetition: Repetition(value: 12))
+        ]
+
+        let exercise = Exercise(
+            name: "Bankdrücken",
+            sets: sets
+        )
+        
+        let sets2 = [
+            SetEntry(weightKg: 80, repetition: Repetition(value: 8)),
+            SetEntry(weightKg: 75, repetition: Repetition(value: 10)),
+            SetEntry(weightKg: 70, repetition: Repetition(value: 12))
+        ]
+
+        let exercise2 = Exercise(
+            name: "Brustpresse",
+            sets: sets2
+        )
+        
+        let sets3 = [
+            SetEntry(weightKg: 80, repetition: Repetition(value: 8)),
+            SetEntry(weightKg: 75, repetition: Repetition(value: 10)),
+            SetEntry(weightKg: 70, repetition: Repetition(value: 12))
+        ]
+
+        let exercise3 = Exercise(
+            name: "Butterfly",
+            sets: sets2
+        )
+
+        var t = Training(title: "Push", exercises: [exercise, exercise2, exercise3])
+        return t
+    }
+
+    /// Beispiel-Training OHNE Übungen (Empty State)
+    static var previewEmpty: Training {
+        Training(title: "Neues Workout")
+    }
+}
+
+
+/// MARK: - Preview 1: iPhone 15 Pro — Light Mode — mit Übungen
+#Preview("mit Übungen (Light)") {
+    let store = Store()
+    let router = Router()
+
+    let training = Training.previewWithExercises
+    store.trainings = [training]
+
+    return NavigationStack {
+        WorkoutInspectView(trainingID: training.id)
+            .environmentObject(store)
+            .environmentObject(router)
+    }
+    .preferredColorScheme(.light)
+}
+
+
+/// MARK: - Preview 2: iPhone 15 Pro — Dark Mode — mit Übungen
+#Preview("mit Übungen (Dark)") {
+    let store = Store()
+    let router = Router()
+
+    let training = Training.previewWithExercises
+    store.trainings = [training]
+
+    return NavigationStack {
+        WorkoutInspectView(trainingID: training.id)
+            .environmentObject(store)
+            .environmentObject(router)
+    }
+    .preferredColorScheme(.dark)
+}
+
+
+/// MARK: - Preview 3: iPhone SE — Empty State
+#Preview("ohne Übungen (Light)") {
+    let store = Store()
+    let router = Router()
+
+    let training = Training.previewEmpty
+    store.trainings = [training]
+
+    return NavigationStack {
+        WorkoutInspectView(trainingID: training.id)
+            .environmentObject(store)
+            .environmentObject(router)
     }
 }
