@@ -21,7 +21,7 @@ struct WorkoutRunView: View {
         if training.exercises.isEmpty {
             // --- Leerer Zustand ---
             VStack {
-                Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt.")
+                Text("Du hast noch keine Übungen zu diesem Workout hinzugefügt.")
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding()

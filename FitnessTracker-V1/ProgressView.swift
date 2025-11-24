@@ -59,7 +59,7 @@ struct ProgressView: View {
                              attachmentAnchor: .point(.topTrailing),
                              arrowEdge: .top) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Durch Tippen auf eines deiner Workouts bekommst du für jede Übung deinen Fortschritt visualisiert.")
+                            Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Durch Tippen auf eines Deiner Workouts bekommst Du für jede Übung Deinen Fortschritt visualisiert.")
                                 .font(.body)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(nil)

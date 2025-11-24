@@ -118,7 +118,7 @@ struct WorkoutInspectView: View {
                 // Keine Übungen angelegt
                 ScrollView {
                     VStack(spacing: 24) {
-                        Text("Sie haben noch keine Übungen zu diesem Workout hinzugefügt.")
+                        Text("Du hast noch keine Übungen zu diesem Workout hinzugefügt.")
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -190,7 +190,7 @@ struct WorkoutInspectView: View {
             Button("Starten") { router.go(.workoutRun(trainingID: trainingID)) }
                 .keyboardShortcut(.defaultAction)
         } message: {
-            Text("Mach dich bereit zum Trainieren")
+            Text("Mach Dich bereit zum Trainieren")
         }
     }
     
