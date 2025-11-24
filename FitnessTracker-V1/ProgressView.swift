@@ -10,6 +10,19 @@ struct ProgressView: View {
     @State private var isKraftExpanded = true
     @State private var isKoerpergewichtExpanded = false
     @State private var isHistorieExpanded = false
+    
+    // Alle Sessions aller Trainings, global nach Datum sortiert (neueste oben)
+    private var sessionHistory: [(training: Training, session: WorkoutSession)] {
+        store.trainings
+            .flatMap { training in
+                training.sessions.map { session in
+                    (training: training, session: session)
+                }
+            }
+            .sorted { lhs, rhs in
+                lhs.session.endedAt > rhs.session.endedAt
+            }
+    }
 
     var body: some View {
         NavigationStack {
@@ -50,27 +63,24 @@ struct ProgressView: View {
 
                 // MARK: - Trainingshistorie
                 Section(isExpanded: $isHistorieExpanded) {
-                    if store.trainings.isEmpty {
-                        Text("Noch keine Workouts angelegt.")
+                    if sessionHistory.isEmpty {
+                        Text("Noch keine Workouts absolviert.")
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(store.trainings) { t in
+                        ForEach(sessionHistory, id: \.session.id) { item in
                             NavigationLink {
-                                ProgressDetailView(trainingID: t.id)
+                                ProgressHistoryView(
+                                    trainingID: item.training.id,
+                                    sessionID: item.session.id
+                                )
                             } label: {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(t.title)
+                                    Text(item.training.title)
                                         .font(.headline)
-
-                                    if let last = t.sessions.first?.endedAt {
-                                        Text("\(last.formatted(date: .abbreviated, time: .omitted))")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Noch keine Workouts absolviert")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    
+                                    Text(item.session.endedAt.formatted(date: .abbreviated, time: .omitted))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
                                 }
                                 .padding(.vertical, 2)
                             }
@@ -82,6 +92,7 @@ struct ProgressView: View {
                         isExpanded: $isHistorieExpanded
                     )
                 }
+
 
             }
             .navigationDestination(for: Training.ID.self) { id in
@@ -123,4 +134,5 @@ private struct CollapsibleSectionHeader: View {
         .padding(.vertical, 4)  // kompakter, wirkt mehr nach Überschrift
     }
 }
+
 
