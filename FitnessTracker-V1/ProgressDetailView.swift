@@ -86,7 +86,7 @@ struct ProgressDetailView: View {
                                             .fill(.clear) // unsichtbares Overlay
                                             .contentShape(Rectangle()) // macht die ganze Fläche tappbar
                                             .gesture(
-                                                DragGesture()
+                                                DragGesture(minimumDistance: 0)
                                                     .onChanged { value in
                                                         // Plot-Area im Parent-Coordinate-Space
                                                         let frame = geo[proxy.plotAreaFrame]
