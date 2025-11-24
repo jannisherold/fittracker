@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-struct ProgressHistoryView: View {
+struct ProgressHistoryDetailView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject private var router: Router
     @Environment(\.dismiss) private var dismiss

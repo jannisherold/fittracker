@@ -67,9 +67,13 @@ struct ProgressView: View {
                         Text("Noch keine Workouts absolviert.")
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(sessionHistory, id: \.session.id) { item in
+                        // Nur die 3 neuesten Sessions anzeigen
+                        let recentSessions = Array(sessionHistory.prefix(3))
+
+                        ForEach(recentSessions, id: \.session.id) { item in
                             NavigationLink {
-                                ProgressHistoryView(
+                                // Deine bestehende Zeitreise-Detail-View
+                                ProgressHistoryDetailView(
                                     trainingID: item.training.id,
                                     sessionID: item.session.id
                                 )
@@ -85,14 +89,27 @@ struct ProgressView: View {
                                 .padding(.vertical, 2)
                             }
                         }
+
+                        // Button "Alle Sessions" -> vollständige Liste
+                        if sessionHistory.count > 3 {
+                            NavigationLink {
+                                ProgressHistoryList()
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("Alle Sessions")
+                                        .font(.subheadline.weight(.semibold))
+                                    Spacer()
+                                }
+                            }
+                        }
                     }
                 } header: {
                     CollapsibleSectionHeader(
-                        title: "Trainingshistorie",
+                        title: "Workouthistorie",
                         isExpanded: $isHistorieExpanded
                     )
                 }
-
 
             }
             .navigationDestination(for: Training.ID.self) { id in
@@ -134,5 +151,3 @@ private struct CollapsibleSectionHeader: View {
         .padding(.vertical, 4)  // kompakter, wirkt mehr nach Überschrift
     }
 }
-
-
