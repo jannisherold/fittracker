@@ -91,9 +91,6 @@ struct ProgressDetailView: View {
                                                         // Plot-Area im Parent-Coordinate-Space
                                                         let frame = geo[proxy.plotAreaFrame]
 
-                                                        // Nur reagieren, wenn Finger innerhalb der Plot-Area ist
-                                                        guard frame.contains(value.location) else { return }
-
                                                         // X-Wert (Session-Index) aus der Fingerposition lesen
                                                         if let sessionIndex: Int = proxy.value(atX: value.location.x, as: Int.self) {
                                                             // Nächstgelegenen Datenpunkt finden
