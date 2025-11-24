@@ -5,6 +5,7 @@ import UIKit
 /// Zeigt pro Übung eines Workouts einen kleinen Verlauf (X = Sessions, Y = Gewicht).
 struct ProgressDetailView: View {
     @EnvironmentObject var store: Store
+    @State private var showInfo = false
 
     let trainingID: UUID
 
@@ -138,6 +139,32 @@ struct ProgressDetailView: View {
             }
         }
         .navigationTitle(training.title)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
+                Button {
+                    showInfo.toggle()
+                } label: {
+                    Image(systemName: "info")
+                }
+                .accessibilityLabel("Info")
+                // Das Popover ist direkt am Button verankert, kompakt und inhaltsbasiert.
+                .popover(isPresented: $showInfo,
+                         attachmentAnchor: .point(.topTrailing),
+                         arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Durch Tippen auf eines Deiner Workouts bekommst Du für jede Übung Deinen Fortschritt visualisiert.")
+                            .font(.body)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
+                    }
+                    .padding(16)
+                    .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
+                    .presentationSizing(.fitted)               // nur so groß wie der Inhalt
+                    .presentationCompactAdaptation(.popover)   // iPhone bleibt Popover (kein Sheet)
+                }
+            }
+        }
     }
 
     // MARK: - Datenmodell für die Charts

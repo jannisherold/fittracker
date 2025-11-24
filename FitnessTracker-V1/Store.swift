@@ -2,7 +2,9 @@ import Foundation
 import SwiftUI
 
 final class Store: ObservableObject {
-    @Published var trainings: [Training] = [] { didSet { save() } }
+    @Published var trainings: [Training] = [] {
+        didSet { save() }
+    }
 
     private let url: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -20,7 +22,7 @@ final class Store: ObservableObject {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         trainings[t].exercises.append(Exercise(name: name))
     }
-    
+
     func addExercise(to trainingID: UUID, name: String, setCount: Int) {
         guard let tIndex = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         let sets = (0..<max(0, setCount)).map { _ in
@@ -39,13 +41,13 @@ final class Store: ObservableObject {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         trainings[t].exercises.move(fromOffsets: source, toOffset: destination)
     }
-    
+
     func addSet(to exerciseID: UUID, in trainingID: UUID, weight: Double, reps: Int) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         trainings[t].exercises[e].sets.append(SetEntry(weightKg: weight, repetition: .init(value: reps)))
     }
-    
+
     func addSet(to exerciseID: UUID, in trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         guard let e = trainings[t].exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
@@ -104,20 +106,50 @@ final class Store: ObservableObject {
         trainings[t].currentSessionStart = Date()
     }
 
-    // ✅ Session beenden: Max-Gewichte berechnen, Session (mit startedAt/endedAt) speichern, Start löschen
+    // ✅ Session beenden:
+    // - Max-Gewichte berechnen (wie bisher)
+    // - Vollständigen Snapshot aller Übungen & Sätze speichern
+    // - Session (mit startedAt/endedAt) sichern, Start löschen
     func endSession(trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         let exs = trainings[t].exercises
 
+        // Bisherige Logik: Max-Gewicht pro Übung
         var map: [UUID: Double] = [:]
         for ex in exs {
             let maxW = ex.sets.map { $0.weightKg }.max() ?? 0
             map[ex.id] = maxW
         }
 
+        // ✅ Neue Logik: kompletter Snapshot aller Übungen & Sets
+        let exerciseSnapshots: [SessionExerciseSnapshot] = exs.map { ex in
+            let setSnapshots: [SessionSetSnapshot] = ex.sets.map { set in
+                SessionSetSnapshot(
+                    originalSetID: set.id,
+                    weightKg: set.weightKg,
+                    repetition: set.repetition,
+                    isDone: set.isDone
+                )
+            }
+
+            return SessionExerciseSnapshot(
+                originalExerciseID: ex.id,
+                name: ex.name,
+                sets: setSnapshots,
+                notes: ex.notes
+            )
+        }
+
         let ended = Date()
         let started = trainings[t].currentSessionStart ?? ended
-        let session = WorkoutSession(startedAt: started, endedAt: ended, maxWeightPerExercise: map)
+
+        let session = WorkoutSession(
+            startedAt: started,
+            endedAt: ended,
+            maxWeightPerExercise: map,
+            exercises: exerciseSnapshots
+        )
+
         trainings[t].sessions.insert(session, at: 0)
         trainings[t].currentSessionStart = nil
     }
