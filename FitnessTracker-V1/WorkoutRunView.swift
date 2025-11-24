@@ -238,7 +238,7 @@ private struct NotesEditor: View {
             .padding(10)
         }
         .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius:22))
     }
 }
 
@@ -484,4 +484,81 @@ private func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
     }, completion: { _ in
         skView.removeFromSuperview()
     })
+    
+
+    
+    
 }
+
+// MARK: - Preview Testdaten
+
+extension SetEntry {
+    static func sample(weight: Double, reps: Int, done: Bool = false) -> SetEntry {
+        SetEntry(
+            weightKg: weight,
+            repetition: Repetition(value: reps),
+            isDone: done
+        )
+    }
+}
+
+extension Exercise {
+    static var sampleBankdruecken: Exercise {
+        Exercise(
+            name: "Bankdrücken",
+            sets: [
+                .sample(weight: 60, reps: 10),
+                .sample(weight: 70, reps: 8),
+                .sample(weight: 75, reps: 6, done: true)
+            ],
+            notes: "Ellbogen nah am Körper halten."
+        )
+    }
+
+    static var sampleSchulterdruecken: Exercise {
+        Exercise(
+            name: "Schulterdrücken",
+            sets: [
+                .sample(weight: 30, reps: 12),
+                .sample(weight: 35, reps: 10),
+                .sample(weight: 40, reps: 8)
+            ],
+            notes: "Core anspannen. Und ganz viele andere Notizen damit getestet wird wie mehrere Zeilen aussehen"
+        )
+    }
+}
+
+extension Training {
+    static var sampleWorkoutRun: Training {
+        Training(
+            title: "Push Day",
+            date: Date(),
+            exercises: [
+                .sampleBankdruecken,
+                .sampleSchulterdruecken
+            ],
+            sessions: [],                 // für diese View egal
+            currentSessionStart: Date()   // damit der Timer im Titel läuft
+        )
+    }
+}
+
+// MARK: - Preview
+
+#if DEBUG
+struct WorkoutRunView_Previews: PreviewProvider {
+    static var previews: some View {
+        // Beispiel-Store mit einem Training
+        let store = Store()
+        store.trainings = [.sampleWorkoutRun]
+
+        let trainingID = store.trainings[0].id
+
+        return NavigationStack {
+            WorkoutRunView(trainingID: trainingID)
+                .environmentObject(store)
+                .environmentObject(Router())
+        }
+    }
+}
+#endif
