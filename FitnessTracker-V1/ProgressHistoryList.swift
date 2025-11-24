@@ -56,14 +56,16 @@ struct ProgressHistoryList: View {
 
     // MARK: - Row-Layout (an ProgressView angelehnt)
     private func historyRow(for training: Training, session: WorkoutSession) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(training.title)
                 .font(.headline)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 2) {
                 Text(session.endedAt.formatted(date: .abbreviated, time: .omitted))
+                /*
                 Text("•")
                 Text(formatDuration(session.duration))
+                 */
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)

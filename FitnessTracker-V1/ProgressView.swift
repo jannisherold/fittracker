@@ -90,23 +90,34 @@ struct ProgressView: View {
                             }
                         }
 
+                    
                         // Button "Alle Sessions" -> vollständige Liste
                         if sessionHistory.count > 3 {
-                            NavigationLink {
-                                ProgressHistoryList()
-                            } label: {
+                            ZStack {
+                                // Unsichtbarer NavigationLink (macht die Zelle tappbar & navigiert)
+                                NavigationLink {
+                                    ProgressHistoryList()
+                                } label: {
+                                    EmptyView()
+                                }
+                                .opacity(0) // Chevron & Standard-Label verschwinden
+
+                                // Dein sichtbarer, chevron-freier Inhalt
                                 HStack {
                                     Spacer()
                                     Text("Alle Sessions")
                                         .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(.secondary) // falls du ihn "buttoniger" willst
                                     Spacer()
                                 }
+                                .padding(.vertical, 8)
                             }
                         }
+
                     }
                 } header: {
                     CollapsibleSectionHeader(
-                        title: "Workouthistorie",
+                        title: "Trainingshistorie",
                         isExpanded: $isHistorieExpanded
                     )
                 }
