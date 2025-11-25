@@ -164,6 +164,7 @@ struct ProgressBodyweightDetailView: View {
                             isAddingWeight = false
                         }
                         .disabled(parsedWeight == nil)
+                        .foregroundColor(.blue)
                     }
                 }
             }
