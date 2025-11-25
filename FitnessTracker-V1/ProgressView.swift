@@ -78,7 +78,7 @@ struct ProgressView: View {
                     NavigationLink {
                         ProgressFrequencyView()
                     } label: {
-                        Text("Logbuch")
+                        Text("Analyse")
                             .font(.headline)
                             .padding(.vertical, 2)
                     }
