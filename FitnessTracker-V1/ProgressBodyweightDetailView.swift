@@ -2,6 +2,56 @@ import SwiftUI
 import Charts
 import UIKit
 
+// MARK: - UIKit-Bridge: TextField, das automatisch First Responder wird
+
+struct FirstResponderNumberField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField(frame: .zero)
+        textField.delegate = context.coordinator
+        textField.keyboardType = .decimalPad
+        textField.textAlignment = .center
+        textField.font = UIFont.systemFont(ofSize: 40, weight: .bold)
+        textField.adjustsFontForContentSizeCategory = true
+        textField.placeholder = placeholder
+        textField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        // Tastatur direkt anzeigen
+        DispatchQueue.main.async {
+            textField.becomeFirstResponder()
+        }
+
+        return textField
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        uiView.text = text
+        uiView.placeholder = placeholder
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    class Coordinator: NSObject, UITextFieldDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) {
+            self.text = text
+        }
+
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            text.wrappedValue = textField.text ?? ""
+        }
+    }
+}
+
+
+// MARK: - Haupt-View
+
 struct ProgressBodyweightDetailView: View {
     @EnvironmentObject var store: Store
     
@@ -14,7 +64,6 @@ struct ProgressBodyweightDetailView: View {
     // UI-State für "Körpergewicht hinzufügen"
     @State private var isAddingWeight = false
     @State private var weightInput: String = ""
-    @FocusState private var isWeightFieldFocused: Bool
 
     init(isAddingWeight: Bool = false) {
         _isAddingWeight = State(initialValue: isAddingWeight)
@@ -48,6 +97,7 @@ struct ProgressBodyweightDetailView: View {
         .navigationTitle("Körpergewicht")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            // Beim Öffnen: Eingabe mit letztem Wert vorbelegen
             if let last = lastPoint {
                 weightInput = numberFormatter.string(from: NSNumber(value: last.weight)) ?? ""
             }
@@ -68,6 +118,7 @@ struct ProgressBodyweightDetailView: View {
                         Text("Hier kannst Du jederzeit Dein aktuelles Körpergewicht eintragen und die Veränderung im Chart analysieren. Tipp: Wiege Dich täglich morgens auf nüchternen Magen um sinnvoll zu vergleichen.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
                     }
                     .padding(16)
                     .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
@@ -88,37 +139,28 @@ struct ProgressBodyweightDetailView: View {
             NavigationStack {
                 VStack {
                     Spacer()
-                    
-                    // (3) Gewichtsanzeige + Eingabe
-                    TextField("", text: $weightInput, prompt: Text(weightPlaceholder))
-                        .keyboardType(.decimalPad)
-                        .focused($isWeightFieldFocused)
-                        .font(.system(size: 40, weight: .bold))
-                        .multilineTextAlignment(.center)
-                        .monospacedDigit()
-                        .padding(.horizontal, 32)
-                    
+
+                    // 3. Gewichtsanzeige + Eingabe (Text + Tastatur)
+                    FirstResponderNumberField(
+                        text: $weightInput,
+                        placeholder: weightPlaceholder
+                    )
+                    .frame(height: 60)
+                    .padding(.horizontal, 32)
+
                     Spacer()
                 }
-                .onAppear {
-                    // Tastatur direkt ausklappen
-                    DispatchQueue.main.async {
-                        isWeightFieldFocused = true
-                    }
-                }
                 .toolbar {
-                    // (1) Abbrechen
+                    // 1. Abbrechen
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Abbrechen") {
-                            isWeightFieldFocused = false
                             isAddingWeight = false
                         }
                     }
-                    // (2) Speichern
+                    // 2. Speichern
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Speichern") {
                             saveWeight()
-                            isWeightFieldFocused = false
                             isAddingWeight = false
                         }
                         .disabled(parsedWeight == nil)
@@ -210,7 +252,7 @@ struct ProgressBodyweightDetailView: View {
 
     /// Punkte chronologisch (älteste links, neueste rechts)
     private var points: [BodyweightPoint] {
-        let chronological = store.bodyweightEntries.reversed()
+        let chronological = store.bodyweightEntries.reversed() // neueste zuerst → umdrehen
         let values: [(Int, Date, Double)] = chronological.enumerated().map { (idx, entry) in
             (idx + 1, entry.date, entry.weightKg)
         }
@@ -252,6 +294,7 @@ struct ProgressBodyweightDetailView: View {
         return nf
     }
 
+    /// Versucht, die Texteingabe in einen Double-Wert zu parsen
     private var parsedWeight: Double? {
         guard !weightInput.isEmpty else { return nil }
         guard let number = numberFormatter.number(from: weightInput) else { return nil }
@@ -275,7 +318,7 @@ struct ProgressBodyweightDetailView: View {
     private func saveWeight() {
         guard var weight = parsedWeight else { return }
 
-        // Begrenzen auf 0–200 kg und auf 2 Nachkommastellen runden
+        // Begrenze auf 0–200 kg und runde auf 2 Nachkommastellen
         weight = max(0, min(200, weight))
         weight = (weight * 100).rounded() / 100
 
@@ -285,6 +328,7 @@ struct ProgressBodyweightDetailView: View {
 
     // MARK: - Anzeige-Helfer für Chart
 
+    /// Gleiche Anzeige-Logik wie in deiner Strength-Detail-View
     private func formatKg(_ value: Double) -> String {
         let frac = value - floor(value)
         if abs(frac) < 0.0001 { return "\(Int(value))" }
@@ -307,11 +351,13 @@ struct ProgressBodyweightDetailView: View {
     }
 }
 
+
 // MARK: - Previews
 
 struct ProgressBodyweightDetailView_Previews: PreviewProvider {
     static var previews: some View {
         let store = Store()
+        // Beispiel-Daten zum Testen
         store.bodyweightEntries = [
             BodyweightEntry(date: Date().addingTimeInterval(-7*24*60*60), weightKg: 82.0),
             BodyweightEntry(date: Date().addingTimeInterval(-3*24*60*60), weightKg: 81.5),
@@ -328,18 +374,24 @@ struct ProgressBodyweightDetailView_Previews: PreviewProvider {
 struct ProgressBodyweightDetailView_TestData_Previews: PreviewProvider {
     static var previews: some View {
         Group {
+
+            // 🔹 1. Preview: KEINE Einträge
             NavigationStack {
                 ProgressBodyweightDetailView()
                     .environmentObject(emptyStore)
             }
             .previewDisplayName("Keine Einträge")
 
+
+            // 🔹 2. Preview: MEHRERE Einträge
             NavigationStack {
                 ProgressBodyweightDetailView()
                     .environmentObject(filledStore)
             }
             .previewDisplayName("Mehrere Einträge")
 
+
+            // 🔹 3. Preview: Sheet vorausgewählt (isAddingWeight = true)
             NavigationStack {
                 ProgressBodyweightDetailView(isAddingWeight: true)
                     .environmentObject(filledStore)
@@ -348,12 +400,16 @@ struct ProgressBodyweightDetailView_TestData_Previews: PreviewProvider {
         }
     }
 
+    // MARK: - Test Stores
+
+    /// Store mit keinen Körpergewichtsdaten
     static var emptyStore: Store = {
         let s = Store()
         s.bodyweightEntries = []
         return s
     }()
 
+    /// Store mit mehreren realistischen Testwerten
     static var filledStore: Store = {
         let s = Store()
         s.bodyweightEntries = [
