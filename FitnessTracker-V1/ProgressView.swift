@@ -37,7 +37,7 @@ struct ProgressView: View {
                     } else {
                         ForEach(store.trainings) { t in
                             NavigationLink {
-                                ProgressDetailView(trainingID: t.id)
+                                ProgressStrenghtDetailView(trainingID: t.id)
                             } label: {
                                 Text(t.title)
                                     .font(.headline)
@@ -139,7 +139,7 @@ struct ProgressView: View {
 
             }
             .navigationDestination(for: Training.ID.self) { id in
-                ProgressDetailView(trainingID: id)  // wird jetzt erst beim Tippen erstellt
+                ProgressStrenghtDetailView(trainingID: id)  // wird jetzt erst beim Tippen erstellt
             }
             .navigationTitle("Progress")
             .listStyle(.insetGrouped)

@@ -3,7 +3,7 @@ import Charts
 import UIKit
 
 /// Zeigt pro Übung eines Workouts einen kleinen Verlauf (X = Sessions, Y = Gewicht).
-struct ProgressDetailView: View {
+struct ProgressStrenghtDetailView: View {
     @EnvironmentObject var store: Store
     @State private var showInfo = false
 
@@ -316,7 +316,7 @@ struct ProgressDetailView_Previews: PreviewProvider {
         store.trainings = [t]
 
         return NavigationStack {
-            ProgressDetailView(trainingID: t.id)
+            ProgressStrenghtDetailView(trainingID: t.id)
                 .environmentObject(store)
         }
         .previewDisplayName("Progress Detail Preview")
