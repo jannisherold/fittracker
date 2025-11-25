@@ -12,7 +12,7 @@ struct ProgressFrequencyView: View {
         case last12Months
         case last6Months
         case last3Months
-        case last30Days
+        case last4Weeks
         
         /// Beschriftung im Selector
         var shortLabel: String {
@@ -20,7 +20,7 @@ struct ProgressFrequencyView: View {
             case .last12Months: return "12 M"
             case .last6Months:  return "6 M"
             case .last3Months:  return "3 M"
-            case .last30Days:   return "30 T"
+            case .last4Weeks:   return "4 W"
             }
         }
         
@@ -30,7 +30,7 @@ struct ProgressFrequencyView: View {
             case .last12Months: return "Letzte 12 Monate"
             case .last6Months:  return "Letzte 6 Monate"
             case .last3Months:  return "Letzte 3 Monate"
-            case .last30Days:   return "Letzte 30 Tage"
+            case .last4Weeks:   return "Letzte 4 Wochen"
             }
         }
         
@@ -40,7 +40,7 @@ struct ProgressFrequencyView: View {
             case .last12Months: return "in den letzten 12 Monaten"
             case .last6Months:  return "in den letzten 6 Monaten"
             case .last3Months:  return "in den letzten 3 Monaten"
-            case .last30Days:   return "in den letzten 30 Tagen"
+            case .last4Weeks:   return "in den letzten 4 Wochen"
             }
         }
     }
@@ -49,7 +49,7 @@ struct ProgressFrequencyView: View {
     
     struct FrequencyBucket: Identifiable {
         let id = UUID()
-        let label: String     // z.B. "Jan" oder "24.11."
+        let label: String     // z.B. "KW 47" oder "Jan"
         let start: Date
         let end: Date
         let count: Int
@@ -57,7 +57,7 @@ struct ProgressFrequencyView: View {
     
     // MARK: - State
     
-    @State private var selectedPeriod: Period = .last30Days
+    @State private var selectedPeriod: Period = .last4Weeks
     @State private var selectedBucketLabel: String? = nil
     
     // MARK: - Formatter (außerhalb von ViewBuilder!)
@@ -163,9 +163,9 @@ struct ProgressFrequencyView: View {
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                 
                 switch selectedPeriod {
-                case .last30Days:
-                    let dateString = dayDisplayFormatter.string(from: bucket.start)
-                    Text("\(dateString) • Trainings an diesem Tag")
+                case .last4Weeks:
+                    // label = "KW 47"
+                    Text("\(bucket.label) • Trainings in dieser Woche")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 case .last3Months, .last6Months, .last12Months:
@@ -195,8 +195,8 @@ struct ProgressFrequencyView: View {
     
     private func makeBuckets() -> [FrequencyBucket] {
         switch selectedPeriod {
-        case .last30Days:
-            return makeLast30DaysBuckets()
+        case .last4Weeks:
+            return makeLast4WeeksBuckets()
         case .last3Months:
             return makeMonthlyBuckets(monthsBack: 3)
         case .last6Months:
@@ -206,34 +206,41 @@ struct ProgressFrequencyView: View {
         }
     }
     
-    /// Letzte 30 Tage: tägliche Buckets
-    private func makeLast30DaysBuckets() -> [FrequencyBucket] {
+    /// Letzte 4 Wochen: wöchentliche Buckets (KW)
+    private func makeLast4WeeksBuckets() -> [FrequencyBucket] {
         var buckets: [FrequencyBucket] = []
         
-        let today = calendar.startOfDay(for: Date())
+        let now = Date()
+        guard let currentWeekInterval = calendar.dateInterval(of: .weekOfYear, for: now) else {
+            return []
+        }
         
-        let labelFormatter = DateFormatter()
-        labelFormatter.locale = calendar.locale ?? Locale.current
-        labelFormatter.dateFormat = "dd.MM."
-        
-        // Ältester Tag links, heute rechts
-        for offset in stride(from: 29, through: 0, by: -1) {
-            guard let dayStart = calendar.date(byAdding: .day, value: -offset, to: today),
-                  let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else {
+        // Älteste Woche links, aktuelle Woche rechts
+        for offset in stride(from: 3, through: 0, by: -1) {
+            guard let weekStart = calendar.date(
+                byAdding: .weekOfYear,
+                value: -offset,
+                to: currentWeekInterval.start
+            ),
+            let weekInterval = calendar.dateInterval(of: .weekOfYear, for: weekStart) else {
                 continue
             }
             
+            let start = weekInterval.start
+            let end = weekInterval.end
+            
             let count = allSessions.filter { session in
-                session.startedAt >= dayStart && session.startedAt < dayEnd
+                session.startedAt >= start && session.startedAt < end
             }.count
             
-            let label = labelFormatter.string(from: dayStart)
+            let weekNumber = calendar.component(.weekOfYear, from: start)
+            let label = "KW \(weekNumber)"
             
             buckets.append(
                 FrequencyBucket(
                     label: label,
-                    start: dayStart,
-                    end: dayEnd,
+                    start: start,
+                    end: end,
                     count: count
                 )
             )
@@ -295,11 +302,14 @@ struct ProgressFrequencyView: View {
         dateFormatter.locale = calendar.locale ?? Locale(identifier: "de_DE")
         
         switch selectedPeriod {
-        case .last30Days:
+        case .last4Weeks:
             dateFormatter.dateFormat = "dd.MM.yyyy"
             let startString = dateFormatter.string(from: first.start)
-            let endString = dateFormatter.string(from: last.start)
+            // Ende = letzter Tag der letzten Woche
+            let endDate = calendar.date(byAdding: .day, value: -1, to: last.end) ?? last.end
+            let endString = dateFormatter.string(from: endDate)
             return "\(selectedPeriod.displayTitle) • \(startString) – \(endString)"
+            
         case .last3Months, .last6Months, .last12Months:
             dateFormatter.dateFormat = "LLL yyyy"
             let startString = dateFormatter.string(from: first.start)
@@ -337,52 +347,6 @@ struct FrequencyChart: View {
     }
 }
 
-// MARK: - Preview
-
-struct ProgressFrequencyView_Previews: PreviewProvider {
-    static var previewStore: Store = {
-        let store = Store()
-        
-        var training = Training(title: "Push")
-        let cal = Calendar.current
-        let now = Date()
-        
-        func session(daysAgo: Int) -> WorkoutSession {
-            let start = cal.date(byAdding: .day, value: -daysAgo, to: now) ?? now
-            let end = cal.date(byAdding: .minute, value: 60, to: start) ?? start
-            return WorkoutSession(
-                startedAt: start,
-                endedAt: end,
-                maxWeightPerExercise: [:],
-                exercises: []
-            )
-        }
-        
-        training.sessions = [
-            session(daysAgo: 0),
-            session(daysAgo: 1),
-            session(daysAgo: 2),
-            session(daysAgo: 5),
-            session(daysAgo: 10),
-            session(daysAgo: 20),
-            session(daysAgo: 40),
-            session(daysAgo: 80),
-            session(daysAgo: 150),
-            session(daysAgo: 250)
-        ]
-        
-        store.trainings = [training]
-        return store
-    }()
-    
-    static var previews: some View {
-        NavigationStack {
-            ProgressFrequencyView()
-                .environmentObject(previewStore)
-        }
-    }
-}
-
 // MARK: - Realistischer Preview mit Beispieldaten
 
 struct ProgressFrequencyView_RealisticPreview: PreviewProvider {
@@ -402,34 +366,24 @@ struct ProgressFrequencyView_RealisticPreview: PreviewProvider {
             )
         }
         
-        // Ein Workout mit vielen Sessions über 12 Monate verteilt
+        // Beispiel: viele Sessions über die letzten ~12 Monate
         var training = Training(title: "Ganzkörper")
         
-        // Letzte 30 Tage (relativ dicht, inkl. ein paar Tage mit 2 Trainings)
+        // Letzte 4 Wochen (ein paar Wochen mit mehreren Einheiten)
         let recentDays: [Int] = [
-            0,  // heute
-            1, 1,  // zwei Trainings gestern
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            15,
-            18,
-            20,
-            23,
-            26,
-            29
+            0, 2, 3,  // aktuelle Woche
+            7, 9,     // letzte Woche
+            14, 16,   // vorletzte Woche
+            21, 23    // dritte Woche zurück
         ]
         
-        // Ältere Sessions für 3/6/12-Monats-Sicht
+        // Ältere Sessions für 3/6/12-Monats-Sichten
         let olderDays: [Int] = [
-            35, 40, 47,      // vor ca. 1–2 Monaten
-            60, 75, 90,      // 2–3 Monate
-            120, 150, 180,   // 4–6 Monate
-            210, 240, 270,   // 7–9 Monate
-            300, 330         // 10–11 Monate
+            35, 40, 47,
+            60, 75, 90,
+            120, 150, 180,
+            210, 240, 270,
+            300, 330
         ]
         
         let allDays = recentDays + olderDays
