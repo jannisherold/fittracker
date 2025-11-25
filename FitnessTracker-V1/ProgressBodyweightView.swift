@@ -142,7 +142,7 @@ struct FirstResponderNumberField: UIViewRepresentable {
 
 // MARK: - Haupt-View
 
-struct ProgressBodyweightDetailView: View {
+struct ProgressBodyweightView: View {
     @EnvironmentObject var store: Store
     
     @State private var showInfo = false

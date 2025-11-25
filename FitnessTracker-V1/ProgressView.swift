@@ -57,7 +57,7 @@ struct ProgressView: View {
                 Section(isExpanded: $isKoerpergewichtExpanded) {
                    
                             NavigationLink {
-                                ProgressBodyweightDetailView()
+                                ProgressBodyweightView()
                             } label: {
                                 Text("Logbuch")
                                     .font(.headline)
@@ -74,7 +74,15 @@ struct ProgressView: View {
                 
                 // MARK: - Frequenz
                 Section(isExpanded: $isFrequenzExpanded) {
-                    Text("Analysiere Deine Trainingsfrequenz")
+                    
+                    NavigationLink {
+                        ProgressFrequencyView()
+                    } label: {
+                        Text("Logbuch")
+                            .font(.headline)
+                            .padding(.vertical, 2)
+                    }
+                    
                 } header: {
                     CollapsibleSectionHeader(
                         title: "Trainingsfrequenz",
