@@ -11,17 +11,18 @@ struct ProgressBodyweightDetailView: View {
     @State private var selectedPoint: BodyweightPoint?
     @State private var impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
 
-    // UI-State für "Körpergewicht hinzufügen"
+    // UI-State für "Körpergewicht hinzufügen" (steuert das Bottom-Sheet)
     @State private var isAddingWeight = false
     @State private var weightInt: Int = 70
     @State private var weightFracIndex: Int = 0
     private let fracSteps: [Double] = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
 
-    @State private var showResetConfirm = false
+    init(isAddingWeight: Bool = false) {
+        _isAddingWeight = State(initialValue: isAddingWeight)
+    }
 
     var body: some View {
         List {
-          
             // Chart + Meta-Infos
             Section {
                 if points.isEmpty {
@@ -32,7 +33,7 @@ struct ProgressBodyweightDetailView: View {
                 } else {
                     chartView
 
-                    // Meta-Text unter der Chart (wie in ProgressStrenghtDetailView)
+                    // Meta-Text unter der Chart (wie in ProgressStrengthDetailView)
                     if let sp = selectedPoint {
                         Text("Gewicht: \(formatKg(sp.weight)) kg - \(sp.date.formatted(date: .abbreviated, time: .omitted))")
                             .font(.footnote)
@@ -45,40 +46,9 @@ struct ProgressBodyweightDetailView: View {
                     }
                 }
             }
-
-            // Hinzufügen-Button + Wheel
-            Section {
-                addWeightButton
-
-                if isAddingWeight {
-                    weightPickerCard
-                }
-            }
-
-            // Dezenter Reset-Button ganz unten
-            if !store.bodyweightEntries.isEmpty {
-                Section {
-                    Button(role: .destructive) {
-                        showResetConfirm = true
-                    } label: {
-                        Text("Daten zurücksetzen")
-                            .font(.footnote)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                }
-            }
         }
         .navigationTitle("Körpergewicht")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Alle Körpergewichts-Daten löschen?", isPresented: $showResetConfirm) {
-            Button("Löschen", role: .destructive) {
-                store.resetBodyweightEntries()
-                selectedPoint = nil
-            }
-            Button("Abbrechen", role: .cancel) {}
-        } message: {
-            Text("Diese Aktion kann nicht rückgängig gemacht werden.")
-        }
         .onAppear {
             // Beim Öffnen: Wheel auf letzten Wert setzen (falls vorhanden)
             if let last = lastPoint {
@@ -88,31 +58,68 @@ struct ProgressBodyweightDetailView: View {
                 weightFracIndex = closestFracIndex(to: frac)
             }
         }
+        // Obere Toolbar: Chevron (System-Back) + Info-Button wie bisher
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
                 Button {
                     showInfo.toggle()
                 } label: {
                     Image(systemName: "info")
                 }
                 .accessibilityLabel("Info")
-                // Das Popover ist direkt am Button verankert, kompakt und inhaltsbasiert.
                 .popover(isPresented: $showInfo,
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Hier findest Du alle Details zu diesem Workout-Tag.")
+                        Text("Hier kannst Du jederzeit Dein aktuelles Körpergewicht eintragen und die Veränderung im Chart analysieren. Tipp: Wiege Dich täglich morgens auf nüchternen Magen um sinnvoll zu vergleichen.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)
                     }
                     .padding(16)
                     .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
-                    .presentationSizing(.fitted)               // nur so groß wie der Inhalt
-                    .presentationCompactAdaptation(.popover)   // iPhone bleibt Popover (kein Sheet)
+                    .presentationSizing(.fitted)
+                    .presentationCompactAdaptation(.popover)
                 }
             }
+        }
+        // Untere Toolbar: blauer Button wie in WorkoutInspectView ("Workout starten")
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+                addWeightButton
+            }
+        }
+        .toolbar(.hidden, for: .tabBar)
+        // Bottom-Sheet wie in WorkoutView, mit Speichern/Abbrechen in der Toolbar
+        .sheet(isPresented: $isAddingWeight) {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Neuen Körpergewichts-Wert wählen")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    weightPickerCard
+
+                    Spacer()
+                }
+                .padding()
+                .navigationTitle("Eintrag hinzufügen")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Abbrechen") {
+                            isAddingWeight = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Speichern") {
+                            saveWeight()
+                            isAddingWeight = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.height(260)])
         }
     }
 
@@ -181,7 +188,7 @@ struct ProgressBodyweightDetailView: View {
                                 }
                             }
                             .onEnded { _ in
-                                // Verhalten wie in deiner Strength-View: Crosshair wieder ausblenden
+                                // Crosshair wieder ausblenden
                                 selectedPoint = nil
                             }
                     )
@@ -211,27 +218,25 @@ struct ProgressBodyweightDetailView: View {
         points.last
     }
 
-    // MARK: - Hinzufügen-UI
+    // MARK: - Hinzufügen-UI (Button + Wheel im Sheet)
 
+    /// Button in der unteren Toolbar – Optik an WorkoutInspectView angelehnt
     private var addWeightButton: some View {
         Button {
-            withAnimation {
-                isAddingWeight.toggle()
-            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            isAddingWeight = true
         } label: {
-            Label("Körpergewicht hinzufügen", systemImage: "plus")
+            Text("Eintrag hinzufügen")
                 .fontWeight(.semibold)
         }
-        .labelStyle(.titleAndIcon)
         .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.top, 8)
+        .tint(Color(.systemBlue))
     }
 
+    /// Wheel + Anzeige in einer Card, wird im Bottom-Sheet gezeigt
     private var weightPickerCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Neuen Körpergewichts-Wert wählen")
+            Text("Gewicht")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -265,27 +270,9 @@ struct ProgressBodyweightDetailView: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text("\(formattedWeight) kg")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-
-                    Button {
-                        saveWeight()
-                    } label: {
-                        Text("Speichern")
-                            .fontWeight(.semibold)
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button("Abbrechen") {
-                        withAnimation {
-                            isAddingWeight = false
-                        }
-                    }
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
+                Text("\(formattedWeight) kg")
+                    .font(.title3)
+                    .fontWeight(.semibold)
             }
         }
         .padding(12)
@@ -307,9 +294,6 @@ struct ProgressBodyweightDetailView: View {
     private func saveWeight() {
         store.addBodyweightEntry(weightKg: combinedWeight)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        withAnimation {
-            isAddingWeight = false
-        }
     }
 
     // MARK: - Helfer
@@ -358,6 +342,7 @@ struct ProgressBodyweightDetailView: View {
 // MARK: - Preview (optional)
 
 struct ProgressBodyweightDetailView_Previews: PreviewProvider {
+    
     static var previews: some View {
         let store = Store()
         // Beispiel-Daten zum Testen
@@ -372,4 +357,60 @@ struct ProgressBodyweightDetailView_Previews: PreviewProvider {
                 .environmentObject(store)
         }
     }
+}
+
+
+
+// MARK: - PREVIEWS
+
+struct ProgressBodyweightDetailView_TestData_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+
+            // 🔹 1. Preview: KEINE Einträge
+            NavigationStack {
+                ProgressBodyweightDetailView()
+                    .environmentObject(emptyStore)
+            }
+            .previewDisplayName("Keine Einträge")
+
+
+            // 🔹 2. Preview: MEHRERE Einträge
+            NavigationStack {
+                ProgressBodyweightDetailView()
+                    .environmentObject(filledStore)
+            }
+            .previewDisplayName("Mehrere Einträge")
+
+
+            // 🔹 3. Preview: Sheet vorausgewählt (isAddingWeight = true)
+            NavigationStack {
+                ProgressBodyweightDetailView(isAddingWeight: true)
+                    .environmentObject(filledStore)
+            }
+            .previewDisplayName("Sheet mit Wheel")
+        }
+    }
+
+    // MARK: - Test Stores
+
+    /// Store mit keinen Körpergewichtsdaten
+    static var emptyStore: Store = {
+        let s = Store()
+        s.bodyweightEntries = []
+        return s
+    }()
+
+    /// Store mit mehreren realistischen Testwerten
+    static var filledStore: Store = {
+        let s = Store()
+        s.bodyweightEntries = [
+            BodyweightEntry(date: .now.addingTimeInterval(-6 * 24 * 60 * 60), weightKg: 82.0),
+            BodyweightEntry(date: .now.addingTimeInterval(-4 * 24 * 60 * 60), weightKg: 81.6),
+            BodyweightEntry(date: .now.addingTimeInterval(-2 * 24 * 60 * 60), weightKg: 81.3),
+            BodyweightEntry(date: .now.addingTimeInterval(-1 * 24 * 60 * 60), weightKg: 81.0),
+            BodyweightEntry(date: .now, weightKg: 80.8)
+        ]
+        return s
+    }()
 }
