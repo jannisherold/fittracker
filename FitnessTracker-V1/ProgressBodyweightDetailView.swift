@@ -11,11 +11,10 @@ struct ProgressBodyweightDetailView: View {
     @State private var selectedPoint: BodyweightPoint?
     @State private var impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
 
-    // UI-State für "Körpergewicht hinzufügen" (steuert das Bottom-Sheet)
+    // UI-State für "Körpergewicht hinzufügen"
     @State private var isAddingWeight = false
-    @State private var weightInt: Int = 70
-    @State private var weightFracIndex: Int = 0
-    private let fracSteps: [Double] = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+    @State private var weightInput: String = ""
+    @FocusState private var isWeightFieldFocused: Bool
 
     init(isAddingWeight: Bool = false) {
         _isAddingWeight = State(initialValue: isAddingWeight)
@@ -33,7 +32,6 @@ struct ProgressBodyweightDetailView: View {
                 } else {
                     chartView
 
-                    // Meta-Text unter der Chart (wie in ProgressStrengthDetailView)
                     if let sp = selectedPoint {
                         Text("Gewicht: \(formatKg(sp.weight)) kg - \(sp.date.formatted(date: .abbreviated, time: .omitted))")
                             .font(.footnote)
@@ -50,15 +48,11 @@ struct ProgressBodyweightDetailView: View {
         .navigationTitle("Körpergewicht")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // Beim Öffnen: Wheel auf letzten Wert setzen (falls vorhanden)
             if let last = lastPoint {
-                let intPart = max(0, min(500, Int(floor(last.weight))))
-                let frac = max(0.0, last.weight - Double(intPart))
-                weightInt = intPart
-                weightFracIndex = closestFracIndex(to: frac)
+                weightInput = numberFormatter.string(from: NSNumber(value: last.weight)) ?? ""
             }
         }
-        // Obere Toolbar: Chevron (System-Back) + Info-Button wie bisher
+        // Obere Toolbar: Info-Button
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -74,7 +68,6 @@ struct ProgressBodyweightDetailView: View {
                         Text("Hier kannst Du jederzeit Dein aktuelles Körpergewicht eintragen und die Veränderung im Chart analysieren. Tipp: Wiege Dich täglich morgens auf nüchternen Magen um sinnvoll zu vergleichen.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
-                            .lineLimit(nil)
                     }
                     .padding(16)
                     .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
@@ -83,43 +76,55 @@ struct ProgressBodyweightDetailView: View {
                 }
             }
         }
-        // Untere Toolbar: blauer Button wie in WorkoutInspectView ("Workout starten")
+        // Untere Toolbar: blauer "Eintrag hinzufügen" Button
         .toolbar {
             ToolbarItem(placement: .bottomBar) {
                 addWeightButton
             }
         }
         .toolbar(.hidden, for: .tabBar)
-        // Bottom-Sheet wie in WorkoutView, mit Speichern/Abbrechen in der Toolbar
+        // Sheet für die Eingabe
         .sheet(isPresented: $isAddingWeight) {
             NavigationStack {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Neuen Körpergewichts-Wert wählen")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    weightPickerCard
-
+                VStack {
+                    Spacer()
+                    
+                    // (3) Gewichtsanzeige + Eingabe
+                    TextField("", text: $weightInput, prompt: Text(weightPlaceholder))
+                        .keyboardType(.decimalPad)
+                        .focused($isWeightFieldFocused)
+                        .font(.system(size: 40, weight: .bold))
+                        .multilineTextAlignment(.center)
+                        .monospacedDigit()
+                        .padding(.horizontal, 32)
+                    
                     Spacer()
                 }
-                .padding()
-                .navigationTitle("Eintrag hinzufügen")
-                .navigationBarTitleDisplayMode(.inline)
+                .onAppear {
+                    // Tastatur direkt ausklappen
+                    DispatchQueue.main.async {
+                        isWeightFieldFocused = true
+                    }
+                }
                 .toolbar {
+                    // (1) Abbrechen
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Abbrechen") {
+                            isWeightFieldFocused = false
                             isAddingWeight = false
                         }
                     }
+                    // (2) Speichern
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Speichern") {
                             saveWeight()
+                            isWeightFieldFocused = false
                             isAddingWeight = false
                         }
+                        .disabled(parsedWeight == nil)
                     }
                 }
             }
-            .presentationDetents([.height(260)])
         }
     }
 
@@ -154,7 +159,7 @@ struct ProgressBodyweightDetailView: View {
         }
         .chartXAxis(.hidden)
         .chartYAxis {
-            AxisMarks() { value in
+            AxisMarks { _ in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel()
@@ -173,7 +178,6 @@ struct ProgressBodyweightDetailView: View {
                             .onChanged { value in
                                 let frame = geo[proxy.plotAreaFrame]
 
-                                // x-Position → Index
                                 if frame.contains(value.location),
                                    let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
 
@@ -188,7 +192,6 @@ struct ProgressBodyweightDetailView: View {
                                 }
                             }
                             .onEnded { _ in
-                                // Crosshair wieder ausblenden
                                 selectedPoint = nil
                             }
                     )
@@ -207,7 +210,7 @@ struct ProgressBodyweightDetailView: View {
 
     /// Punkte chronologisch (älteste links, neueste rechts)
     private var points: [BodyweightPoint] {
-        let chronological = store.bodyweightEntries.reversed() // neueste zuerst → umdrehen
+        let chronological = store.bodyweightEntries.reversed()
         let values: [(Int, Date, Double)] = chronological.enumerated().map { (idx, entry) in
             (idx + 1, entry.date, entry.weightKg)
         }
@@ -218,12 +221,17 @@ struct ProgressBodyweightDetailView: View {
         points.last
     }
 
-    // MARK: - Hinzufügen-UI (Button + Wheel im Sheet)
+    // MARK: - Button unten
 
-    /// Button in der unteren Toolbar – Optik an WorkoutInspectView angelehnt
     private var addWeightButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            // Beim Öffnen des Sheets Eingabe mit letztem Wert vorbelegen
+            if let last = lastPoint {
+                weightInput = numberFormatter.string(from: NSNumber(value: last.weight)) ?? ""
+            } else {
+                weightInput = ""
+            }
             isAddingWeight = true
         } label: {
             Text("Eintrag hinzufügen")
@@ -233,90 +241,50 @@ struct ProgressBodyweightDetailView: View {
         .tint(Color(.systemBlue))
     }
 
-    /// Wheel + Anzeige in einer Card, wird im Bottom-Sheet gezeigt
-    private var weightPickerCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Gewicht")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    // MARK: - Parsing & Formatierung
 
-            HStack(spacing: 16) {
-                // Wheel wie in WorkoutRunView (SetRow)
-                HStack(spacing: 2) {
-                    Picker("", selection: $weightInt) {
-                        ForEach(0...500, id: \.self) { value in
-                            Text("\(value)")
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(width: 60, height: 92)
-                    .clipped()
+    private var numberFormatter: NumberFormatter {
+        let nf = NumberFormatter()
+        nf.locale = Locale.current
+        nf.numberStyle = .decimal
+        nf.minimumFractionDigits = 0
+        nf.maximumFractionDigits = 2
+        return nf
+    }
 
-                    Text(",")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+    private var parsedWeight: Double? {
+        guard !weightInput.isEmpty else { return nil }
+        guard let number = numberFormatter.number(from: weightInput) else { return nil }
+        return number.doubleValue
+    }
 
-                    Picker("", selection: $weightFracIndex) {
-                        ForEach(0..<fracSteps.count, id: \.self) { idx in
-                            Text(fractionLabel(for: fracSteps[idx]))
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(width: 72, height: 92)
-                    .clipped()
-                }
+    private func formattedParsedWeight(_ value: Double) -> String {
+        numberFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+    }
 
-                Spacer()
-
-                Text("\(formattedWeight) kg")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-            }
+    /// Placeholder, wenn das Feld leer ist
+    private var weightPlaceholder: String {
+        if let last = lastPoint {
+            return "\(formattedParsedWeight(last.weight)) kg"
+        } else {
+            let zero = numberFormatter.string(from: 0) ?? "0,00"
+            return "\(zero) kg"
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-    }
-
-    private var combinedWeight: Double {
-        Double(weightInt) + fracSteps[weightFracIndex]
-    }
-
-    private var formattedWeight: String {
-        // Gleicher Ansatz wie in WorkoutRunView (SetRow)
-        let labels = ["", "125", "25", "375", "5", "625", "75", "875"]
-        let suffix = labels[weightFracIndex]
-        return suffix.isEmpty ? "\(weightInt)" : "\(weightInt),\(suffix)"
     }
 
     private func saveWeight() {
-        store.addBodyweightEntry(weightKg: combinedWeight)
+        guard var weight = parsedWeight else { return }
+
+        // Begrenzen auf 0–200 kg und auf 2 Nachkommastellen runden
+        weight = max(0, min(200, weight))
+        weight = (weight * 100).rounded() / 100
+
+        store.addBodyweightEntry(weightKg: weight)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
-    // MARK: - Helfer
+    // MARK: - Anzeige-Helfer für Chart
 
-    private func closestFracIndex(to value: Double) -> Int {
-        var best = 0
-        var bestDelta = Double.greatestFiniteMagnitude
-        for (i, v) in fracSteps.enumerated() {
-            let d = abs(v - value)
-            if d < bestDelta {
-                best = i
-                bestDelta = d
-            }
-        }
-        return best
-    }
-
-    private func fractionLabel(for frac: Double) -> String {
-        let milli = Int(round(frac * 1000))
-        return String(format: "%03d", milli)
-    }
-
-    /// Gleiche Anzeige-Logik wie in deiner Strength-Detail-View
     private func formatKg(_ value: Double) -> String {
         let frac = value - floor(value)
         if abs(frac) < 0.0001 { return "\(Int(value))" }
@@ -339,13 +307,11 @@ struct ProgressBodyweightDetailView: View {
     }
 }
 
-// MARK: - Preview (optional)
+// MARK: - Previews
 
 struct ProgressBodyweightDetailView_Previews: PreviewProvider {
-    
     static var previews: some View {
         let store = Store()
-        // Beispiel-Daten zum Testen
         store.bodyweightEntries = [
             BodyweightEntry(date: Date().addingTimeInterval(-7*24*60*60), weightKg: 82.0),
             BodyweightEntry(date: Date().addingTimeInterval(-3*24*60*60), weightKg: 81.5),
@@ -359,49 +325,35 @@ struct ProgressBodyweightDetailView_Previews: PreviewProvider {
     }
 }
 
-
-
-// MARK: - PREVIEWS
-
 struct ProgressBodyweightDetailView_TestData_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-
-            // 🔹 1. Preview: KEINE Einträge
             NavigationStack {
                 ProgressBodyweightDetailView()
                     .environmentObject(emptyStore)
             }
             .previewDisplayName("Keine Einträge")
 
-
-            // 🔹 2. Preview: MEHRERE Einträge
             NavigationStack {
                 ProgressBodyweightDetailView()
                     .environmentObject(filledStore)
             }
             .previewDisplayName("Mehrere Einträge")
 
-
-            // 🔹 3. Preview: Sheet vorausgewählt (isAddingWeight = true)
             NavigationStack {
                 ProgressBodyweightDetailView(isAddingWeight: true)
                     .environmentObject(filledStore)
             }
-            .previewDisplayName("Sheet mit Wheel")
+            .previewDisplayName("Sheet mit Eingabe")
         }
     }
 
-    // MARK: - Test Stores
-
-    /// Store mit keinen Körpergewichtsdaten
     static var emptyStore: Store = {
         let s = Store()
         s.bodyweightEntries = []
         return s
     }()
 
-    /// Store mit mehreren realistischen Testwerten
     static var filledStore: Store = {
         let s = Store()
         s.bodyweightEntries = [
