@@ -220,8 +220,8 @@ struct ProgressBodyweightDetailView: View {
                             .onChanged { value in
                                 let frame = geo[proxy.plotAreaFrame]
 
-                                if frame.contains(value.location),
-                                   let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
+                               
+                                  if let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
 
                                     if let nearest = data.min(by: {
                                         abs($0.index - idx) < abs($1.index - idx)
