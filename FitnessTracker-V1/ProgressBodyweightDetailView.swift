@@ -137,19 +137,18 @@ struct ProgressBodyweightDetailView: View {
         // Sheet für die Eingabe
         .sheet(isPresented: $isAddingWeight) {
             NavigationStack {
-                VStack {
-                    Spacer()
+                    HStack(spacing: 0) {
+                            FirstResponderNumberField(
+                                text: $weightInput,
+                                placeholder: weightPlaceholder
+                            )
+                            .frame(height: 60)
 
-                    // 3. Gewichtsanzeige + Eingabe (Text + Tastatur)
-                    FirstResponderNumberField(
-                        text: $weightInput,
-                        placeholder: weightPlaceholder
-                    )
-                    .frame(height: 60)
-                    .padding(.horizontal, 32)
+                            Text("kg")
+                                .font(.system(size: 40, weight: .bold))
+                        }
+                        .padding(.horizontal, 32)
 
-                    Spacer()
-                }
                 .toolbar {
                     // 1. Abbrechen
                     ToolbarItem(placement: .cancellationAction) {
@@ -309,10 +308,10 @@ struct ProgressBodyweightDetailView: View {
     /// Placeholder, wenn das Feld leer ist
     private var weightPlaceholder: String {
         if let last = lastPoint {
-            return "\(formattedParsedWeight(last.weight)) kg"
+            return (formattedParsedWeight(last.weight))
         } else {
             let zero = numberFormatter.string(from: 0) ?? "0,00"
-            return "\(zero) kg"
+            return (zero)
         }
     }
 
