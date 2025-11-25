@@ -9,6 +9,7 @@ struct ProgressView: View {
     // NEU: Zustände für auf-/zugeklappte Sections
     @State private var isKraftExpanded = true
     @State private var isKoerpergewichtExpanded = false
+    @State private var isFrequenzExpanded = false
     @State private var isHistorieExpanded = false
     
     // Alle Sessions aller Trainings, global nach Datum sortiert (neueste oben)
@@ -47,17 +48,30 @@ struct ProgressView: View {
                 } header: {
                     CollapsibleSectionHeader(
                         title: "Kraft",
+                        iconName: "dumbbell.fill",
                         isExpanded: $isKraftExpanded
                     )
                 }
 
                 // MARK: - Körpergewicht
                 Section(isExpanded: $isKoerpergewichtExpanded) {
-                    Text("Dies sind Platzhalter. Wir füllen die Funktionen später.")
+                    Text("Tracke Dein Gewicht")
                 } header: {
                     CollapsibleSectionHeader(
                         title: "Körpergewicht",
+                        iconName: "person.fill",
                         isExpanded: $isKoerpergewichtExpanded
+                    )
+                }
+                
+                // MARK: - Frequenz
+                Section(isExpanded: $isFrequenzExpanded) {
+                    Text("Analysiere Deine Trainingsfrequenz")
+                } header: {
+                    CollapsibleSectionHeader(
+                        title: "Trainingsfrequenz",
+                        iconName: "repeat",
+                        isExpanded: $isFrequenzExpanded
                     )
                 }
 
@@ -118,6 +132,7 @@ struct ProgressView: View {
                 } header: {
                     CollapsibleSectionHeader(
                         title: "Trainingshistorie",
+                        iconName: "clock.arrow.circlepath",
                         isExpanded: $isHistorieExpanded
                     )
                 }
@@ -137,10 +152,17 @@ struct ProgressView: View {
 
 private struct CollapsibleSectionHeader: View {
     let title: String
+    let iconName: String?
     @Binding var isExpanded: Bool
 
     var body: some View {
         HStack(spacing: 8) {
+            if let iconName = iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+
             Text(title)
                 .font(.system(size: 22, weight: .semibold))   // H2-ähnlich
                 .foregroundColor(.primary)                     // Schwarz
