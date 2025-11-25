@@ -167,6 +167,7 @@ struct ProgressBodyweightDetailView: View {
                     }
                 }
             }
+            .presentationDetents([.height(150)])
         }
     }
 
