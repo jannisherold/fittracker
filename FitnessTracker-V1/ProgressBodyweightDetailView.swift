@@ -39,10 +39,100 @@ struct FirstResponderNumberField: UIViewRepresentable {
     class Coordinator: NSObject, UITextFieldDelegate {
         var text: Binding<String>
 
+        private let formatter: NumberFormatter
+        private let separator: String
+        private let allowedCharacterSet: CharacterSet
+
         init(text: Binding<String>) {
             self.text = text
+
+            let nf = NumberFormatter()
+            nf.locale = Locale.current
+            nf.numberStyle = .decimal
+            nf.minimumFractionDigits = 0
+            nf.maximumFractionDigits = 2
+            self.formatter = nf
+            self.separator = nf.decimalSeparator ?? ","
+
+            var set = CharacterSet.decimalDigits
+            set.insert(charactersIn: self.separator)
+            self.allowedCharacterSet = set
+
+            super.init()
         }
 
+        // Wird bei jeder geplanten Änderung aufgerufen – hier begrenzen wir die Eingabe
+        func textField(_ textField: UITextField,
+                       shouldChangeCharactersIn range: NSRange,
+                       replacementString string: String) -> Bool {
+
+            let currentText = textField.text ?? ""
+
+            // Löschen immer erlauben
+            if string.isEmpty {
+                if let swiftRange = Range(range, in: currentText) {
+                    let newText = currentText.replacingCharacters(in: swiftRange, with: string)
+                    text.wrappedValue = newText
+                }
+                return true
+            }
+
+            // Nur Ziffern + Dezimaltrennzeichen zulassen
+            if string.rangeOfCharacter(from: allowedCharacterSet.inverted) != nil {
+                return false
+            }
+
+            guard let swiftRange = Range(range, in: currentText) else {
+                return false
+            }
+
+            let proposedText = currentText.replacingCharacters(in: swiftRange, with: string)
+
+            // Nicht mehr als ein Dezimaltrennzeichen
+            let separatorCount = proposedText.filter { String($0) == separator }.count
+            if separatorCount > 1 {
+                return false
+            }
+
+            // Integer- und Nachkommastellen prüfen
+            let components = proposedText.components(separatedBy: separator)
+
+            // Maximal 3 Ziffern vor dem Komma
+            if let intPart = components.first, intPart.count > 3 {
+                return false
+            }
+
+            // Maximal 2 Ziffern nach dem Komma
+            if components.count == 2 {
+                let fracPart = components[1]
+                if fracPart.count > 2 {
+                    return false
+                }
+            }
+
+            // Zahlenbereich 0–200 prüfen
+            // Für den Bereichscheck ignorieren wir ein ggf. anhängendes Dezimaltrennzeichen
+            let rangeCheckText: String
+            if proposedText.hasSuffix(separator) {
+                rangeCheckText = String(proposedText.dropLast())
+            } else {
+                rangeCheckText = proposedText
+            }
+
+            if !rangeCheckText.isEmpty,
+               let number = formatter.number(from: rangeCheckText) {
+                let value = number.doubleValue
+                if value < 0 || value > 200 {
+                    return false
+                }
+            }
+
+            // Wenn alles OK ist, Binding aktualisieren
+            text.wrappedValue = proposedText
+            return true
+        }
+
+        // Hält das Binding synchron, falls der Text anderweitig verändert wird
         func textFieldDidChangeSelection(_ textField: UITextField) {
             text.wrappedValue = textField.text ?? ""
         }
@@ -137,17 +227,17 @@ struct ProgressBodyweightDetailView: View {
         // Sheet für die Eingabe
         .sheet(isPresented: $isAddingWeight) {
             NavigationStack {
-                    HStack(spacing: 0) {
-                            FirstResponderNumberField(
-                                text: $weightInput,
-                                placeholder: weightPlaceholder
-                            )
-                            .frame(height: 60)
+                HStack(spacing: 0) {
+                    FirstResponderNumberField(
+                        text: $weightInput,
+                        placeholder: weightPlaceholder
+                    )
+                    .frame(height: 60)
 
-                            Text("kg")
-                                .font(.system(size: 40, weight: .bold))
-                        }
-                        .padding(.horizontal, 32)
+                    Text("kg")
+                        .font(.system(size: 40, weight: .bold))
+                }
+                .padding(.horizontal, 32)
 
                 .toolbar {
                     // 1. Abbrechen
@@ -219,11 +309,9 @@ struct ProgressBodyweightDetailView: View {
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let frame = geo[proxy.plotAreaFrame]
+                                let _ = geo[proxy.plotAreaFrame]
 
-                               
-                                  if let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
-
+                                if let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
                                     if let nearest = data.min(by: {
                                         abs($0.index - idx) < abs($1.index - idx)
                                     }) {
