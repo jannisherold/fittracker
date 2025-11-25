@@ -417,25 +417,28 @@ struct ProgressBodyweightDetailView: View {
 
     // MARK: - Anzeige-Helfer für Chart
 
-    /// Gleiche Anzeige-Logik wie in deiner Strength-Detail-View
+    /// Zeigt den tatsächlichen Wert mit max. 3 Vorkommastellen und max. 2 Nachkommastellen
     private func formatKg(_ value: Double) -> String {
-        let frac = value - floor(value)
-        if abs(frac) < 0.0001 { return "\(Int(value))" }
-        let stepped = (round(value * 8) / 8.0)
-        let intPart = Int(floor(stepped))
-        let fracPart = stepped - Double(intPart)
-        let label: String
-        switch fracPart {
-        case 0.125: label = "125"
-        case 0.250: label = "25"
-        case 0.375: label = "375"
-        case 0.500: label = "5"
-        case 0.625: label = "625"
-        case 0.750: label = "75"
-        case 0.875: label = "875"
-        default:
-            return String(format: "%.1f", value)
+        // Sicherheits-Hardcap auf deinen Wertebereich
+        let clamped = max(0, min(200, value))
+
+        // denselben NumberFormatter-Stil wie oben verwenden
+        let formatter = NumberFormatter()
+        formatter.locale = Locale.current
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.maximumIntegerDigits = 3  // 0–999, passt zu 0–200
+
+        if let formatted = formatter.string(from: NSNumber(value: clamped)) {
+            return formatted
         }
-        return "\(intPart),\(label)"
+
+        // Fallback, falls der Formatter unerwartet nil liefert
+        if clamped.rounded() == clamped {
+            return String(format: "%.0f", clamped)
+        } else {
+            return String(format: "%.2f", clamped)
+        }
     }
 }
