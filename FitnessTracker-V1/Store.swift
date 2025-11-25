@@ -6,14 +6,29 @@ final class Store: ObservableObject {
         didSet { save() }
     }
 
+    /// ✅ Alle Körpergewichts-Einträge (neueste zuerst)
+    @Published var bodyweightEntries: [BodyweightEntry] = [] {
+        didSet { saveBodyweight() }
+    }
+
+    // Bestehende Trainings-Datei
     private let url: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return docs.appendingPathComponent("trainings.json")
     }()
 
-    init() { load() }
+    // ✅ Neue Datei nur für Körpergewicht
+    private let bodyweightURL: URL = {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return docs.appendingPathComponent("bodyweight.json")
+    }()
 
-    // MARK: - Mutations
+    init() {
+        load()
+        loadBodyweight()
+    }
+
+    // MARK: - Mutations Trainings
     func addTraining(title: String) {
         trainings.insert(Training(title: title), at: 0)
     }
@@ -154,7 +169,20 @@ final class Store: ObservableObject {
         trainings[t].currentSessionStart = nil
     }
 
-    // MARK: - Persistence
+    // MARK: - Mutations Körpergewicht
+
+    /// ✅ Neuen Körpergewichts-Eintrag hinzufügen (neueste Einträge vorne)
+    func addBodyweightEntry(weightKg: Double, date: Date = .now) {
+        let entry = BodyweightEntry(date: date, weightKg: weightKg)
+        bodyweightEntries.insert(entry, at: 0)
+    }
+
+    /// ✅ Alle Körpergewichts-Daten löschen
+    func resetBodyweightEntries() {
+        bodyweightEntries = []
+    }
+
+    // MARK: - Persistence Trainings
     private func save() {
         do {
             let data = try JSONEncoder().encode(trainings)
@@ -170,6 +198,25 @@ final class Store: ObservableObject {
             trainings = try JSONDecoder().decode([Training].self, from: data)
         } catch {
             trainings = []
+        }
+    }
+
+    // MARK: - Persistence Körpergewicht
+    private func saveBodyweight() {
+        do {
+            let data = try JSONEncoder().encode(bodyweightEntries)
+            try data.write(to: bodyweightURL, options: [.atomic])
+        } catch {
+            print("Save bodyweight error:", error)
+        }
+    }
+
+    private func loadBodyweight() {
+        do {
+            let data = try Data(contentsOf: bodyweightURL)
+            bodyweightEntries = try JSONDecoder().decode([BodyweightEntry].self, from: data)
+        } catch {
+            bodyweightEntries = []
         }
     }
 }

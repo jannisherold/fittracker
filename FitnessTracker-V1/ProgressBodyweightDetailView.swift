@@ -2,140 +2,92 @@ import SwiftUI
 import Charts
 import UIKit
 
-/// Zeigt pro Übung eines Workouts einen kleinen Verlauf (X = Sessions, Y = Gewicht).
 struct ProgressBodyweightDetailView: View {
     @EnvironmentObject var store: Store
+    
     @State private var showInfo = false
 
-    let trainingID: UUID
-
-    // Neu: Ausgewählte Übung + Punkt für das Crosshair
-    @State private var selectedExerciseID: UUID?          // welche Übung gerade "aktiv" ist
-    @State private var selectedPoint: ExercisePoint?      // welcher Datenpunkt dort ausgewählt ist
+    // Crosshair-State
+    @State private var selectedPoint: BodyweightPoint?
     @State private var impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
-    
+
+    // UI-State für "Körpergewicht hinzufügen"
+    @State private var isAddingWeight = false
+    @State private var weightInt: Int = 70
+    @State private var weightFracIndex: Int = 0
+    private let fracSteps: [Double] = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+
+    @State private var showResetConfirm = false
+
     var body: some View {
         List {
-            if training.exercises.isEmpty {
-                Section {
-                    Text("Dieses Workout hat noch keine Übungen")
+          
+            // Chart + Meta-Infos
+            Section {
+                if points.isEmpty {
+                    Text("Noch keine Körpergewichts-Einträge.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-                }
-            } else {
-                ForEach(training.exercises) { ex in
-                    Section {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(ex.name)
-                                .font(.headline)
+                        .padding(.vertical, 8)
+                } else {
+                    chartView
 
-                            let data = points(for: ex.id) // Neu: einmal berechnet, mehrfach genutzt
-
-                            if data.isEmpty {
-                                Text("Noch keine Daten aus Sessions")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Chart {
-                                    // Bisherige Linie + Punkte
-                                    ForEach(data) { p in
-                                        LineMark(
-                                            x: .value("Session", p.index),
-                                            y: .value("Gewicht (kg)", p.weight)
-                                        )
-                                        .interpolationMethod(.linear)
-                                        .foregroundStyle(.blue)
-                                        /*
-                                        PointMark(
-                                            x: .value("Session", p.index),
-                                            y: .value("Gewicht (kg)", p.weight)
-                                        )
-                                        .foregroundStyle(.blue)
-                                         */
-                                    }
-
-                                    // Neu: Crosshair + hervorgehobener Punkt
-                                    if selectedExerciseID == ex.id, let sp = selectedPoint {
-                                        RuleMark(
-                                            x: .value("Session", sp.index)
-                                        )
-                                        .foregroundStyle(.gray)
-                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-
-                                        PointMark(
-                                            x: .value("Session", sp.index),
-                                            y: .value("Gewicht (kg)", sp.weight)
-                                        )
-                                        .symbolSize(80) // etwas größer als die normalen Punkte
-                                    }
-                                }
-                                .chartXAxis(.hidden)
-                                .chartYAxis {
-                                    AxisMarks() { value in
-                                        AxisGridLine()
-                                        AxisTick()
-                                        AxisValueLabel()
-                                    }
-                                }
-                                .chartXScale(domain: (data.first?.index ?? 0)...(data.last?.index ?? 0))
-                                .frame(height: 160)
-                                .padding(.top, 4)
-                                // Neu: Chart interaktiv machen (Drag → Crosshair)
-                                .chartOverlay { proxy in
-                                    GeometryReader { geo in
-                                        Rectangle()
-                                            .fill(.clear) // unsichtbares Overlay
-                                            .contentShape(Rectangle()) // macht die ganze Fläche tappbar
-                                            .gesture(
-                                                DragGesture(minimumDistance: 0)
-                                                    .onChanged { value in
-                                                        // Plot-Area im Parent-Coordinate-Space
-                                                        let frame = geo[proxy.plotAreaFrame]
-
-                                                        // X-Wert (Session-Index) aus der Fingerposition lesen
-                                                        if let sessionIndex: Int = proxy.value(atX: value.location.x, as: Int.self) {
-                                                            // Nächstgelegenen Datenpunkt finden
-                                                            if let nearest = data.min(by: { abs($0.index - sessionIndex) < abs($1.index - sessionIndex) }) {
-
-                                                                // ⬇️ NEU: Nur wenn wir auf einen anderen Punkt springen → Haptik
-                                                                if nearest.index != selectedPoint?.index {
-                                                                    impactFeedback.impactOccurred()
-                                                                }
-
-                                                                selectedExerciseID = ex.id
-                                                                selectedPoint = nearest
-                                                            }
-                                                        }
-                                                    }
-                                                    .onEnded { _ in
-                                                        // Verhalten wie Aktien-App: Crosshair wieder ausblenden
-                                                        selectedExerciseID = nil
-                                                        selectedPoint = nil
-                                                    }
-                                            )
-                                    }
-                                }
-
-                                // Kleiner Meta-Block unten
-                                if let sp = (selectedExerciseID == ex.id ? selectedPoint : nil) {
-                                    // Neu: wenn ein Punkt ausgewählt ist, dessen Infos anzeigen
-                                    Text("Gewicht: \(formatKg(sp.weight)) kg - \(sp.date.formatted(date: .abbreviated, time: .omitted))")
-                                        .font(.footnote)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                } else if let last = lastPoint(for: ex.id) {
-                                    // Fallback: wie bisher "Aktuell"
-                                    Text("Aktuell: \(formatKg(last.weight)) kg - \(last.date.formatted(date: .abbreviated, time: .omitted))")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 6)
+                    // Meta-Text unter der Chart (wie in ProgressStrenghtDetailView)
+                    if let sp = selectedPoint {
+                        Text("Gewicht: \(formatKg(sp.weight)) kg - \(sp.date.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                    } else if let last = lastPoint {
+                        Text("Aktuell: \(formatKg(last.weight)) kg - \(last.date.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
+
+            // Hinzufügen-Button + Wheel
+            Section {
+                addWeightButton
+
+                if isAddingWeight {
+                    weightPickerCard
+                }
+            }
+
+            // Dezenter Reset-Button ganz unten
+            if !store.bodyweightEntries.isEmpty {
+                Section {
+                    Button(role: .destructive) {
+                        showResetConfirm = true
+                    } label: {
+                        Text("Daten zurücksetzen")
+                            .font(.footnote)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
+            }
         }
-        .navigationTitle(training.title)
+        .navigationTitle("Körpergewicht")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Alle Körpergewichts-Daten löschen?", isPresented: $showResetConfirm) {
+            Button("Löschen", role: .destructive) {
+                store.resetBodyweightEntries()
+                selectedPoint = nil
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Diese Aktion kann nicht rückgängig gemacht werden.")
+        }
+        .onAppear {
+            // Beim Öffnen: Wheel auf letzten Wert setzen (falls vorhanden)
+            if let last = lastPoint {
+                let intPart = max(0, min(500, Int(floor(last.weight))))
+                let frac = max(0.0, last.weight - Double(intPart))
+                weightInt = intPart
+                weightFracIndex = closestFracIndex(to: frac)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
@@ -150,7 +102,7 @@ struct ProgressBodyweightDetailView: View {
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Tippe lange auf die Chart um den genaue Wert zu sehen.")
+                        Text("Hier findest Du alle Details zu diesem Workout-Tag.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)
@@ -164,44 +116,226 @@ struct ProgressBodyweightDetailView: View {
         }
     }
 
-    // MARK: - Datenmodell für die Charts
-    private struct ExercisePoint: Identifiable, Equatable { // Neu: Equatable für Vergleiche
+    // MARK: - Chart
+
+    private var chartView: some View {
+        let data = points
+
+        return Chart {
+            ForEach(data) { p in
+                LineMark(
+                    x: .value("Messung", p.index),
+                    y: .value("Gewicht (kg)", p.weight)
+                )
+                .interpolationMethod(.linear)
+                .foregroundStyle(.blue)
+            }
+
+            if let sp = selectedPoint {
+                RuleMark(
+                    x: .value("Messung", sp.index)
+                )
+                .foregroundStyle(.gray)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+
+                PointMark(
+                    x: .value("Messung", sp.index),
+                    y: .value("Gewicht (kg)", sp.weight)
+                )
+                .symbolSize(80)
+            }
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks() { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel()
+            }
+        }
+        .chartXScale(domain: (data.first?.index ?? 0)...(data.last?.index ?? 0))
+        .frame(height: 160)
+        .padding(.top, 4)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                let frame = geo[proxy.plotAreaFrame]
+
+                                // x-Position → Index
+                                if frame.contains(value.location),
+                                   let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
+
+                                    if let nearest = data.min(by: {
+                                        abs($0.index - idx) < abs($1.index - idx)
+                                    }) {
+                                        if nearest.index != selectedPoint?.index {
+                                            impactFeedback.impactOccurred()
+                                        }
+                                        selectedPoint = nearest
+                                    }
+                                }
+                            }
+                            .onEnded { _ in
+                                // Verhalten wie in deiner Strength-View: Crosshair wieder ausblenden
+                                selectedPoint = nil
+                            }
+                    )
+            }
+        }
+    }
+
+    // MARK: - Chart Datenmodell
+
+    private struct BodyweightPoint: Identifiable, Equatable {
         let id = UUID()
-        let index: Int     // 1...N (chronologisch)
+        let index: Int      // 1...N (chronologisch)
         let date: Date
         let weight: Double
     }
 
-    private var training: Training {
-        store.trainings.first(where: { $0.id == trainingID }) ?? Training(title: "Training")
+    /// Punkte chronologisch (älteste links, neueste rechts)
+    private var points: [BodyweightPoint] {
+        let chronological = store.bodyweightEntries.reversed() // neueste zuerst → umdrehen
+        let values: [(Int, Date, Double)] = chronological.enumerated().map { (idx, entry) in
+            (idx + 1, entry.date, entry.weightKg)
+        }
+        return values.map { BodyweightPoint(index: $0.0, date: $0.1, weight: $0.2) }
     }
 
-    /// Liefert die Punkte für eine Übung chronologisch (älteste Session links, neueste rechts).
-    private func points(for exerciseID: UUID) -> [ExercisePoint] {
-        // Sessions in Store werden als neueste zuerst eingefügt -> für Chronologie umdrehen.
-        let chronological = training.sessions.reversed()
+    private var lastPoint: BodyweightPoint? {
+        points.last
+    }
 
-        // Wir nehmen nur Sessions, in denen die Übung ein Max-Gewicht hat (> 0).
-        let values: [(Int, Date, Double)] = chronological.enumerated().compactMap { (idx, session) in
-            if let w = session.maxWeightPerExercise[exerciseID], w > 0 {
-                return (idx + 1, session.endedAt, w)
-            } else {
-                return nil
+    // MARK: - Hinzufügen-UI
+
+    private var addWeightButton: some View {
+        Button {
+            withAnimation {
+                isAddingWeight.toggle()
+            }
+        } label: {
+            Label("Körpergewicht hinzufügen", systemImage: "plus")
+                .fontWeight(.semibold)
+        }
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 8)
+    }
+
+    private var weightPickerCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Neuen Körpergewichts-Wert wählen")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 16) {
+                // Wheel wie in WorkoutRunView (SetRow)
+                HStack(spacing: 2) {
+                    Picker("", selection: $weightInt) {
+                        ForEach(0...500, id: \.self) { value in
+                            Text("\(value)")
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(width: 60, height: 92)
+                    .clipped()
+
+                    Text(",")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+
+                    Picker("", selection: $weightFracIndex) {
+                        ForEach(0..<fracSteps.count, id: \.self) { idx in
+                            Text(fractionLabel(for: fracSteps[idx]))
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(width: 72, height: 92)
+                    .clipped()
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 8) {
+                    Text("\(formattedWeight) kg")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+
+                    Button {
+                        saveWeight()
+                    } label: {
+                        Text("Speichern")
+                            .fontWeight(.semibold)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Abbrechen") {
+                        withAnimation {
+                            isAddingWeight = false
+                        }
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
-
-        return values.map { ExercisePoint(index: $0.0, date: $0.1, weight: $0.2) }
+        .padding(12)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 
-    private func lastPoint(for exerciseID: UUID) -> ExercisePoint? {
-        points(for: exerciseID).last
+    private var combinedWeight: Double {
+        Double(weightInt) + fracSteps[weightFracIndex]
     }
 
+    private var formattedWeight: String {
+        // Gleicher Ansatz wie in WorkoutRunView (SetRow)
+        let labels = ["", "125", "25", "375", "5", "625", "75", "875"]
+        let suffix = labels[weightFracIndex]
+        return suffix.isEmpty ? "\(weightInt)" : "\(weightInt),\(suffix)"
+    }
+
+    private func saveWeight() {
+        store.addBodyweightEntry(weightKg: combinedWeight)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation {
+            isAddingWeight = false
+        }
+    }
+
+    // MARK: - Helfer
+
+    private func closestFracIndex(to value: Double) -> Int {
+        var best = 0
+        var bestDelta = Double.greatestFiniteMagnitude
+        for (i, v) in fracSteps.enumerated() {
+            let d = abs(v - value)
+            if d < bestDelta {
+                best = i
+                bestDelta = d
+            }
+        }
+        return best
+    }
+
+    private func fractionLabel(for frac: Double) -> String {
+        let milli = Int(round(frac * 1000))
+        return String(format: "%03d", milli)
+    }
+
+    /// Gleiche Anzeige-Logik wie in deiner Strength-Detail-View
     private func formatKg(_ value: Double) -> String {
-        // Gleiche Logik wie in deiner Run-View: ohne „unnötige“ Nullen
         let frac = value - floor(value)
         if abs(frac) < 0.0001 { return "\(Int(value))" }
-        // Unterstütze 0.125er Schritte
         let stepped = (round(value * 8) / 8.0)
         let intPart = Int(floor(stepped))
         let fracPart = stepped - Double(intPart)
@@ -215,110 +349,27 @@ struct ProgressBodyweightDetailView: View {
         case 0.750: label = "75"
         case 0.875: label = "875"
         default:
-            // Fallback mit eine Dezimalstelle
             return String(format: "%.1f", value)
         }
         return "\(intPart),\(label)"
     }
 }
 
-// MARK: - Preview
+// MARK: - Preview (optional)
 
-struct ProgressDetailView_Previews: PreviewProvider {
-
-    static var sampleTraining: Training {
-        // Beispiel-Exercises
-        let bench = Exercise(name: "Bankdrücken", sets: [
-            SetEntry(weightKg: 60, repetition: .init(value: 8)),
-            SetEntry(weightKg: 65, repetition: .init(value: 6)),
-            SetEntry(weightKg: 70, repetition: .init(value: 4))
-        ])
-
-        let squat = Exercise(name: "Kniebeuge", sets: [
-            SetEntry(weightKg: 80, repetition: .init(value: 8)),
-            SetEntry(weightKg: 90, repetition: .init(value: 5))
-        ])
-
-        let deadlift = Exercise(name: "Kreuzheben", sets: [
-            SetEntry(weightKg: 100, repetition: .init(value: 5)),
-            SetEntry(weightKg: 110, repetition: .init(value: 3))
-        ])
-
-        let exercises = [bench, squat, deadlift]
-
-        let now = Date()
-        let day: TimeInterval = 24 * 60 * 60
-
-        // Beispiel-Sessions für Chart-Daten
-        let session1 = WorkoutSession(
-            startedAt: now.addingTimeInterval(-14 * day),
-            endedAt: now.addingTimeInterval(-14 * day + 3000),
-            maxWeightPerExercise: [
-                bench.id: 60,
-                squat.id: 85,
-                deadlift.id: 100
-            ]
-        )
-
-        let session2 = WorkoutSession(
-            startedAt: now.addingTimeInterval(-7 * day),
-            endedAt: now.addingTimeInterval(-7 * day + 2800),
-            maxWeightPerExercise: [
-                bench.id: 70,
-                squat.id: 90,
-                deadlift.id: 105
-            ]
-        )
-
-        let session3 = WorkoutSession(
-            startedAt: now.addingTimeInterval(-1 * day),
-            endedAt: now.addingTimeInterval(-1 * day + 2500),
-            maxWeightPerExercise: [
-                bench.id: 95,
-                squat.id: 0,       // → zum Testen deiner 0-Filter-Logik
-                deadlift.id: 110
-            ]
-        )
-        
-        let session4 = WorkoutSession(
-            startedAt: now.addingTimeInterval(-1 * day),
-            endedAt: now.addingTimeInterval(-1 * day + 2500),
-            maxWeightPerExercise: [
-                bench.id: 95,
-                squat.id: 0,       // → zum Testen deiner 0-Filter-Logik
-                deadlift.id: 110
-            ]
-        )
-        
-        let session5 = WorkoutSession(
-            startedAt: now.addingTimeInterval(-1 * day),
-            endedAt: now.addingTimeInterval(-1 * day + 2500),
-            maxWeightPerExercise: [
-                bench.id: 95,
-                squat.id: 0,       // → zum Testen deiner 0-Filter-Logik
-                deadlift.id: 110
-            ]
-        )
-
-        return Training(
-            title: "Push / Pull / Legs",
-            exercises: exercises,
-            sessions: [session5,session4,session3, session2, session1]
-        )
-    }
-
+struct ProgressBodyweightDetailView_Previews: PreviewProvider {
     static var previews: some View {
-
         let store = Store()
-
-        // Trainingsspeicher füllen
-        let t = sampleTraining
-        store.trainings = [t]
+        // Beispiel-Daten zum Testen
+        store.bodyweightEntries = [
+            BodyweightEntry(date: Date().addingTimeInterval(-7*24*60*60), weightKg: 82.0),
+            BodyweightEntry(date: Date().addingTimeInterval(-3*24*60*60), weightKg: 81.5),
+            BodyweightEntry(date: Date().addingTimeInterval(-1*24*60*60), weightKg: 81.0)
+        ]
 
         return NavigationStack {
-            ProgressStrenghtDetailView(trainingID: t.id)
+            ProgressBodyweightDetailView()
                 .environmentObject(store)
         }
-        .previewDisplayName("Progress Detail Preview")
     }
 }

@@ -55,7 +55,15 @@ struct ProgressView: View {
 
                 // MARK: - Körpergewicht
                 Section(isExpanded: $isKoerpergewichtExpanded) {
-                    Text("Tracke Dein Gewicht")
+                   
+                            NavigationLink {
+                                ProgressBodyweightDetailView()
+                            } label: {
+                                Text("Logbuch")
+                                    .font(.headline)
+                                    .padding(.vertical, 2)
+                            }
+                        
                 } header: {
                     CollapsibleSectionHeader(
                         title: "Körpergewicht",

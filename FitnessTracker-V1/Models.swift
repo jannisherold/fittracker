@@ -161,3 +161,16 @@ struct WorkoutSession: Identifiable, Codable {
         endedAt.timeIntervalSince(startedAt)
     }
 }
+
+/// ✅ Neues Modell für Körpergewichts-Tracking
+struct BodyweightEntry: Identifiable, Codable {
+    var id: UUID = UUID()
+    var date: Date
+    var weightKg: Double
+
+    init(id: UUID = UUID(), date: Date = .now, weightKg: Double) {
+        self.id = id
+        self.date = date
+        self.weightKg = weightKg
+    }
+}
