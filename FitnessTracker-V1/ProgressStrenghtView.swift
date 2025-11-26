@@ -3,7 +3,7 @@ import Charts
 import UIKit
 
 /// Zeigt pro Übung eines Workouts einen kleinen Verlauf (X = Sessions, Y = Gewicht).
-struct ProgressStrenghtDetailView: View {
+struct ProgressStrenghtView: View {
     @EnvironmentObject var store: Store
     @State private var showInfo = false
 
@@ -150,7 +150,7 @@ struct ProgressStrenghtDetailView: View {
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Tippe lange auf die Chart um den genaue Wert zu sehen.")
+                        Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Tippe lange auf die Chart um den genauen Wert zu sehen.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)
@@ -316,7 +316,7 @@ struct ProgressDetailView_Previews: PreviewProvider {
         store.trainings = [t]
 
         return NavigationStack {
-            ProgressStrenghtDetailView(trainingID: t.id)
+            ProgressStrenghtView(trainingID: t.id)
                 .environmentObject(store)
         }
         .previewDisplayName("Progress Detail Preview")
