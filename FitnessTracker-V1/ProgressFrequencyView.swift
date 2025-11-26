@@ -9,10 +9,11 @@ struct ProgressFrequencyView: View {
     // MARK: - Period
     
     enum Period: String, CaseIterable, Identifiable {
-        case last12Months
-        case last6Months
-        case last3Months
+        // Neue Reihenfolge für Links → Rechts: 4W, 3M, 6M, 12M
         case last4Weeks
+        case last3Months
+        case last6Months
+        case last12Months
         
         var id: String { rawValue }
         
@@ -106,10 +107,8 @@ struct ProgressFrequencyView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            // keine eigene Animation – die „Liquid Glass“-Animation
-            // kommt hier komplett von iOS 26
             
-            // Ruhiger Info-Bereich (Gesamt / ausgewählter Balken)
+            // Ruhiger Info-Bereich
             metricRow(buckets: buckets)
             
             // Chart mit Tap-Selektion
@@ -123,7 +122,6 @@ struct ProgressFrequencyView: View {
         }
         .padding()
         .onChange(of: selectedPeriod) { _ in
-            // Wenn die Periode wechselt, Auswahl im Chart zurücksetzen
             selectedBucketLabel = nil
         }
     }
@@ -140,7 +138,6 @@ struct ProgressFrequencyView: View {
         
         VStack(alignment: .leading, spacing: 2) {
             if let bucket = selectedBucket {
-                // Detailansicht für ausgewählten Balken
                 Text("\(bucket.count)")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                 
@@ -156,7 +153,6 @@ struct ProgressFrequencyView: View {
                         .foregroundColor(.secondary)
                 }
             } else {
-                // Gesamtansicht für die aktuelle Periode
                 Text("\(total)")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                 Text("Trainings \(selectedPeriod.metricSubtitle)")
@@ -187,7 +183,6 @@ struct ProgressFrequencyView: View {
         }
     }
     
-    /// Letzte 4 Wochen: wöchentliche Buckets (KW)
     private func makeLast4WeeksBuckets() -> [FrequencyBucket] {
         var buckets: [FrequencyBucket] = []
         
@@ -196,7 +191,6 @@ struct ProgressFrequencyView: View {
             return []
         }
         
-        // Älteste Woche links, aktuelle Woche rechts
         for offset in stride(from: 3, through: 0, by: -1) {
             guard let weekStart = calendar.date(
                 byAdding: .weekOfYear,
@@ -230,7 +224,6 @@ struct ProgressFrequencyView: View {
         return buckets
     }
     
-    /// Letzte X Monate: monatliche Buckets (z. B. „Sep“, „Okt“, „Nov“)
     private func makeMonthlyBuckets(monthsBack: Int) -> [FrequencyBucket] {
         var buckets: [FrequencyBucket] = []
         
@@ -243,7 +236,6 @@ struct ProgressFrequencyView: View {
         labelFormatter.locale = calendar.locale ?? Locale.current
         labelFormatter.dateFormat = "LLL"
         
-        // Ältester Monat links, aktueller Monat rechts
         for offset in stride(from: monthsBack - 1, through: 0, by: -1) {
             guard let monthStart = calendar.date(byAdding: .month, value: -offset, to: currentMonthInterval.start),
                   let monthInterval = calendar.dateInterval(of: .month, for: monthStart) else {
@@ -272,8 +264,6 @@ struct ProgressFrequencyView: View {
         return buckets
     }
     
-    // MARK: - Titel für die Periode (Health-Style)
-    
     private func periodTitle(for buckets: [FrequencyBucket]) -> String {
         guard let first = buckets.first, let last = buckets.last else {
             return selectedPeriod.displayTitle
@@ -299,8 +289,6 @@ struct ProgressFrequencyView: View {
     }
 }
 
-// MARK: - Nur Chart + Tap-Selektion
-
 struct FrequencyChart: View {
     let buckets: [ProgressFrequencyView.FrequencyBucket]
     let yUpper: Int
@@ -317,8 +305,6 @@ struct FrequencyChart: View {
             }
         }
         .chartYScale(domain: 0...Double(yUpper))
-        // kurzer Tap wählt einen Balken aus, Auswahl bleibt,
-        // bis ein anderer Balken getappt wird
         .chartXSelection(value: $selectedBucketLabel)
         .frame(height: 260)
     }
@@ -328,8 +314,6 @@ struct FrequencyChart: View {
         return bucket.label == selected ? .accentColor : .secondary
     }
 }
-
-// MARK: - Realistischer Preview mit Beispieldaten
 
 struct ProgressFrequencyView_RealisticPreview: PreviewProvider {
     static var previewStore: Store = {
@@ -348,18 +332,15 @@ struct ProgressFrequencyView_RealisticPreview: PreviewProvider {
             )
         }
         
-        // Beispiel: viele Sessions über die letzten ~12 Monate
         var training = Training(title: "Ganzkörper")
         
-        // Letzte 4 Wochen
         let recentDays: [Int] = [
-            0, 2, 3,    // aktuelle Woche
-            7, 9,       // letzte Woche
-            14, 16,     // vorletzte Woche
-            21, 23      // dritte Woche zurück
+            0, 2, 3,
+            7, 9,
+            14, 16,
+            21, 23
         ]
         
-        // Ältere Sessions für 3/6/12-Monats-Sichten
         let olderDays: [Int] = [
             35, 40, 47,
             60, 75, 90,
