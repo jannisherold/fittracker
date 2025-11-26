@@ -138,24 +138,24 @@ struct ProgressFrequencyView: View {
         
         VStack(alignment: .leading, spacing: 2) {
             if let bucket = selectedBucket {
-                Text("\(bucket.count)")
+                Text("\(bucket.count) Trainings")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                 
                 switch selectedPeriod {
                 case .last4Weeks:
-                    Text("\(bucket.label) – Trainings in dieser Woche")
+                    Text("\(bucket.label)")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 case .last3Months, .last6Months, .last12Months:
                     let monthString = monthDisplayFormatter.string(from: bucket.start)
-                    Text("\(monthString) – Trainings in diesem Monat")
+                    Text("\(monthString)")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
             } else {
-                Text("\(total)")
+                Text("\(total) Trainings")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
-                Text("Trainings \(selectedPeriod.metricSubtitle)")
+                Text("\(selectedPeriod.metricSubtitle)")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
