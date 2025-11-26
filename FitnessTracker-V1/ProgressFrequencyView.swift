@@ -8,13 +8,15 @@ struct ProgressFrequencyView: View {
     
     // MARK: - Period
     
-    enum Period: String, CaseIterable {
+    enum Period: String, CaseIterable, Identifiable {
         case last12Months
         case last6Months
         case last3Months
         case last4Weeks
         
-        /// Beschriftung im Selector
+        var id: String { rawValue }
+        
+        /// Kurzes Label für den Segmented Picker
         var shortLabel: String {
             switch self {
             case .last12Months: return "12 M"
@@ -34,7 +36,7 @@ struct ProgressFrequencyView: View {
             }
         }
         
-        /// Untertitel für die Gesamtzahl
+        /// Untertitel für die Gesamtanzahl
         var metricSubtitle: String {
             switch self {
             case .last12Months: return "in den letzten 12 Monaten"
@@ -49,7 +51,7 @@ struct ProgressFrequencyView: View {
     
     struct FrequencyBucket: Identifiable {
         let id = UUID()
-        let label: String     // z.B. "KW 47" oder "Jan"
+        let label: String     // z. B. "KW 47" oder "Jan"
         let start: Date
         let end: Date
         let count: Int
@@ -60,7 +62,7 @@ struct ProgressFrequencyView: View {
     @State private var selectedPeriod: Period = .last4Weeks
     @State private var selectedBucketLabel: String? = nil
     
-    // MARK: - Formatter (außerhalb von ViewBuilder!)
+    // MARK: - Formatter
     
     private var dayDisplayFormatter: DateFormatter {
         let df = DateFormatter()
@@ -95,13 +97,22 @@ struct ProgressFrequencyView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Health-ähnlicher Perioden-Selector
-            periodSelector
+            // MARK: - Apple-eigener Segmented Picker (Liquid Glass)
+            Picker("", selection: $selectedPeriod) {
+                ForEach(Period.allCases) { period in
+                    Text(period.shortLabel)
+                        .tag(period)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            // keine eigene Animation – die „Liquid Glass“-Animation
+            // kommt hier komplett von iOS 26
             
-            // Ruhiger Info-Bereich
+            // Ruhiger Info-Bereich (Gesamt / ausgewählter Balken)
             metricRow(buckets: buckets)
             
-            // Chart
+            // Chart mit Tap-Selektion
             FrequencyChart(
                 buckets: buckets,
                 yUpper: yUpper,
@@ -111,39 +122,10 @@ struct ProgressFrequencyView: View {
             Spacer()
         }
         .padding()
-        .animation(.spring(response: 0.25, dampingFraction: 0.9), value: selectedPeriod)
-    }
-    
-    // MARK: - Period Selector
-    
-    private var periodSelector: some View {
-        HStack(spacing: 8) {
-            ForEach(Period.allCases, id: \.self) { period in
-                Button {
-                    selectedPeriod = period
-                    selectedBucketLabel = nil
-                } label: {
-                    Text(period.shortLabel)
-                        .font(.subheadline.weight(.medium))
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            selectedPeriod == period ? Color.primary : Color.clear
-                        )
-                        .foregroundColor(
-                            selectedPeriod == period
-                            ? Color(UIColor.systemBackground)
-                            : .primary
-                        )
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-            }
+        .onChange(of: selectedPeriod) { _ in
+            // Wenn die Periode wechselt, Auswahl im Chart zurücksetzen
+            selectedBucketLabel = nil
         }
-        .padding(4)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
     }
     
     // MARK: - Kennzahl-Zeile
@@ -164,18 +146,17 @@ struct ProgressFrequencyView: View {
                 
                 switch selectedPeriod {
                 case .last4Weeks:
-                    // label = "KW 47"
-                    Text("\(bucket.label) - Trainings in dieser Woche")
+                    Text("\(bucket.label) – Trainings in dieser Woche")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 case .last3Months, .last6Months, .last12Months:
                     let monthString = monthDisplayFormatter.string(from: bucket.start)
-                    Text("\(monthString) - Trainings in diesem Monat")
+                    Text("\(monthString) – Trainings in diesem Monat")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
             } else {
-                // Gesamtansicht für die Periode
+                // Gesamtansicht für die aktuelle Periode
                 Text("\(total)")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                 Text("Trainings \(selectedPeriod.metricSubtitle)")
@@ -222,7 +203,7 @@ struct ProgressFrequencyView: View {
                 value: -offset,
                 to: currentWeekInterval.start
             ),
-            let weekInterval = calendar.dateInterval(of: .weekOfYear, for: weekStart) else {
+                  let weekInterval = calendar.dateInterval(of: .weekOfYear, for: weekStart) else {
                 continue
             }
             
@@ -305,7 +286,6 @@ struct ProgressFrequencyView: View {
         case .last4Weeks:
             dateFormatter.dateFormat = "dd.MM.yyyy"
             let startString = dateFormatter.string(from: first.start)
-            // Ende = letzter Tag der letzten Woche
             let endDate = calendar.date(byAdding: .day, value: -1, to: last.end) ?? last.end
             let endString = dateFormatter.string(from: endDate)
             return "\(selectedPeriod.displayTitle): \(startString) – \(endString)"
@@ -337,7 +317,9 @@ struct FrequencyChart: View {
             }
         }
         .chartYScale(domain: 0...Double(yUpper))
-        .chartXSelection(value: $selectedBucketLabel) // kurzer Tap, Auswahl bleibt
+        // kurzer Tap wählt einen Balken aus, Auswahl bleibt,
+        // bis ein anderer Balken getappt wird
+        .chartXSelection(value: $selectedBucketLabel)
         .frame(height: 260)
     }
     
@@ -369,12 +351,12 @@ struct ProgressFrequencyView_RealisticPreview: PreviewProvider {
         // Beispiel: viele Sessions über die letzten ~12 Monate
         var training = Training(title: "Ganzkörper")
         
-        // Letzte 4 Wochen (ein paar Wochen mit mehreren Einheiten)
+        // Letzte 4 Wochen
         let recentDays: [Int] = [
-            0, 2, 3,  // aktuelle Woche
-            7, 9,     // letzte Woche
-            14, 16,   // vorletzte Woche
-            21, 23    // dritte Woche zurück
+            0, 2, 3,    // aktuelle Woche
+            7, 9,       // letzte Woche
+            14, 16,     // vorletzte Woche
+            21, 23      // dritte Woche zurück
         ]
         
         // Ältere Sessions für 3/6/12-Monats-Sichten
