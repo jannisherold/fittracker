@@ -6,6 +6,7 @@ struct ProgressFrequencyView: View {
     
     private let calendar = Calendar.current
     
+    @State private var showInfo = false
     // MARK: - Period
     
     enum Period: String, CaseIterable, Identifiable {
@@ -123,6 +124,32 @@ struct ProgressFrequencyView: View {
         .padding()
         .onChange(of: selectedPeriod) { _ in
             selectedBucketLabel = nil
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
+                Button {
+                    showInfo.toggle()
+                } label: {
+                    Image(systemName: "info")
+                }
+                .accessibilityLabel("Info")
+                // Das Popover ist direkt am Button verankert, kompakt und inhaltsbasiert.
+                .popover(isPresented: $showInfo,
+                         attachmentAnchor: .point(.topTrailing),
+                         arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Hier siehst Du Deine Trainingsfrequenz in verschiedenen Zeitspannen.")
+                            .font(.body)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
+                    }
+                    .padding(16)
+                    .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
+                    .presentationSizing(.fitted)               // nur so groß wie der Inhalt
+                    .presentationCompactAdaptation(.popover)   // iPhone bleibt Popover (kein Sheet)
+                }
+            }
         }
     }
     
