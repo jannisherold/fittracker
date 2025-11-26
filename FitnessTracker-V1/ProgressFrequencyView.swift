@@ -165,12 +165,12 @@ struct ProgressFrequencyView: View {
                 switch selectedPeriod {
                 case .last4Weeks:
                     // label = "KW 47"
-                    Text("\(bucket.label) • Trainings in dieser Woche")
+                    Text("\(bucket.label) - Trainings in dieser Woche")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 case .last3Months, .last6Months, .last12Months:
                     let monthString = monthDisplayFormatter.string(from: bucket.start)
-                    Text("\(monthString) • Trainings in diesem Monat")
+                    Text("\(monthString) - Trainings in diesem Monat")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
@@ -308,13 +308,13 @@ struct ProgressFrequencyView: View {
             // Ende = letzter Tag der letzten Woche
             let endDate = calendar.date(byAdding: .day, value: -1, to: last.end) ?? last.end
             let endString = dateFormatter.string(from: endDate)
-            return "\(selectedPeriod.displayTitle) • \(startString) – \(endString)"
+            return "\(selectedPeriod.displayTitle): \(startString) – \(endString)"
             
         case .last3Months, .last6Months, .last12Months:
             dateFormatter.dateFormat = "LLL yyyy"
             let startString = dateFormatter.string(from: first.start)
             let endString = dateFormatter.string(from: last.start)
-            return "\(selectedPeriod.displayTitle) • \(startString) – \(endString)"
+            return "\(selectedPeriod.displayTitle): \(startString) – \(endString)"
         }
     }
 }
