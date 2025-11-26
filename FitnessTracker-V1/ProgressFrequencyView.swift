@@ -88,43 +88,48 @@ struct ProgressFrequencyView: View {
         let maxCount = buckets.map { $0.count }.max() ?? 0
         let yUpper = max(1, maxCount)
         
-        VStack(spacing: 16) {
-            // Titel + Periode
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Trainingsfrequenz")
-                    .font(.title2.bold())
-                Text(headerTitle)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // MARK: - Apple-eigener Segmented Picker (Liquid Glass)
-            Picker("", selection: $selectedPeriod) {
-                ForEach(Period.allCases) { period in
-                    Text(period.shortLabel)
-                        .tag(period)
+        ScrollView{
+            VStack(spacing: 16) {
+                // Titel + Periode
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Trainingsfrequenz")
+                        .font(.title2.bold())
+                    Text(headerTitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // MARK: - Apple-eigener Segmented Picker (Liquid Glass)
+                Picker("", selection: $selectedPeriod) {
+                    ForEach(Period.allCases) { period in
+                        Text(period.shortLabel)
+                            .tag(period)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                
+                // Ruhiger Info-Bereich
+                metricRow(buckets: buckets)
+                
+                // Chart mit Tap-Selektion
+                FrequencyChart(
+                    buckets: buckets,
+                    yUpper: yUpper,
+                    selectedBucketLabel: $selectedBucketLabel
+                )
+                
+                Spacer()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            
-            // Ruhiger Info-Bereich
-            metricRow(buckets: buckets)
-            
-            // Chart mit Tap-Selektion
-            FrequencyChart(
-                buckets: buckets,
-                yUpper: yUpper,
-                selectedBucketLabel: $selectedBucketLabel
-            )
-            
-            Spacer()
         }
-        .padding()
+        .scrollBounceBehavior(.always)
         .onChange(of: selectedPeriod) { _ in
-            selectedBucketLabel = nil
-        }
+                    // Wenn die Periode wechselt, Auswahl im Chart zurücksetzen
+                    selectedBucketLabel = nil
+                }
+        
+        .padding()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
