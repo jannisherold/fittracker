@@ -150,7 +150,7 @@ struct ProgressStrenghtView: View {
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Nach jeder Workout-Session werden die Bestwerte pro Übung gespeichert. Tippe lange auf die Chart um den genauen Wert zu sehen.")
+                        Text("Hier siehst Du Deine Kraftentwicklung pro Übung. Tippe lange auf die Chart um den genauen Wert zu sehen.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)

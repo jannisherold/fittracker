@@ -10,6 +10,42 @@ final class Store: ObservableObject {
     @Published var bodyweightEntries: [BodyweightEntry] = [] {
         didSet { saveBodyweight() }
     }
+    
+    // MARK: - All-time Statistiken
+
+    /// 1) Wie viele Workouts wurden insgesamt absolviert?
+    ///    => Anzahl aller gespeicherten Sessions über alle Trainings
+    var totalCompletedWorkouts: Int {
+        trainings.reduce(0) { partial, training in
+            partial + training.sessions.count
+        }
+    }
+
+    /// 2) Wie viele Minuten wurde insgesamt trainiert?
+    ///    => Summe der Dauer aller Sessions (in Minuten)
+    var totalTrainingMinutes: Double {
+        let totalSeconds = trainings
+            .flatMap { $0.sessions }
+            .reduce(0.0) { partial, session in
+                partial + session.duration
+            }
+        return totalSeconds / 60.0
+    }
+
+    /// 3) Wie viel Gewicht wurde insgesamt bewegt (in kg)?
+    ///    Ein Satz mit 100 kg und 10 Wdh. = 1000 kg bewegt.
+    ///    Hier werden nur Sätze mit isDone == true gezählt.
+    var totalMovedWeightKg: Double {
+        trainings
+            .flatMap { $0.sessions }
+            .flatMap { $0.exercises }
+            .flatMap { $0.sets }
+            .filter { $0.isDone }
+            .reduce(0.0) { partial, set in
+                partial + set.weightKg * Double(set.repetition.value)
+            }
+    }
+
 
     // Bestehende Trainings-Datei
     private let url: URL = {

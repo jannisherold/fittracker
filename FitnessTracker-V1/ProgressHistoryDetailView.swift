@@ -153,7 +153,7 @@ struct ProgressHistoryDetailView: View {
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Hier findest Du alle Details zu diesem Workout-Tag.")
+                        Text("Hier findest Du alle Details zu dieser Workout-Session.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)
