@@ -46,6 +46,18 @@ final class Store: ObservableObject {
             }
     }
 
+    /// 4) Gesamtzahl aller Wiederholungen (nur erledigte Sets)
+    var totalRepetitions: Int {
+        trainings
+            .flatMap { $0.sessions }
+            .flatMap { $0.exercises }
+            .flatMap { $0.sets }
+            .filter { $0.isDone }
+            .reduce(0) { partial, set in
+                partial + set.repetition.value
+            }
+    }
+
 
     // Bestehende Trainings-Datei
     private let url: URL = {
