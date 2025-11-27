@@ -8,6 +8,7 @@ struct ProgressView: View {
 
     // NEU: Zustände für auf-/zugeklappte Sections
     @State private var isKraftExpanded = true
+    @State private var isStatisticExpanded = false
     @State private var isKoerpergewichtExpanded = false
     @State private var isFrequenzExpanded = false
     @State private var isHistorieExpanded = false
@@ -50,6 +51,25 @@ struct ProgressView: View {
                         title: "Kraft",
                         iconName: "dumbbell.fill",
                         isExpanded: $isKraftExpanded
+                    )
+                }
+                
+                // MARK: - Körpergewicht
+                Section(isExpanded: $isStatisticExpanded) {
+                   
+                            NavigationLink {
+                                ProgressStatisticView()
+                            } label: {
+                                Text("Rekorde")
+                                    .font(.headline)
+                                    .padding(.vertical, 2)
+                            }
+                        
+                } header: {
+                    CollapsibleSectionHeader(
+                        title: "Statistik",
+                        iconName: "trophy.fill",
+                        isExpanded: $isStatisticExpanded
                     )
                 }
 
