@@ -460,7 +460,7 @@ private final class ConfettiScene: SKScene {
     }
 }
 
-private func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
+public func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
     guard
         let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
         let window = scene.windows.first(where: { $0.isKeyWindow })

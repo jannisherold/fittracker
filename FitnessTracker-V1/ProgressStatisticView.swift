@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ProgressStatisticView: View {
     @EnvironmentObject var store: Store
@@ -39,7 +40,7 @@ struct ProgressStatisticView: View {
             VStack(alignment: .leading, spacing: 0) {
                 
                 VStack{
-                    Text("Deine Erfolge")
+                    Text("Deine Rekorde")
                         .font(.largeTitle.bold())
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 8)
@@ -94,6 +95,11 @@ struct ProgressStatisticView: View {
         }
         //.navigationTitle("Statistiken")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+                    // Gleicher „Feeling-Moment“ wie beim Workout-Ende
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    showGlobalConfettiOverlay(duration: 2.8)
+                }
     }
 }
 
