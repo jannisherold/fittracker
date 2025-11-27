@@ -7,7 +7,17 @@ struct ProgressStatisticView: View {
         let minutes = store.totalTrainingMinutes
         // z.B. "1.234 Min"
         let intMinutes = Int(minutes.rounded())
-        return "\(intMinutes) Min"
+        return "\(intMinutes) Minuten"
+    }
+    
+    private var formattedWorkout: String {
+        let workouts = store.totalCompletedWorkouts
+        return "\(workouts) Workouts"
+    }
+    
+    private var formattedRepetition: String {
+        let reps = store.totalRepetitions
+        return "\(reps) Wiederholungen"
     }
     
     private var formattedMovedWeight: String {
@@ -17,7 +27,7 @@ struct ProgressStatisticView: View {
             // Tausender als "t" abkürzen, z.B. 12.3 t
             let tons = kilos / 1000
             let formatted = String(format: "%.1f", tons)
-            return "\(formatted) t"
+            return "\(formatted) Tonnen"
         } else {
             let formatted = String(format: "%.0f", kilos)
             return "\(formatted) kg"
@@ -29,13 +39,14 @@ struct ProgressStatisticView: View {
             VStack(alignment: .leading, spacing: 0) {
                 
                 VStack{
-                    Text("Statistik")
+                    Text("Deine Erfolge")
                         .font(.largeTitle.bold())
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 8)
                     
-                    Text("All-Time Statistiken deiner Trainingsleistungen.")
+                    Text("Jeder Wiederholung zählt. Und das sieht man.")
                         .font(.subheadline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.bottom, 24)
@@ -48,28 +59,31 @@ struct ProgressStatisticView: View {
                     ],
                     spacing: 16
                 ) {
-                    StatCard(
-                        title: "Workouts",
-                        value: "\(store.totalCompletedWorkouts)",
-                        subtitle: "absolviert"
-                    )
+                    
                     
                     StatCard(
                         title: "Trainingszeit",
                         value: formattedMinutes,
-                        subtitle: "insgesamt"
+                        subtitle: "investiert"
                     )
                     
                     StatCard(
-                        title: "Bewegtes Gewicht",
+                        title: "Gewicht",
                         value: formattedMovedWeight,
-                        subtitle: "all time"
+                        subtitle: "bewegt"
+                    )
+                    
+                    
+                    StatCard(
+                        title: "",
+                        value: formattedWorkout,
+                        subtitle: "abgeschlossen"
                     )
                     
                     StatCard(
-                        title: "Wiederholungen",
-                        value: "\(store.totalRepetitions)",
-                        subtitle: "gesamt"
+                        title: "",
+                        value: formattedRepetition,
+                        subtitle: "absolviert"
                     )
                 }
                 .padding(.top, 8)
@@ -78,7 +92,7 @@ struct ProgressStatisticView: View {
             }
             .padding(.horizontal)
         }
-        .navigationTitle("Statistiken")
+        //.navigationTitle("Statistiken")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -90,14 +104,16 @@ private struct StatCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            
             
             Text(value)
                 .font(.title2.bold())
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             
             Text(subtitle)
                 .font(.caption2)

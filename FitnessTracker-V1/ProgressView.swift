@@ -56,15 +56,15 @@ struct ProgressView: View {
                 
                 // MARK: - Körpergewicht
                 Section(isExpanded: $isStatisticExpanded) {
-                   
+                    
                             NavigationLink {
                                 ProgressStatisticView()
+                                
                             } label: {
                                 Text("Rekorde")
                                     .font(.headline)
                                     .padding(.vertical, 2)
                             }
-                        
                 } header: {
                     CollapsibleSectionHeader(
                         title: "Statistik",
