@@ -128,7 +128,7 @@ struct ProgressView: View {
                                     sessionID: item.session.id
                                 )
                             } label: {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 0) {
                                     Text(item.training.title)
                                         .font(.headline)
                                     
@@ -136,7 +136,7 @@ struct ProgressView: View {
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                 }
-                                .padding(.vertical, 2)
+                                .padding(.vertical, 0)
                             }
                         }
 
@@ -154,11 +154,15 @@ struct ProgressView: View {
 
                                 // Dein sichtbarer, chevron-freier Inhalt
                                 HStack {
+                                    /*
                                     Spacer()
                                     Text("Alle Sessions")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(.secondary) // falls du ihn "buttoniger" willst
                                     Spacer()
+                                     */
+                                    Image(systemName: "ellipsis")
+                                        .foregroundColor(.secondary)
                                 }
                                 .padding(.vertical, 8)
                             }

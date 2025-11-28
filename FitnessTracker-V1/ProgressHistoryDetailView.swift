@@ -139,6 +139,8 @@ struct ProgressHistoryDetailView: View {
                 .accessibilityLabel("Zurück")
             }
         }
+        
+        
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.

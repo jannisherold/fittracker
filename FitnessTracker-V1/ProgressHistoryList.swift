@@ -52,6 +52,7 @@ struct ProgressHistoryList: View {
         }
         .navigationTitle("Trainingshistorie")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
     }
 
     // MARK: - Row-Layout (an ProgressView angelehnt)
