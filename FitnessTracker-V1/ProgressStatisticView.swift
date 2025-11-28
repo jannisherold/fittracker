@@ -3,6 +3,7 @@ import UIKit
 
 struct ProgressStatisticView: View {
     @EnvironmentObject var store: Store
+    @State private var showInfo = false
     
     private var formattedMinutes: String {
         let minutes = store.totalTrainingMinutes
@@ -100,6 +101,32 @@ struct ProgressStatisticView: View {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     showGlobalConfettiOverlay(duration: 2.8)
                 }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                // Der Button zeigt/versteckt ein *normales SwiftUI*-Popover.
+                Button {
+                    showInfo.toggle()
+                } label: {
+                    Image(systemName: "info")
+                }
+                .accessibilityLabel("Info")
+                // Das Popover ist direkt am Button verankert, kompakt und inhaltsbasiert.
+                .popover(isPresented: $showInfo,
+                         attachmentAnchor: .point(.topTrailing),
+                         arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Wow, was für Zahlen! Hier siehst Du Deine Rekorde. Darauf kannst Du wirklich stolz sein.")
+                            .font(.body)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
+                    }
+                    .padding(16)
+                    .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
+                    .presentationSizing(.fitted)               // nur so groß wie der Inhalt
+                    .presentationCompactAdaptation(.popover)   // iPhone bleibt Popover (kein Sheet)
+                }
+            }
+        }
     }
 }
 
