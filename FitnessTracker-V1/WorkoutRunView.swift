@@ -103,10 +103,21 @@ struct WorkoutRunView: View {
             // Untere Leiste: „Workout beenden“ (unverändert)
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
-                    Button(action: { showEndConfirm = true }) {
-                        Text("Workout beenden")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.red)
+                    Button(action: {
+                        showEndConfirm = true
+                    }
+                    ) {
+                        
+                        HStack{
+                            Image(systemName: "stop.fill")
+                                .fontWeight(.regular)
+                                .foregroundColor(.red)
+                            Text("Workout beenden")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.red)
+                        }
+                        
+                        
                     }
                 }
             }
