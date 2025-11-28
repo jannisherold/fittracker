@@ -74,6 +74,7 @@ struct ExerciseEditView: View {
                             .padding(.leading, 4)
                     }
 
+                    /*
                     // MARK: - Satz hinzufügen Button (engerer Abstand)
                     Section {
                         HStack {
@@ -93,6 +94,7 @@ struct ExerciseEditView: View {
                         .padding(.bottom, 8)
                     }
                     .listRowBackground(Color.clear)
+                     */
 
                 } else {
                     Text("Übung nicht gefunden").foregroundStyle(.secondary)
@@ -141,12 +143,35 @@ struct ExerciseEditView: View {
                     if editMode?.wrappedValue == .active {
                         Text("Fertig").fontWeight(.semibold)
                     } else {
-                        Image(systemName: "pencil")
+                        Image(systemName: "list.bullet")
                     }
                 }
                 .accessibilityLabel("Sätze bearbeiten")
             }
         }
+        
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+                Button {
+                    store.addSet(to: exerciseID, in: trainingID)
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } label: {
+                    HStack{
+                        /*
+                        Label("Übung hinzufügen", systemImage: "plus")
+                            .fontWeight(.semibold)*/
+                        Image(systemName: "plus")
+                        Text("Satz hinzufügen")
+                            .fontWeight(.semibold)
+                    }
+                    
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(.systemBlue))
+                //.tint(.blue)
+            }
+        }
+        
     }
 
     // MARK: - Helper
