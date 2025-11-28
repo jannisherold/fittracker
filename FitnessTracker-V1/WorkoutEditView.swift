@@ -93,16 +93,16 @@ struct WorkoutEditView: View {
                                 .foregroundColor(.secondary)
                                 .textCase(nil)
                                 .padding(.leading, 4)
-                        } footer: {
+                        } /*footer: {
                             addExerciseButton
-                        }
+                        }*/
                     } else {
                         // Keine Überschrift, nur der Add-Button
                         Section {
                             EmptyView()
-                        } footer: {
+                        } /*footer: {
                             addExerciseButton
-                        }
+                        }*/
                     }
                 }
             }
@@ -111,6 +111,28 @@ struct WorkoutEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
+        
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+                Button {
+                    showingNewExercise = true
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } label: {
+                    HStack{
+                        /*
+                        Label("Übung hinzufügen", systemImage: "plus")
+                            .fontWeight(.semibold)*/
+                        Image(systemName: "plus")
+                        Text("Übung hinzufügen")
+                            .fontWeight(.semibold)
+                    }
+                    
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(.systemBlue))
+                //.tint(.blue)
+            }
+        }
 
         // Top-Leiste
         .toolbar {
