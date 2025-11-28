@@ -169,3 +169,45 @@ private struct StatCard: View {
             .environmentObject(store)
     }
 }
+
+#Preview("Standard – viele Daten") {
+    let store = Store()
+    // Falls dein Store einen speziellen Preview-Init oder Testdaten hat,
+    // kannst du das hier anpassen, z.B.:
+    // store.loadPreviewData()
+    
+    return NavigationStack {
+        ProgressStatisticView()
+            .environmentObject(store)
+    }
+}
+
+#Preview("Dark Mode") {
+    let store = Store()
+    
+    return NavigationStack {
+        ProgressStatisticView()
+            .environmentObject(store)
+    }
+    .environment(\.colorScheme, .dark)
+}
+
+#Preview("Große Schrift (Accessibility)") {
+    let store = Store()
+    
+    return NavigationStack {
+        ProgressStatisticView()
+            .environmentObject(store)
+    }
+    .environment(\.dynamicTypeSize, .accessibility3)
+}
+
+#Preview("Kleines Gerät – iPhone SE") {
+    let store = Store()
+    
+    return NavigationStack {
+        ProgressStatisticView()
+            .environmentObject(store)
+    }
+    .previewDevice(.init(rawValue: "iPhone SE (3rd generation)"))
+}
