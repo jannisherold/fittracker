@@ -169,7 +169,11 @@ struct WorkoutInspectView: View {
                         showStartAlert = true
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     } label: {
-                        Text("Workout starten").fontWeight(.semibold)
+                        HStack{
+                            Image(systemName: "play.fill")
+                            Text("Workout starten")
+                                .fontWeight(.semibold)
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Color(.systemBlue))

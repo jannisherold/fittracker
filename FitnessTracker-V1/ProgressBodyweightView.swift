@@ -365,8 +365,11 @@ struct ProgressBodyweightView: View {
             }
             isAddingWeight = true
         } label: {
-            Text("Eintrag hinzufügen")
-                .fontWeight(.semibold)
+            HStack{
+                Image(systemName: "plus")
+                Text("Eintrag hinzufügen")
+                    .fontWeight(.semibold)
+            }
         }
         .buttonStyle(.borderedProminent)
         .tint(Color(.systemBlue))
