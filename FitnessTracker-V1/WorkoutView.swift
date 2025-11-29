@@ -3,12 +3,14 @@ import SwiftUI
 struct WorkoutView: View {
     @EnvironmentObject var store: Store
     @StateObject private var router = Router()
-    @Environment(\.editMode) private var editMode          // ⬅️ EditMode für Reorder
+    
+    // Eigener EditMode-State, der auch an die Environment durchgereicht wird
+    @State private var editMode: EditMode = .inactive
     
     @State private var showingNew = false
     @State private var newTitle = ""
     
-    // Löschen-Bestätigung (unverändert)
+    // Löschen-Bestätigung
     @State private var showDeleteAlert = false
     @State private var pendingDeleteID: UUID? = nil
     
@@ -18,54 +20,46 @@ struct WorkoutView: View {
                 List {
                     if store.trainings.isEmpty {
                         Section {
-                            Text("Tippe oben links auf + um ein Workout anzulegen.")
+                            Text("Tippe auf + um ein Workout anzulegen.")
                                 .foregroundStyle(.secondary)
                         }
                     } else {
                         Section {
                             ForEach(store.trainings) { t in
-                                
-                                if editMode?.wrappedValue == .active {
-                                    
-                                    
+                                if editMode == .active {
+                                    // Im Edit-Mode nur Text, damit die Zeile klar als bearbeitbar wirkt
                                     Text(t.title)
                                         .font(.headline)
                                         .padding(.vertical, 8)
-                                    
-                                    
-                                    
                                 } else {
                                     NavigationLink(value: Route.workoutInspect(trainingID: t.id)) {
-                                        
                                         Text(t.title)
                                             .font(.headline)
                                             .padding(.vertical, 8)
                                     }
-                                    
-                                    
                                 }
-                                
-                                
-                                
                             }
-                            // ⬇️ Reorder-Funktion für Workouts
                             .onMove { indices, newOffset in
                                 store.moveTraining(from: indices, to: newOffset)
                             }
+                            .onDelete { offsets in
+                                
+                                        if let index = offsets.first {
+                                            let training = store.trainings[index]
+                                            pendingDeleteID = training.id
+                                            showDeleteAlert = true
+                                        }
+                                    
+                                }
                         }
                     }
                 }
-                
-                
             }
-            //.listStyle(.insetGrouped)
-            //.listSectionSpacing(.compact)
             .navigationTitle("Workouts")
             .navigationBarTitleDisplayMode(.large)
-            
             // Toolbar oben: + links, Edit/Sortieren rechts
             .toolbar {
-                // Plus-Button nach links gewandert
+                // Plus-Button links
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showingNew = true
@@ -80,14 +74,10 @@ struct WorkoutView: View {
                     if !store.trainings.isEmpty {
                         Button {
                             withAnimation {
-                                if editMode?.wrappedValue == .active {
-                                    editMode?.wrappedValue = .inactive
-                                } else {
-                                    editMode?.wrappedValue = .active
-                                }
+                                editMode = (editMode == .active) ? .inactive : .active
                             }
                         } label: {
-                            if editMode?.wrappedValue == .active {
+                            if editMode == .active {
                                 Text("Fertig")
                                     .fontWeight(.semibold)
                             } else {
@@ -98,36 +88,32 @@ struct WorkoutView: View {
                     }
                 }
             }
-            
             // Navigation inkl. Inspect-/Edit-/Run-Routes
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .workoutInspect(let id):
                     WorkoutInspectView(trainingID: id)
                         .environmentObject(store)
-                    
                 case .workoutRun(let id):
                     WorkoutRunView(trainingID: id)
                         .environmentObject(store)
-                    
                 case .workoutEdit(let id):
                     WorkoutEditView(trainingID: id)
                         .environmentObject(store)
-                    
                 case .exerciseEdit(let tid, let eid):
                     ExerciseEditView(trainingID: tid, exerciseID: eid)
                         .environmentObject(store)
-                    
                 case .addExercise(let tid):
                     AddExerciseView(trainingID: tid, afterSave: .goToEdit)
                         .environmentObject(store)
                 }
             }
-            
+            // 🔑 Hier bekommt die List ihren EditMode-Binding – das hält die Reorder-Icons stabil sichtbar
+            .environment(\.editMode, $editMode)
         }
         .environmentObject(router)
         
-        // Neues Workout anlegen (unverändert)
+        // Sheet: Neues Workout anlegen
         .sheet(isPresented: $showingNew) {
             NavigationStack {
                 Form {
@@ -156,7 +142,7 @@ struct WorkoutView: View {
             .presentationDetents([.height(220)])
         }
         
-        // Sicherheitsabfrage vor dem Löschen (unverändert)
+        // Sicherheitsabfrage vor dem Löschen
         .alert("Workout löschen?", isPresented: $showDeleteAlert) {
             Button("Löschen", role: .destructive) {
                 if let id = pendingDeleteID,
@@ -169,7 +155,7 @@ struct WorkoutView: View {
                 pendingDeleteID = nil
             }
         } message: {
-            Text("Dieser Vorgang kann nicht rückgängig gemacht werden.")
+            Text("Dieser Vorgang kann nicht rückgängig gemacht werden. Alle Daten absolvierter Sessions werden unwiderruflich gelöscht.")
         }
     }
 }

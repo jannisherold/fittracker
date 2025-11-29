@@ -85,6 +85,9 @@ final class Store: ObservableObject {
         trainings.move(fromOffsets: source, toOffset: destination)
     }
 
+    func deleteTraining(at offsets: IndexSet) {
+        trainings.remove(atOffsets: offsets)
+    }
 
     func addExercise(to trainingID: UUID, name: String) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
@@ -123,9 +126,7 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].sets.append(newSet)
     }
 
-    func deleteTraining(at offsets: IndexSet) {
-        trainings.remove(atOffsets: offsets)
-    }
+    
 
     func deleteExercise(in trainingID: UUID, at offsets: IndexSet) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
