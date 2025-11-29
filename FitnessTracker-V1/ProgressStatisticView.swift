@@ -85,7 +85,7 @@ struct ProgressStatisticView: View {
                     
                     StatCardTwoLines(
                         value: formattedMovedWeight,
-                        scale: formattedMovedWeightScale,
+                        scale: formattedMovedWeightScale + " LAST",
                         text: "bewegt"
                     )
                     
