@@ -80,6 +80,11 @@ final class Store: ObservableObject {
     func addTraining(title: String) {
         trainings.insert(Training(title: title), at: 0)
     }
+    
+    func moveTraining(from source: IndexSet, to destination: Int) {
+        trainings.move(fromOffsets: source, toOffset: destination)
+    }
+
 
     func addExercise(to trainingID: UUID, name: String) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }

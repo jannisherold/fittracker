@@ -3,62 +3,70 @@ import SwiftUI
 struct WorkoutView: View {
     @EnvironmentObject var store: Store
     @StateObject private var router = Router()
-
+    @Environment(\.editMode) private var editMode          // ⬅️ EditMode für Reorder
+    
     @State private var showingNew = false
     @State private var newTitle = ""
-
+    
     // Löschen-Bestätigung (unverändert)
     @State private var showDeleteAlert = false
     @State private var pendingDeleteID: UUID? = nil
-
+    
     var body: some View {
         NavigationStack(path: $router.path) {
-            List {
-                if store.trainings.isEmpty {
-                    Section {
-                        Text("Tippe oben rechts auf + um ein Workout anzulegen.")
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    ForEach(store.trainings) { t in
+            ZStack {
+                List {
+                    if store.trainings.isEmpty {
                         Section {
-                            // Jetzt: Direkter Sprung zur Inspect-View (kein Start-Alert mehr hier)
-                            Button {
-                                router.go(.workoutInspect(trainingID: t.id))
-                            } label: {
-                                HStack {
+                            Text("Tippe oben links auf + um ein Workout anzulegen.")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Section {
+                            ForEach(store.trainings) { t in
+                                
+                                if editMode?.wrappedValue == .active {
+                                    
+                                    
                                     Text(t.title)
                                         .font(.headline)
                                         .padding(.vertical, 8)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundStyle(.tertiary)
+                                    
+                                    
+                                    
+                                } else {
+                                    NavigationLink(value: Route.workoutInspect(trainingID: t.id)) {
+                                        
+                                        Text(t.title)
+                                            .font(.headline)
+                                            .padding(.vertical, 8)
+                                    }
+                                    
+                                    
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
+                                
+                                
+                                
                             }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                NavigationLink(value: Route.workoutEdit(trainingID: t.id)) {
-                                    Label("Bearbeiten", systemImage: "pencil")
-                                }
-                                Button(role: .destructive) {
-                                    pendingDeleteID = t.id
-                                    showDeleteAlert = true
-                                } label: {
-                                    Label("Löschen", systemImage: "trash")
-                                }
+                            // ⬇️ Reorder-Funktion für Workouts
+                            .onMove { indices, newOffset in
+                                store.moveTraining(from: indices, to: newOffset)
                             }
                         }
                     }
                 }
+                
+                
             }
-            .listStyle(.insetGrouped)
-            .listSectionSpacing(.compact)
+            //.listStyle(.insetGrouped)
+            //.listSectionSpacing(.compact)
             .navigationTitle("Workouts")
             .navigationBarTitleDisplayMode(.large)
+            
+            // Toolbar oben: + links, Edit/Sortieren rechts
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                // Plus-Button nach links gewandert
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showingNew = true
                     } label: {
@@ -66,34 +74,59 @@ struct WorkoutView: View {
                     }
                     .accessibilityLabel("Neues Training")
                 }
+                
+                // Edit-/Reorder-Button rechts
+                ToolbarItem(placement: .topBarTrailing) {
+                    if !store.trainings.isEmpty {
+                        Button {
+                            withAnimation {
+                                if editMode?.wrappedValue == .active {
+                                    editMode?.wrappedValue = .inactive
+                                } else {
+                                    editMode?.wrappedValue = .active
+                                }
+                            }
+                        } label: {
+                            if editMode?.wrappedValue == .active {
+                                Text("Fertig")
+                                    .fontWeight(.semibold)
+                            } else {
+                                Image(systemName: "list.bullet")
+                            }
+                        }
+                        .accessibilityLabel("Workouts bearbeiten")
+                    }
+                }
             }
-            // Navigation inkl. neuer Inspect-Route
+            
+            // Navigation inkl. Inspect-/Edit-/Run-Routes
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .workoutInspect(let id):
                     WorkoutInspectView(trainingID: id)
                         .environmentObject(store)
-
+                    
                 case .workoutRun(let id):
                     WorkoutRunView(trainingID: id)
                         .environmentObject(store)
-
+                    
                 case .workoutEdit(let id):
                     WorkoutEditView(trainingID: id)
                         .environmentObject(store)
-
+                    
                 case .exerciseEdit(let tid, let eid):
                     ExerciseEditView(trainingID: tid, exerciseID: eid)
                         .environmentObject(store)
-
+                    
                 case .addExercise(let tid):
                     AddExerciseView(trainingID: tid, afterSave: .goToEdit)
                         .environmentObject(store)
                 }
             }
+            
         }
         .environmentObject(router)
-
+        
         // Neues Workout anlegen (unverändert)
         .sheet(isPresented: $showingNew) {
             NavigationStack {
@@ -122,7 +155,7 @@ struct WorkoutView: View {
             }
             .presentationDetents([.height(220)])
         }
-
+        
         // Sicherheitsabfrage vor dem Löschen (unverändert)
         .alert("Workout löschen?", isPresented: $showDeleteAlert) {
             Button("Löschen", role: .destructive) {
