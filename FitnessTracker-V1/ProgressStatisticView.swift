@@ -112,7 +112,7 @@ struct ProgressStatisticView: View {
         .onAppear {
                     // Gleicher „Feeling-Moment“ wie beim Workout-Ende
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    showGlobalConfettiOverlay(duration: 2.8)
+                    showGlobalConfettiOverlay(duration: 2.0)
                 }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
