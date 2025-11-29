@@ -7,7 +7,7 @@ struct ProgressView: View {
     @State private var showInfo = false
 
     // NEU: Zustände für auf-/zugeklappte Sections
-    @State private var isKraftExpanded = true
+    @State private var isKraftExpanded = false
     @State private var isStatisticExpanded = false
     @State private var isKoerpergewichtExpanded = false
     @State private var isFrequenzExpanded = false
