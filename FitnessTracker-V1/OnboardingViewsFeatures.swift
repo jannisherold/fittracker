@@ -54,19 +54,7 @@ struct OnboardingViewFeatures: View {
             .animation(.easeOut.delay(0.2), value: animate)
             
             Spacer()
-            
-            Button(action: onFinish) {
-                Text("Loslegen")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(14)
-                    .padding(.horizontal)
-            }
-            .opacity(animate ? 1.0 : 0.0)
-            .animation(.easeOut.delay(0.25), value: animate)
+          
             
             Spacer(minLength: 24)
         }
