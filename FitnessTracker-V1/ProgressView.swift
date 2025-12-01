@@ -199,8 +199,9 @@ private struct CollapsibleSectionHeader: View {
         HStack(spacing: 8) {
             if let iconName = iconName {
                 Image(systemName: iconName)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.secondary)
+                    .frame(width: 28, alignment: .leading)
             }
 
             Text(title)
@@ -224,3 +225,172 @@ private struct CollapsibleSectionHeader: View {
         .padding(.vertical, 4)  // kompakter, wirkt mehr nach Überschrift
     }
 }
+
+
+#if DEBUG
+struct ProgressView_Previews: PreviewProvider {
+    static var previews: some View {
+        let store = Store.preview
+
+        return NavigationStack {
+            ProgressView()
+                .environmentObject(store)
+        }
+    }
+}
+
+extension Store {
+    /// Beispiel-Store nur für Xcode Previews
+    static var preview: Store {
+        let store = Store()
+
+        let calendar = Calendar.current
+        let now = Date()
+
+        // MARK: - Beispiel-Training: Push Day
+
+        var push = Training(title: "Push Day")
+
+        let pushBenchSets = [
+            SetEntry(weightKg: 80, repetition: .init(value: 8), isDone: false),
+            SetEntry(weightKg: 80, repetition: .init(value: 6), isDone: false)
+        ]
+
+        let pushShoulderSets = [
+            SetEntry(weightKg: 50, repetition: .init(value: 10), isDone: false),
+            SetEntry(weightKg: 50, repetition: .init(value: 8), isDone: false)
+        ]
+
+        let benchExercise = Exercise(name: "Bankdrücken", sets: pushBenchSets)
+        let shoulderExercise = Exercise(name: "Schulterdrücken", sets: pushShoulderSets)
+
+        push.exercises = [benchExercise, shoulderExercise]
+
+        // Session-Snapshots für Push-Training (absolvierte Workouts)
+        let pushSession1Exercises: [SessionExerciseSnapshot] = [
+            SessionExerciseSnapshot(
+                originalExerciseID: UUID(),
+                name: "Bankdrücken",
+                sets: [
+                    SessionSetSnapshot(
+                        originalSetID: UUID(),
+                        weightKg: 80,
+                        repetition: .init(value: 8),
+                        isDone: true
+                    ),
+                    SessionSetSnapshot(
+                        originalSetID: UUID(),
+                        weightKg: 80,
+                        repetition: .init(value: 6),
+                        isDone: true
+                    )
+                ],
+                notes: "Starkes Training 💪"
+            )
+        ]
+
+        let pushSession2Exercises: [SessionExerciseSnapshot] = [
+            SessionExerciseSnapshot(
+                originalExerciseID: UUID(),
+                name: "Schulterdrücken",
+                sets: [
+                    SessionSetSnapshot(
+                        originalSetID: UUID(),
+                        weightKg: 50,
+                        repetition: .init(value: 10),
+                        isDone: true
+                    ),
+                    SessionSetSnapshot(
+                        originalSetID: UUID(),
+                        weightKg: 50,
+                        repetition: .init(value: 8),
+                        isDone: true
+                    )
+                ],
+                notes: "Schulter hat gut mitgemacht"
+            )
+        ]
+
+        let pushSession1 = WorkoutSession(
+            startedAt: calendar.date(byAdding: .minute, value: -45, to: now) ?? now,
+            endedAt: now,
+            maxWeightPerExercise: [
+                pushSession1Exercises[0].originalExerciseID: 80
+            ],
+            exercises: pushSession1Exercises
+        )
+
+        let pushSession2 = WorkoutSession(
+            startedAt: calendar.date(byAdding: .day, value: -2, to: now) ?? now,
+            endedAt: calendar.date(byAdding: .day, value: -2, to: now) ?? now,
+            maxWeightPerExercise: [
+                pushSession2Exercises[0].originalExerciseID: 50
+            ],
+            exercises: pushSession2Exercises
+        )
+
+        push.sessions = [pushSession1, pushSession2]
+
+        // MARK: - Beispiel-Training: Pull Day
+
+        var pull = Training(title: "Pull Day")
+
+        let pullRowSets = [
+            SetEntry(weightKg: 90, repetition: .init(value: 8), isDone: false),
+            SetEntry(weightKg: 90, repetition: .init(value: 8), isDone: false)
+        ]
+
+        let rowExercise = Exercise(name: "Rudern", sets: pullRowSets)
+        pull.exercises = [rowExercise]
+
+        let pullSessionExercises: [SessionExerciseSnapshot] = [
+            SessionExerciseSnapshot(
+                originalExerciseID: UUID(),
+                name: "Rudern",
+                sets: [
+                    SessionSetSnapshot(
+                        originalSetID: UUID(),
+                        weightKg: 90,
+                        repetition: .init(value: 8),
+                        isDone: true
+                    ),
+                    SessionSetSnapshot(
+                        originalSetID: UUID(),
+                        weightKg: 90,
+                        repetition: .init(value: 8),
+                        isDone: true
+                    )
+                ],
+                notes: "Rücken brennt angenehm"
+            )
+        ]
+
+        let pullSession = WorkoutSession(
+            startedAt: calendar.date(byAdding: .day, value: -5, to: now) ?? now,
+            endedAt: calendar.date(byAdding: .day, value: -5, to: now) ?? now,
+            maxWeightPerExercise: [
+                pullSessionExercises[0].originalExerciseID: 90
+            ],
+            exercises: pullSessionExercises
+        )
+
+        pull.sessions = [pullSession]
+
+        // MARK: - Körpergewicht-Beispieldaten
+
+        let bodyweights: [BodyweightEntry] = (0..<6).map { index in
+            let date = calendar.date(byAdding: .day, value: -index * 7, to: now) ?? now
+            let weight = 82.0 - Double(index) * 0.5
+            return BodyweightEntry(date: date, weightKg: weight)
+        }
+
+        // Reihenfolge: neueste Einträge zuerst
+        store.bodyweightEntries = bodyweights.sorted { $0.date > $1.date }
+
+        // Trainings in den Store schreiben (Push zuerst, dann Pull)
+        store.trainings = [push, pull]
+
+        return store
+    }
+}
+#endif
