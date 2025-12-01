@@ -181,7 +181,9 @@ struct WorkoutInspectView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { router.go(.workoutEdit(trainingID: trainingID)) } label: {
-                        Image(systemName: "pencil")
+                        Text("Bearbeiten")
+                            .fontWeight(.semibold)
+                        //Image(systemName: "pencil")
                     }
                     .accessibilityLabel("Workout bearbeiten")
                 }
