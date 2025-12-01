@@ -30,34 +30,54 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
                 .animation(.easeInOut, value: currentIndex)
+            }
+        }
+        // Tabbar der App ausblenden, damit nur die Liquid-Glass-Bottom-Bar sichtbar ist
+        .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
                 
-                // Unterer Weiter-/Loslegen-Button (optional zusätzlich zum Swipen)
-                bottomButton
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
+                Button{
+                    handlePrimaryButtonTap()
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } label: {
+                    if(currentIndex == 0){
+                        Text("Starten")
+                            .fontWeight(.semibold)
+                    }
+                    
+                    else if(currentIndex == 1){
+                        Text("Weiter")
+                            .fontWeight(.semibold)
+                    }
+                    
+                    if(currentIndex == 2){
+                        Text("Loslegen")
+                            .fontWeight(.semibold)
+                    }
+                    
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(Color(.systemBlue))
+                    
+                    
+                    /*
+                    Text(currentIndex < totalPages - 1 ? "Weiter" : "Loslegen")
+                        .fontWeight(.semibold)
+                    */
+                
+                
             }
         }
     }
     
-    // MARK: - Bottom Button
     
-    private var bottomButton: some View {
-        
-        
-        Button(action: {
-            if currentIndex < totalPages - 1 {
-                currentIndex += 1
-            } else {
-                finishOnboarding()
-            }
-        }) {
-            Text(currentIndex < totalPages - 1 ? "Weiter" : "Loslegen")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(14)
+    private func handlePrimaryButtonTap() {
+        if currentIndex < totalPages - 1 {
+            currentIndex += 1
+        } else {
+            finishOnboarding()
         }
     }
     
@@ -70,6 +90,8 @@ struct OnboardingView: View {
 
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        OnboardingView()
+        NavigationStack {
+            OnboardingView()
+        }
     }
 }
