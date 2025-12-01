@@ -6,8 +6,8 @@ struct FitnessTrackerV1App: App {
 
     var body: some Scene {
         WindowGroup {
-            SplashScreenView()
-            //OnboardingView()
+            //SplashScreenView()
+            OnboardingView()
                 .environmentObject(store)
         }
     }
