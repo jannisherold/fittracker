@@ -11,61 +11,66 @@ struct AuthChoiceView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer(minLength: 40)
+            
+            ScrollView{
+                VStack(spacing: 24) {
+                    Spacer(minLength: 40)
 
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 60))
-                    .symbolRenderingMode(.hierarchical)
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 60))
+                        .symbolRenderingMode(.hierarchical)
 
-                Text("Willkommen zurück 👋")
-                    .font(.title)
-                    .fontWeight(.semibold)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-
-                Text("Melde dich mit deinem Apple-Account an oder starte eine neue Registrierung.")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-
-                Spacer()
-
-                // MARK: - Login mit Apple
-                SignInWithAppleButton(
-                    .signIn,
-                    onRequest: authViewModel.handleSignInWithAppleRequest,
-                    onCompletion: handleSignInCompletion
-                )
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 50)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .padding(.horizontal, 32)
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundColor(.red)
+                    Text("Willkommen zurück 👋")
+                        .font(.title)
+                        .fontWeight(.semibold)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                }
 
-                // MARK: - Neu registrieren
-                Button {
-                    // zurück in den Onboarding-Flow springen
-                    hasCompletedOnboarding = false
-                } label: {
-                    Text("Neu registrieren")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .padding(.horizontal, 32)
+                    Text("Melde dich mit deinem Apple-Account an oder starte eine neue Registrierung.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
 
-                Spacer(minLength: 40)
+                    Spacer()
+
+                    // MARK: - Login mit Apple
+                    SignInWithAppleButton(
+                        .signIn,
+                        onRequest: authViewModel.handleSignInWithAppleRequest,
+                        onCompletion: handleSignInCompletion
+                    )
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 32)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+
+                    // MARK: - Neu registrieren
+                    Button {
+                        // zurück in den Onboarding-Flow springen
+                        hasCompletedOnboarding = false
+                    } label: {
+                        Text("Neu registrieren")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .padding(.horizontal, 32)
+
+                    
+                }
             }
+            
+
         }
     }
 
