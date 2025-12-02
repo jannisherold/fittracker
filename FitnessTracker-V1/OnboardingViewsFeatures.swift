@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct OnboardingViewFeatures: View {
-    let onFinish: () -> Void
+    //let onFinish: () -> Void
     @State private var animate: Bool = false
     
     var body: some View {
@@ -41,7 +41,7 @@ struct OnboardingViewFeatures: View {
                     )
                     FeatureRow(
                         icon: "list.bullet.clipboard",
-                        title: "Logbuch",
+                        title: "Persönliches Logbuch",
                         text: "Halte fest, wie viel Du bewegst – Satz für Satz."
                     )
                     FeatureRow(
@@ -96,6 +96,6 @@ struct FeatureRow: View {
 
 struct OnboardingViewFeatures_Previews: PreviewProvider {
     static var previews: some View {
-        OnboardingViewFeatures { }
+        OnboardingViewFeatures()
     }
 }

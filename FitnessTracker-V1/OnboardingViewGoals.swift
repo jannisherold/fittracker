@@ -6,11 +6,11 @@ struct OnboardingViewGoals: View {
         
     private let goals: [(title: String, systemImage: String)] = [
         ("Muskelaufbau", "dumbbell.fill"),
-        ("Abnehmen", "arrow.down"),
-        ("Mehr Kraft", "bolt.circle"),
+        ("Gewicht abnehmen", "arrow.down"),
+        ("Kraft steigern", "bolt.circle"),
         //("Fitter fühlen", "figure.walk.motion"),
         ("Routine aufbauen", "calendar"),
-        ("Sonstige", ""),
+        //("Sonstige", ""),
         ("Überspringen", "")
     ]
     

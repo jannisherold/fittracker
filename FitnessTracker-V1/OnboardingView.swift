@@ -4,7 +4,7 @@ struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @State private var currentIndex: Int = 0
     
-    private let totalPages: Int = 3
+    private let totalPages: Int = 4
     
     var body: some View {
         ZStack {
@@ -25,8 +25,11 @@ struct OnboardingView: View {
                     OnboardingViewGoals()
                         .tag(1)
                     
-                    OnboardingViewFeatures(onFinish: finishOnboarding)
+                    OnboardingViewFeatures()
                         .tag(2)
+                    
+                    OnboardingSignInView()
+                        .tag(3)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
                 .animation(.easeInOut, value: currentIndex)
@@ -36,30 +39,32 @@ struct OnboardingView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .bottomBar) {
-                
-                Button{
-                    handlePrimaryButtonTap()
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                } label: {
-                    if(currentIndex == 0){
-                        Text("Starten")
-                            .fontWeight(.semibold)
+                if(currentIndex<3){
+                    Button{
+                        handlePrimaryButtonTap()
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    } label: {
+                        if(currentIndex == 0){
+                            Text("Starten")
+                                .fontWeight(.semibold)
+                        }
+                        
+                        else if(currentIndex == 1){
+                            Text("Weiter")
+                                .fontWeight(.semibold)
+                        }
+                        
+                        if(currentIndex == 2){
+                            Text("Loslegen")
+                                .fontWeight(.semibold)
+                        }
+                        
                     }
-                    
-                    else if(currentIndex == 1){
-                        Text("Weiter")
-                            .fontWeight(.semibold)
-                    }
-                    
-                    if(currentIndex == 2){
-                        Text("Loslegen")
-                            .fontWeight(.semibold)
-                    }
-                    
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(Color(.systemBlue))
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(Color(.systemBlue))
+                
                     
                     
                     /*
