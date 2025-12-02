@@ -6,8 +6,7 @@ enum AppTab: Hashable {
 
 struct RootTabView: View {
     @State private var selection: AppTab = .workout
-    @StateObject private var store = Store()           // globaler Store
-    // Hinweis: ContentView hat eigenen Router als @StateObject → bleibt lokal pro Tab erhalten
+    @EnvironmentObject var store: Store
 
     var body: some View {
         TabView(selection: $selection) {
@@ -35,10 +34,13 @@ struct RootTabView: View {
                 }
                 .tag(AppTab.settings)
         }
-        // Optional: Klare visuelle Trennung gem. HIG, aber Standard reicht meist
         .toolbarBackground(.visible, for: .tabBar)
         .toolbar(.visible, for: .tabBar)
         .tabBarMinimizeBehavior(.onScrollDown)
-        // A11y: klare, kurze Bezeichnungen sind wichtig – hast du über Label()
     }
+}
+
+#Preview {
+    RootTabView()
+        .environmentObject(Store())
 }
