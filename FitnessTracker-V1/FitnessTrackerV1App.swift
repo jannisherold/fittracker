@@ -8,6 +8,7 @@ struct FitnessTrackerV1App: App {
         WindowGroup {
             //SplashScreenView()
             OnboardingView()
+            //SignInTestView()
                 .environmentObject(store)
         }
     }
