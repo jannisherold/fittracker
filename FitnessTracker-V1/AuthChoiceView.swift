@@ -20,7 +20,7 @@ struct AuthChoiceView: View {
                         .font(.system(size: 60))
                         .symbolRenderingMode(.hierarchical)
 
-                    Text("Willkommen zurück 👋")
+                    Text("Willkommen zurück!")
                         .font(.title)
                         .fontWeight(.semibold)
                         .multilineTextAlignment(.center)
@@ -58,7 +58,7 @@ struct AuthChoiceView: View {
                         // zurück in den Onboarding-Flow springen
                         hasCompletedOnboarding = false
                     } label: {
-                        Text("Neu registrieren")
+                        Text("Registrieren")
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                     }
