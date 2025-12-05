@@ -3,8 +3,6 @@ import AuthenticationServices
 
 final class AuthViewModel: ObservableObject {
     @AppStorage("appleUserID") var appleUserID: String = ""
-
-    // 🔽 neu:
     @AppStorage("appleFirstName") var appleFirstName: String = ""
     @AppStorage("appleLastName") var appleLastName: String = ""
     @AppStorage("appleEmail") var appleEmail: String = ""
@@ -36,7 +34,7 @@ final class AuthViewModel: ObservableObject {
                 }
             }
         case .failure(let error):
-            print("❌ Sign in with Apple Fehler: \(error.localizedDescription)")
+            print("Sign in with Apple Fehler: \(error.localizedDescription)")
         }
     }
 }

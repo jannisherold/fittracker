@@ -126,8 +126,6 @@ final class Store: ObservableObject {
         trainings[t].exercises[e].sets.append(newSet)
     }
 
-    
-
     func deleteExercise(in trainingID: UUID, at offsets: IndexSet) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         trainings[t].exercises.remove(atOffsets: offsets)
@@ -233,6 +231,12 @@ final class Store: ObservableObject {
 
     /// ✅ Alle Körpergewichts-Daten löschen
     func resetBodyweightEntries() {
+        bodyweightEntries = []
+    }
+
+    /// ✅ Alle App-Daten (Trainings + Körpergewicht) löschen
+    func deleteAllData() {
+        trainings = []
         bodyweightEntries = []
     }
 
