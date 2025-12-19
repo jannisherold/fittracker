@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8376764B2EF595A6006EBA11 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 8376764A2EF595A6006EBA11 /* Auth */; };
+		8376764D2EF595A6006EBA11 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 8376764C2EF595A6006EBA11 /* Functions */; };
+		8376764F2EF595A6006EBA11 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 8376764E2EF595A6006EBA11 /* PostgREST */; };
+		837676512EF595A6006EBA11 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 837676502EF595A6006EBA11 /* Realtime */; };
+		837676532EF595A6006EBA11 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 837676522EF595A6006EBA11 /* Storage */; };
+		837676582EF596A1006EBA11 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 837676572EF596A1006EBA11 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		834CDA0D2E60616B00896DD1 /* FitnessTracker-V1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FitnessTracker-V1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +32,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8376764F2EF595A6006EBA11 /* PostgREST in Frameworks */,
+				8376764D2EF595A6006EBA11 /* Functions in Frameworks */,
+				837676582EF596A1006EBA11 /* Supabase in Frameworks */,
+				8376764B2EF595A6006EBA11 /* Auth in Frameworks */,
+				837676532EF595A6006EBA11 /* Storage in Frameworks */,
+				837676512EF595A6006EBA11 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +48,7 @@
 			isa = PBXGroup;
 			children = (
 				834CDA0F2E60616B00896DD1 /* FitnessTracker-V1 */,
+				837676562EF5969C006EBA11 /* Frameworks */,
 				834CDA0E2E60616B00896DD1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +59,13 @@
 				834CDA0D2E60616B00896DD1 /* FitnessTracker-V1.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		837676562EF5969C006EBA11 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,6 +88,12 @@
 			);
 			name = "FitnessTracker-V1";
 			packageProductDependencies = (
+				8376764A2EF595A6006EBA11 /* Auth */,
+				8376764C2EF595A6006EBA11 /* Functions */,
+				8376764E2EF595A6006EBA11 /* PostgREST */,
+				837676502EF595A6006EBA11 /* Realtime */,
+				837676522EF595A6006EBA11 /* Storage */,
+				837676572EF596A1006EBA11 /* Supabase */,
 			);
 			productName = "FitnessTracker-V1";
 			productReference = 834CDA0D2E60616B00896DD1 /* FitnessTracker-V1.app */;
@@ -94,6 +123,9 @@
 			);
 			mainGroup = 834CDA042E60616B00896DD1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 834CDA0E2E60616B00896DD1 /* Products */;
 			projectDirPath = "";
@@ -328,6 +360,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8376764A2EF595A6006EBA11 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		8376764C2EF595A6006EBA11 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		8376764E2EF595A6006EBA11 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		837676502EF595A6006EBA11 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		837676522EF595A6006EBA11 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		837676572EF596A1006EBA11 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 837676492EF595A6006EBA11 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 834CDA052E60616B00896DD1 /* Project object */;
 }

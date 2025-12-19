@@ -2,17 +2,15 @@ import SwiftUI
 import AuthenticationServices
 
 struct AuthChoiceView: View {
-    @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var appleVM = AuthViewModel()
+    @EnvironmentObject private var auth: SupabaseAuthManager
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = true
-    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
-
     @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
-            
-            ScrollView{
+            ScrollView {
                 VStack(spacing: 24) {
                     Spacer(minLength: 40)
 
@@ -34,11 +32,19 @@ struct AuthChoiceView: View {
 
                     Spacer()
 
-                    // MARK: - Login mit Apple
+                    // ✅ Native Apple Button → Supabase
                     SignInWithAppleButton(
                         .signIn,
-                        onRequest: authViewModel.handleSignInWithAppleRequest,
-                        onCompletion: handleSignInCompletion
+                        onRequest: appleVM.handleSignInWithAppleRequest,
+                        onCompletion: { result in
+                            Task {
+                                do {
+                                    try await appleVM.handleSignInWithAppleCompletion(result, authManager: auth)
+                                } catch {
+                                    errorMessage = "Anmeldung fehlgeschlagen: \(error.localizedDescription)"
+                                }
+                            }
+                        }
                     )
                     .signInWithAppleButtonStyle(.black)
                     .frame(height: 50)
@@ -53,9 +59,7 @@ struct AuthChoiceView: View {
                             .padding(.horizontal)
                     }
 
-                    // MARK: - Neu registrieren
                     Button {
-                        // zurück in den Onboarding-Flow springen
                         hasCompletedOnboarding = false
                     } label: {
                         Text("Registrieren")
@@ -65,24 +69,8 @@ struct AuthChoiceView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.large)
                     .padding(.horizontal, 32)
-
-                    
                 }
             }
-            
-
-        }
-    }
-
-    private func handleSignInCompletion(_ result: Result<ASAuthorization, Error>) {
-        authViewModel.handleSignInWithAppleCompletion(result)
-
-        switch result {
-        case .success:
-            // Nutzer wieder eingeloggt
-            isLoggedIn = true
-        case .failure(let error):
-            errorMessage = "Die Anmeldung mit Apple ist fehlgeschlagen. Bitte versuche es erneut.\n(\(error.localizedDescription))"
         }
     }
 }
