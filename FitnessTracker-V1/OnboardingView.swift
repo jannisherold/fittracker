@@ -28,7 +28,7 @@ struct OnboardingView: View {
                     OnboardingViewFeatures()
                         .tag(2)
                     
-                    OnboardingSignInView()
+                    OnboardingRegisterView()
                         .tag(3)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
