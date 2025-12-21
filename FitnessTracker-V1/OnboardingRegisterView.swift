@@ -211,6 +211,8 @@ struct OnboardingRegisterView: View {
                     // 👇 DER entscheidende Punkt: Content bekommt Bildschirmhöhe
                     .frame(minHeight: geo.size.height, alignment: .top)
                 }
+                .scrollDismissesKeyboard(.interactively)
+                .onTapGesture { hideKeyboard() }
                 
             }
         
