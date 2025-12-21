@@ -2,17 +2,18 @@ import SwiftUI
 
 struct AppRootView: View {
     @EnvironmentObject private var auth: SupabaseAuthManager
-
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
 
     var body: some View {
-        Group {
-            if !hasCompletedOnboarding {
-                OnboardingView()
-            } else if auth.isLoggedIn {
-                SplashScreenView()
-            } else {
-                OnboardingRegisterView()
+        NavigationStack {
+            Group {
+                if auth.isLoggedIn {
+                    SplashScreenView()
+                } else if !hasCompletedOnboarding {
+                    OnboardingView()
+                } else {
+                    OnboardingRegisterView()
+                }
             }
         }
     }
