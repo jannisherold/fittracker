@@ -123,19 +123,27 @@ struct OnboardingRegisterView: View {
                             .padding(.horizontal, 24)
                             
                             if showPasswordRequirements {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    ForEach(passwordRequirements) { req in
-                                        HStack(spacing: 8) {
-                                            Image(systemName: req.isMet ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                                .foregroundStyle(req.isMet ? .green : .red)
+                                
+                                HStack{
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        ForEach(passwordRequirements) { req in
+                                            HStack(spacing: 8) {
+                                                Image(systemName: req.isMet ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                                    .foregroundStyle(req.isMet ? .green : .red)
 
-                                            Text(req.title)
-                                                .font(.footnote)
-                                                .foregroundColor(req.isMet ? .green : .red)
+                                                Text(req.title)
+                                                    .font(.footnote)
+                                                    .foregroundColor(req.isMet ? .green : .red)
+                                            }
                                         }
                                     }
+                                    .padding(.top, 6)
+                                    
+                                    Spacer()
                                 }
-                                .padding(.top, 6)
+                                .padding(.horizontal, 24)
+                                
+                                
                             }
 
 
