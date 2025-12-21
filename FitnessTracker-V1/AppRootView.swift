@@ -12,7 +12,7 @@ struct AppRootView: View {
             } else if auth.isLoggedIn {
                 SplashScreenView()
             } else {
-                AuthChoiceView()
+                OnboardingRegisterView()
             }
         }
     }

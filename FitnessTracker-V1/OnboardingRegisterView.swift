@@ -32,6 +32,40 @@ struct OnboardingRegisterView: View {
                         .font(.title)
                         .fontWeight(.semibold)
                         .padding(.top, 24)
+                    
+                    Spacer(minLength: 24)
+                    
+                    // Sign up with Apple (wie gehabt)
+                    SignInWithAppleButton(
+                        .signUp,
+                        onRequest: appleVM.handleSignInWithAppleRequest,
+                        onCompletion: { result in
+                            Task {
+                                do {
+                                    try await appleVM.handleSignInWithAppleCompletion(result, authManager: auth)
+                                    // Wenn Apple-Login klappt, Onboarding abschließen:
+                                    hasCompletedOnboarding = true
+                                } catch {
+                                    errorMessage = "Apple Login fehlgeschlagen: \(error.localizedDescription)"
+                                }
+                            }
+                        }
+                    )
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 24)
+                    
+                    // Trennlinie "Oder"
+                    HStack(spacing: 12) {
+                        Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.35))
+                        Text("Oder")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.35))
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 6)
 
                     // E-Mail
                     VStack(alignment: .leading, spacing: 8) {
@@ -60,6 +94,19 @@ struct OnboardingRegisterView: View {
                     }
                     .padding(.horizontal, 24)
 
+                  
+                    // Neu: "Du hast bereits..." + Navigation zur Login View
+                    
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+
+                    /*
                     // AGB/Datenschutz – dezenter (kleineres Icon, weniger “Button-Look”)
                     Button {
                         hasAcceptedLegal.toggle()
@@ -88,6 +135,9 @@ struct OnboardingRegisterView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 24)
+                    */
+                    
+                    
 
                     // Account erstellen
                     Button {
@@ -110,7 +160,10 @@ struct OnboardingRegisterView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 4)
 
-                    // Neu: "Du hast bereits..." + Navigation zur Login View
+                    Text("Durch erstellen eines Accounts stimmst du unseren AGB und der Datenschutzerklärung zu.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
                     HStack(spacing: 6) {
                         Text("Du hast bereits einen Account?")
                             .font(.footnote)
@@ -127,48 +180,6 @@ struct OnboardingRegisterView: View {
                     }
                     .padding(.top, -6)
                     .padding(.bottom, 6)
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                    }
-
-                    // Trennlinie "Oder"
-                    HStack(spacing: 12) {
-                        Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.35))
-                        Text("Oder")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                        Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.35))
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 6)
-
-                    // Sign up with Apple (wie gehabt)
-                    SignInWithAppleButton(
-                        .signUp,
-                        onRequest: appleVM.handleSignInWithAppleRequest,
-                        onCompletion: { result in
-                            Task {
-                                do {
-                                    try await appleVM.handleSignInWithAppleCompletion(result, authManager: auth)
-                                    // Wenn Apple-Login klappt, Onboarding abschließen:
-                                    hasCompletedOnboarding = true
-                                } catch {
-                                    errorMessage = "Apple Login fehlgeschlagen: \(error.localizedDescription)"
-                                }
-                            }
-                        }
-                    )
-                    .signInWithAppleButtonStyle(.black)
-                    .frame(height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .padding(.horizontal, 24)
-
-                    Spacer(minLength: 24)
                 }
             }
         }
@@ -198,3 +209,17 @@ struct OnboardingRegisterView: View {
         }
     }
 }
+
+
+#Preview("Light Mode") {
+    OnboardingRegisterView()
+        .environmentObject(SupabaseAuthManager())
+}
+
+#Preview("Dark Mode") {
+    OnboardingRegisterView()
+        .environmentObject(SupabaseAuthManager())
+        .preferredColorScheme(.dark)
+}
+
+
