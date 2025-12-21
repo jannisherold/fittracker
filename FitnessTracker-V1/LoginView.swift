@@ -151,6 +151,8 @@ struct LoginView: View {
                     }
                     // 👇 DER entscheidende Punkt: Content bekommt Bildschirmhöhe
                     .frame(minHeight: geo.size.height, alignment: .top)
+                    .navigationBarBackButtonHidden(true)
+                    .interactiveDismissDisabled(true)
                 }
                 
             }

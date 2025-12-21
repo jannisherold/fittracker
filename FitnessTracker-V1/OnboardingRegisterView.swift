@@ -212,7 +212,6 @@ struct OnboardingRegisterView: View {
                     .frame(minHeight: geo.size.height, alignment: .top)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onTapGesture { hideKeyboard() }
                 
             }
         
