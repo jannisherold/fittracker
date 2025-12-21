@@ -9,17 +9,53 @@ struct OnboardingRegisterView: View {
 
     @State private var email: String = ""
     @State private var password: String = ""
-    @State private var hasAcceptedLegal: Bool = false
+    //@State private var hasAcceptedLegal: Bool = false
 
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
 
     private var canCreateAccount: Bool {
         !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        password.count >= 6 &&
-        hasAcceptedLegal &&
+        isPasswordStrongEnough &&
+        //hasAcceptedLegal &&
         !isLoading
     }
+
+    
+    private struct PasswordRequirement: Identifiable {
+        let id = UUID()
+        let title: String
+        let isMet: Bool
+    }
+
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var showPasswordRequirements: Bool {
+        !trimmedEmail.isEmpty
+    }
+
+    private var passwordRequirements: [PasswordRequirement] {
+        let hasMinLength = password.count >= 8
+        let hasLowercase = password.range(of: "[a-z]", options: .regularExpression) != nil
+        let hasUppercase = password.range(of: "[A-Z]", options: .regularExpression) != nil
+        let hasDigit     = password.range(of: "[0-9]", options: .regularExpression) != nil
+        let hasSpecial   = password.range(of: #"[^A-Za-z0-9]"#, options: .regularExpression) != nil
+
+        return [
+            .init(title: "Mindestens 8 Zeichen", isMet: hasMinLength),
+            .init(title: "Kleinbuchstabe", isMet: hasLowercase),
+            .init(title: "Großbuchstabe", isMet: hasUppercase),
+            .init(title: "Ziffer", isMet: hasDigit),
+            .init(title: "Sonderzeichen", isMet: hasSpecial),
+        ]
+    }
+
+    private var isPasswordStrongEnough: Bool {
+        passwordRequirements.allSatisfy { $0.isMet }
+    }
+
 
     var body: some View {
         
@@ -83,11 +119,25 @@ struct OnboardingRegisterView: View {
                                     .background(.ultraThinMaterial)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                                Text("Lowercase, Uppercase Letters, digits ans symbols, 8 zeichen")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
                             }
                             .padding(.horizontal, 24)
+                            
+                            if showPasswordRequirements {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    ForEach(passwordRequirements) { req in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: req.isMet ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                                .foregroundStyle(req.isMet ? .green : .red)
+
+                                            Text(req.title)
+                                                .font(.footnote)
+                                                .foregroundColor(req.isMet ? .green : .red)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 6)
+                            }
+
 
                             if let errorMessage {
                                 Text(errorMessage)
@@ -158,6 +208,7 @@ struct OnboardingRegisterView: View {
         
     }
 
+    
 
     @MainActor
     private func createAccount() async {
