@@ -25,6 +25,7 @@ struct ProfileSettingsView: View {
         List {
             // 🔹 Account-Daten
             Section("Account") {
+                /*
                 HStack {
                     Text("Name")
                     Spacer()
@@ -32,6 +33,8 @@ struct ProfileSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                 */
+                
                 HStack {
                     Text("E-Mail")
                     Spacer()
@@ -46,28 +49,8 @@ struct ProfileSettingsView: View {
                 // (Optional) Abo-Platzhalter
                 Label("Abonnement", systemImage: "receipt")
 
-                Button {
-                    isLoggedIn = false
-                } label: {
-                    Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-
-                Button(role: .destructive) {
-                    // Lokale Account-Daten entfernen
-                    appleUserID = ""
-                    hasCompletedOnboarding = false
-                    isLoggedIn = false
-
-                    // 🔽 optional: gespeicherte Profildaten ebenfalls löschen
-                    appleFirstName = ""
-                    appleLastName = ""
-                    appleEmail = ""
-                } label: {
-                    Label("Profil löschen", systemImage: "trash")
-                }
-            } footer: {
-                Text("Abmelden beendet deine aktuelle Sitzung. „Profil löschen“ setzt den lokalen Account zurück (App startet wieder im Onboarding).")
-            }
+                
+            } 
 
             // 🔹 Daten-Section
             Section{
@@ -82,8 +65,26 @@ struct ProfileSettingsView: View {
                 } label: {
                     Label("Alle Daten löschen", systemImage: "trash.slash")
                 }
+                
+                Button(role: .destructive) {
+                    // Lokale Account-Daten entfernen
+                    appleUserID = ""
+                    hasCompletedOnboarding = false
+                    isLoggedIn = false
+
+                    // 🔽 optional: gespeicherte Profildaten ebenfalls löschen
+                    appleFirstName = ""
+                    appleLastName = ""
+                    appleEmail = ""
+                } label: {
+                    Label("Profil löschen", systemImage: "trash")
+                }
             } footer: {
                 Text("„Körpergewicht zurücksetzen“ entfernt nur deine Körpergewichts-Historie. „Alle Daten löschen“ setzt die App vollständig zurück, inklusive aller Workouts, Sessions und Statistiken.")
+            }
+            
+            Section{
+                Text("Abmelden")
             }
         }
         .navigationTitle("Profil")

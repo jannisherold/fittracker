@@ -70,6 +70,8 @@ struct SettingsView: View {
                         Text("Impressum")
                     }
                 }
+                
+    
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Einstellungen")
