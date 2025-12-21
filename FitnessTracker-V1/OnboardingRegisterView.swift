@@ -22,7 +22,7 @@ struct OnboardingRegisterView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        
             GeometryReader { geo in
                 ScrollView {
                     VStack(spacing: 0) {
@@ -51,7 +51,7 @@ struct OnboardingRegisterView: View {
                                     }
                                 }
                             )
-                            .signInWithAppleButtonStyle(.black)
+                            //.signInWithAppleButtonStyle(.black)
                             .frame(height: 50)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .padding(.horizontal, 24)
@@ -138,7 +138,7 @@ struct OnboardingRegisterView: View {
                                     .foregroundColor(.secondary)
 
                                 NavigationLink {
-                                    OnboardingView()
+                                    LoginView()
                                 } label: {
                                     Text("Einloggen")
                                         .font(.footnote)
@@ -148,12 +148,14 @@ struct OnboardingRegisterView: View {
                             .padding(.top, -6)
                             .padding(.bottom, 6)
                         }
+                        .padding(.bottom, 40)
                     }
                     // 👇 DER entscheidende Punkt: Content bekommt Bildschirmhöhe
                     .frame(minHeight: geo.size.height, alignment: .top)
                 }
+                
             }
-        }
+        
     }
 
 
