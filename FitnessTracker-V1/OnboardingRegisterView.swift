@@ -39,25 +39,29 @@ struct OnboardingRegisterView: View {
                             onCompletion: { result in
                                 Task {
                                     do {
+                                        
+                                        // ✅ Lokal speichern (MVP)
                                         let profile = try await appleVM.handleSignInWithAppleCompletionAndReturnProfile(
                                             result,
                                             authManager: auth
                                         )
-                                        
-                                        // ✅ Lokal speichern (MVP)
-                                        storedEmail = profile.email
-                                        storedName = profile.name
-                                        storedGoal = onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal
-                                        
-                                        // ✅ Flag, dass ein Account erstellt wurde
+
+                                        // Flags
                                         hasCreatedAccount = true
-                                        
-                                        // ✅ Optional: in Supabase DB speichern (falls Tabelle existiert)
-                                        await auth.upsertProfile(
-                                            email: storedEmail,
-                                            name: storedName,
-                                            goal: storedGoal
-                                        )
+
+                                        // Ziel aus Onboarding
+                                        let goal = onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal
+
+                                        // Email/Name Fallbacks (Apple kann leer sein)
+                                        let email = profile.email.isEmpty ? auth.userEmail : profile.email
+                                        let name  = profile.name.isEmpty ? "User" : profile.name
+
+                                        // ✅ In Supabase speichern
+                                        try await auth.upsertProfile(email: email, name: name, goal: goal)
+
+                                        // ✅ Danach aus DB ziehen und lokal speichern
+                                        await auth.syncProfileFromBackendToLocal()
+
                                         
                                     } catch {
                                         errorMessage = "Apple Login fehlgeschlagen: \(error.localizedDescription)"

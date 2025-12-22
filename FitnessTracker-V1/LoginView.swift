@@ -46,23 +46,20 @@ struct LoginView: View {
                                     let profile = try await appleVM
                                         .handleSignInWithAppleCompletionAndReturnProfile(result, authManager: auth)
 
-                                    // ✅ Flags
+                                    // Flags
                                     hasCompletedOnboarding = true
                                     hasCreatedAccount = true
 
-                                    // ✅ Lokal speichern (Apple liefert Email/Name evtl. nur beim ersten Mal)
-                                    if !profile.email.isEmpty { storedEmail = profile.email }
-                                    if !profile.name.isEmpty { storedName = profile.name }
-                                    if storedGoal.isEmpty {
-                                        storedGoal = onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal
-                                    }
+                                    let goal = (storedGoal.isEmpty ? (onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal) : storedGoal)
+                                    let email = profile.email.isEmpty ? auth.userEmail : profile.email
+                                    let name  = profile.name.isEmpty ? "User" : profile.name
 
-                                    // ✅ Optional: in DB speichern (falls Tabelle existiert)
-                                    await auth.upsertProfile(
-                                        email: storedEmail.isEmpty ? auth.userEmail : storedEmail,
-                                        name: storedName.isEmpty ? "User" : storedName,
-                                        goal: storedGoal.isEmpty ? "Überspringen" : storedGoal
-                                    )
+                                    // ✅ Profil sicher in DB (falls noch nicht da)
+                                    try await auth.upsertProfile(email: email, name: name, goal: goal)
+
+                                    // ✅ Und danach lokal aus DB synchronisieren
+                                    await auth.syncProfileFromBackendToLocal()
+
 
                                 } catch {
                                     errorMessage = "Apple Login fehlgeschlagen: \(error.localizedDescription)"

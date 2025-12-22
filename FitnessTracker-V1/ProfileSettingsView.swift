@@ -62,7 +62,9 @@ struct ProfileSettingsView: View {
                 }
                 .disabled(isWorking)
 
-                Button(role: .destructive) { activeAlert = .deleteProfile } label: {
+                Button(role: .destructive) {
+                    activeAlert = .deleteProfile
+                } label: {
                     Label("Profil löschen", systemImage: "trash")
                 }
                 .disabled(isWorking)
@@ -156,7 +158,8 @@ struct ProfileSettingsView: View {
 
         do {
             // 1) Supabase Auth User löschen
-            try await auth.deleteCurrentUser()
+            try await auth.deleteAccountCompletely()
+
 
             // 2) Lokal alles löschen
             store.deleteAllData()

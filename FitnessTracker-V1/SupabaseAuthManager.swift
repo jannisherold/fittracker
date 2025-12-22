@@ -10,18 +10,35 @@ final class SupabaseAuthManager: ObservableObject {
     var isLoggedIn: Bool { session != nil }
     var userEmail: String { session?.user.email ?? "" }
 
+    // MARK: - Local Storage Keys (müssen zu @AppStorage Keys passen)
+    private enum Keys {
+        static let userEmail = "userEmail"
+        static let userName  = "userName"
+        static let userGoal  = "userGoal"
+        static let onboardingGoal = "onboardingGoal"
+    }
+
     init() {
         Task { await restoreSession() }
     }
 
+    // MARK: - Session
+
     func restoreSession() async {
-        do { session = try await client.auth.session }
-        catch { session = nil }
+        do {
+            session = try await client.auth.session
+            // ✅ Wichtig: Nach Restore Profil aus DB holen und lokal speichern
+            await syncProfileFromBackendToLocal()
+        } catch {
+            session = nil
+        }
     }
 
+    /// Logout: Session beenden UND lokale Profile-Daten löschen (Backend bleibt)
     func signOut() async {
         do { try await client.auth.signOut() } catch { }
         session = nil
+        clearLocalProfile()
     }
 
     // MARK: - Apple Sign In
@@ -31,14 +48,27 @@ final class SupabaseAuthManager: ObservableObject {
             credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
         )
         self.session = session
+
+        // ✅ Nach Login: Profil aus DB holen und lokal speichern
+        await syncProfileFromBackendToLocal()
     }
 
-    // MARK: - Profile (Supabase DB optional) + Local AppStorage handled in UI
+    // MARK: - Profile DB
 
-    /// Optional: Speichert Profil-Daten in einer `profiles` Tabelle (wenn vorhanden).
-    /// Wenn Tabelle/Policies noch nicht existieren, wird der Fehler geschluckt (MVP-friendly).
-    func upsertProfile(email: String, name: String, goal: String) async {
-        struct ProfileRow: Encodable {
+    struct ProfileRow: Codable {
+        let id: String
+        let email: String?
+        let name: String?
+        let goal: String?
+        let created_at: String?
+        let updated_at: String?
+    }
+
+    /// Upsert Profil in `profiles` (id = auth.user.id)
+    func upsertProfile(email: String, name: String, goal: String) async throws {
+        guard let userId = session?.user.id.uuidString else { return }
+
+        struct UpsertRow: Encodable {
             let id: String
             let email: String
             let name: String
@@ -46,9 +76,7 @@ final class SupabaseAuthManager: ObservableObject {
             let updated_at: String
         }
 
-        guard let userId = session?.user.id.uuidString else { return }
-
-        let row = ProfileRow(
+        let row = UpsertRow(
             id: userId,
             email: email,
             name: name,
@@ -56,21 +84,80 @@ final class SupabaseAuthManager: ObservableObject {
             updated_at: ISO8601DateFormatter().string(from: Date())
         )
 
+        _ = try await client
+            .from("profiles")
+            .upsert(row, onConflict: "id")
+            .execute()
+    }
+
+    /// Lädt Profil aus `profiles` und schreibt es in UserDefaults (-> @AppStorage aktualisiert sich)
+    func syncProfileFromBackendToLocal() async {
+        guard let userId = session?.user.id.uuidString else { return }
+
         do {
-            _ = try await client
+            let response = try await client
                 .from("profiles")
-                .upsert(row, onConflict: "id")
+                .select("id,email,name,goal,created_at,updated_at")
+                .eq("id", value: userId)
+                .single()
                 .execute()
+
+            let profile = try JSONDecoder().decode(ProfileRow.self, from: response.data)
+
+            setLocalProfile(
+                email: profile.email ?? userEmail,
+                name: profile.name ?? "User",
+                goal: profile.goal ?? (UserDefaults.standard.string(forKey: Keys.onboardingGoal) ?? "Überspringen")
+            )
         } catch {
-            // MVP: Wenn die Tabelle/Policies noch nicht da sind, blockiert das nicht den Login.
+            // Wenn noch kein Profil existiert, lassen wir lokal erstmal wie es ist.
+            // Optional könntest du hier auch automatisch ein Default-Profil anlegen.
         }
     }
 
-    // MARK: - Delete Account (Client-side via GoTrue endpoint)
+    // MARK: - Local Profile Storage (UserDefaults)
 
-    /// Löscht den aktuell eingeloggten User via GoTrue `DELETE /auth/v1/user`.
-    /// Danach ist die Session weg (signOut + session=nil).
-    func deleteCurrentUser() async throws {
+    func setLocalProfile(email: String, name: String, goal: String) {
+        UserDefaults.standard.set(email, forKey: Keys.userEmail)
+        UserDefaults.standard.set(name, forKey: Keys.userName)
+        UserDefaults.standard.set(goal, forKey: Keys.userGoal)
+    }
+
+    func clearLocalProfile() {
+        UserDefaults.standard.removeObject(forKey: Keys.userEmail)
+        UserDefaults.standard.removeObject(forKey: Keys.userName)
+        UserDefaults.standard.removeObject(forKey: Keys.userGoal)
+        // onboardingGoal lassen wir bewusst stehen (kommt aus Onboarding Screen)
+    }
+
+    // MARK: - Delete Account
+
+    /// Löscht: 1) Profilrow in DB (falls vorhanden) 2) Auth-User 3) lokal alles
+    func deleteAccountCompletely() async throws {
+        // 1) Profilrow löschen (falls RLS erlaubt)
+        if let userId = session?.user.id.uuidString {
+            do {
+                _ = try await client
+                    .from("profiles")
+                    .delete()
+                    .eq("id", value: userId)
+                    .execute()
+            } catch {
+                // Wenn FK cascade existiert, ist das optional.
+                // Wenn nicht: RLS/Policy prüfen.
+            }
+        }
+
+        // 2) Auth-User löschen (GoTrue Endpoint)
+        try await deleteCurrentUserViaGoTrue()
+
+        // 3) Lokal alles
+        clearLocalProfile()
+        session = nil
+    }
+
+    /// GoTrue `DELETE /auth/v1/user` (Self-Delete). Sollte funktionieren, solange Supabase das erlaubt.
+    private func deleteCurrentUserViaGoTrue() async throws {
         guard let accessToken = session?.accessToken else {
             throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Keine Session vorhanden"])
         }
@@ -83,10 +170,7 @@ final class SupabaseAuthManager: ObservableObject {
 
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Account konnte nicht gelöscht werden"])
+            throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Auth-Account konnte nicht gelöscht werden"])
         }
-
-        // Lokal aufräumen
-        await signOut()
     }
 }
