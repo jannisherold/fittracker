@@ -7,9 +7,11 @@ struct FitnessTrackerV1App: App {
 
     var body: some Scene {
         WindowGroup {
-            AppRootView()
-                .environmentObject(store)
-                .environmentObject(auth)
+            NavigationStack {
+                AppRootView()
+                    .environmentObject(store)
+                    .environmentObject(auth)
+            }
         }
     }
 }
