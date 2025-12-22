@@ -62,11 +62,6 @@ struct ProfileSettingsView: View {
                 }
                 .disabled(isWorking)
 
-                Button(role: .destructive) { activeAlert = .deleteAllData } label: {
-                    Label("Alle Daten löschen", systemImage: "trash.slash")
-                }
-                .disabled(isWorking)
-
                 Button(role: .destructive) { activeAlert = .deleteProfile } label: {
                     Label("Profil löschen", systemImage: "trash")
                 }
