@@ -16,9 +16,10 @@ struct OnboardingRegisterView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        
         GeometryReader { geo in
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(spacing: 20) {
 
                     Text("Registrieren")
                         .font(.title)
@@ -27,7 +28,7 @@ struct OnboardingRegisterView: View {
 
                     Spacer(minLength: 0)
 
-                    VStack(spacing: 16) {
+                    VStack(spacing: 10) {
 
                         SignInWithAppleButton(
                             .signUp,
@@ -65,12 +66,14 @@ struct OnboardingRegisterView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .padding(.horizontal, 24)
 
+                        /*
                         Text("Mit deiner Apple ID anmelden. Email+Passwort ist im MVP nicht verfügbar.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                             .padding(.top, 4)
+                        */
 
                         if let errorMessage {
                             Text(errorMessage)
@@ -80,19 +83,42 @@ struct OnboardingRegisterView: View {
                                 .multilineTextAlignment(.center)
                                 .padding(.top, 8)
                         }
+                        
+                        
                     }
 
-                    Spacer(minLength: 0)
+                    //Spacer(minLength: 0)
 
+                    
+                    //.padding(.bottom, 8)
+                    
+                    
+                    
                     VStack(spacing: 12) {
-                        Text("Durch die Anmeldung stimmst du unseren AGB und der Datenschutzerklärung zu.")
+                        
+                        
+                        HStack(spacing: 6) {
+                            Text("Du hast bereits einen Account?")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+
+                            NavigationLink {
+                                LoginView()
+                            } label: {
+                                Text("Einloggen")
+                                    .font(.footnote)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        
+                        Text("Durch die Registrierung stimmst du unseren AGB und der Datenschutzerklärung zu.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 24)
                             .multilineTextAlignment(.center)
-                            .padding(.bottom, 16)
+                            //.padding(.bottom, 16)
                     }
-                    .padding(.bottom, 40)
+                    //.padding(.bottom, 40)
                 }
                 .frame(minHeight: geo.size.height, alignment: .top)
             }
