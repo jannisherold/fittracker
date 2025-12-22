@@ -7,19 +7,21 @@ struct AppRootView: View {
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
 
     var body: some View {
-        Group {
-            if auth.isLoggedIn {
-                // ✅ Angemeldet -> Tabbar mit 3 Tabs
-                RootTabView()
-            } else if !hasCompletedOnboarding {
-                // ✅ Neu: Onboarding zuerst
-                OnboardingView()
-            } else if !hasCreatedAccount {
-                // ✅ Onboarding fertig, aber noch nie Account erstellt -> Register
-                OnboardingRegisterView()
-            } else {
-                // ✅ Account existiert, aber abgemeldet -> Login
-                LoginView()
+        if auth.isLoggedIn {
+            // ✅ Angemeldet -> Tabbar (Tabs haben ihre eigenen NavigationStacks)
+            RootTabView()
+        } else {
+            // ✅ Abgemeldet -> eigener NavigationStack nur für Auth/Onboarding
+            NavigationStack {
+                Group {
+                    if !hasCompletedOnboarding {
+                        OnboardingView()
+                    } else if !hasCreatedAccount {
+                        OnboardingRegisterView()
+                    } else {
+                        LoginView()
+                    }
+                }
             }
         }
     }
