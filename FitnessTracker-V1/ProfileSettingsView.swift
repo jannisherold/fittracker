@@ -198,13 +198,10 @@ struct ProfileSettingsView: View {
             resetAppStateToFreshInstall()
 
         } catch {
-            // Fallback: wenigstens lokal resetten + ausloggen,
-            // damit der Nutzer nicht hängen bleibt.
-            store.deleteAllData()
-            await auth.signOut()
-            resetAppStateToFreshInstall()
+      
+            // ❌ NICHT lokal alles resetten, wenn der Server-Delete fehlschlägt
+            errorMessage = "Account konnte NICHT serverseitig gelöscht werden.\nFehler: \(error.localizedDescription)\n\nBitte erneut versuchen."
 
-            errorMessage = "Account konnte serverseitig nicht gelöscht werden. Lokal wurde alles zurückgesetzt. Fehler: \(error.localizedDescription)"
         }
     }
 

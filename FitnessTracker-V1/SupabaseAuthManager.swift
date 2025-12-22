@@ -157,20 +157,35 @@ final class SupabaseAuthManager: ObservableObject {
     }
 
     /// GoTrue `DELETE /auth/v1/user` (Self-Delete). Sollte funktionieren, solange Supabase das erlaubt.
+    /// GoTrue `DELETE /auth/v1/user` (Self-Delete).
+    /// GoTrue `DELETE /auth/v1/user` (Self-Delete).
     private func deleteCurrentUserViaGoTrue() async throws {
-        guard let accessToken = session?.accessToken else {
-            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Keine Session vorhanden"])
-        }
+        // Frische Session holen (Token kann sich ändern)
+        let currentSession = try await client.auth.session
 
         let url = SupabaseConfig.url.appendingPathComponent("auth/v1/user")
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(currentSession.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Auth-Account konnte nicht gelöscht werden"])
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Ungültige Server-Antwort"])
+        }
+
+        if !(200...299).contains(http.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<kein Body>"
+            throw NSError(
+                domain: "Auth",
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "Auth-Delete fehlgeschlagen (HTTP \(http.statusCode)): \(body)"]
+            )
         }
     }
+
+
 }

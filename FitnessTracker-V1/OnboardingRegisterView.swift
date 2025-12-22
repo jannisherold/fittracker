@@ -23,7 +23,7 @@ struct OnboardingRegisterView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     
-                    Text("Registrieren")
+                    Text("Kostenlos Registrieren")
                         .font(.title)
                         .fontWeight(.semibold)
                         .padding(.top, 24)
