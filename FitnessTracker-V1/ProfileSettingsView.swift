@@ -26,34 +26,55 @@ struct ProfileSettingsView: View {
 
     var body: some View {
         List {
+            // --- Apple-Account-ähnlicher Header ---
+            Section {
+                VStack(spacing: 0) {
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 84, weight: .regular))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                        //.padding(.top, 6)
+                    
+                    VStack{
+                        Text(displayName)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .multilineTextAlignment(.center)
+
+                        Text(displayEmail)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 6)
+
+                    
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+            .textCase(nil)
+            .listRowBackground(Color.clear)
+
+            // --- Inhalt wie bisher (nur Layout angepasst) ---
             Section("Account") {
-                HStack {
-                    Text("E-Mail")
-                    Spacer()
-                    Text(displayEmail)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                HStack {
-                    Text("Name")
-                    Spacer()
-                    Text(storedName.isEmpty ? "—" : storedName)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+    
+                Label("Abonnement", systemImage: "receipt")
+                    .foregroundStyle(.secondary)
+                
                 HStack {
                     Text("Ziel")
                     Spacer()
                     Text(storedGoal.isEmpty ? "—" : storedGoal)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 }
-            }
-
-            Section {
-                Label("Abonnement", systemImage: "receipt")
-                    .foregroundStyle(.secondary)
+                
+                
             }
 
             Section {
@@ -80,14 +101,19 @@ struct ProfileSettingsView: View {
                 }
             }
 
+            // --- Abmelden: ganz unten, zentriert, nur Text ---
             Section {
                 Button(role: .destructive) { activeAlert = .signOut } label: {
-                    Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
+                    Text("Abmelden")
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .disabled(isWorking)
             }
         }
-        .navigationTitle("Profil")
+        .toolbar(.hidden, for: .tabBar)
+        .listStyle(.insetGrouped)
+        //.navigationTitle("Profil")
+        .navigationBarTitleDisplayMode(.inline)
         .alert(item: $activeAlert) { alert in
             switch alert {
             case .resetBodyweight:
@@ -140,6 +166,11 @@ struct ProfileSettingsView: View {
         return "—"
     }
 
+    private var displayName: String {
+        let name = storedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "User" : name
+    }
+
     @MainActor
     private func signOut() async {
         errorMessage = nil
@@ -159,7 +190,6 @@ struct ProfileSettingsView: View {
         do {
             // 1) Supabase Auth User löschen
             try await auth.deleteAccountCompletely()
-
 
             // 2) Lokal alles löschen
             store.deleteAllData()
