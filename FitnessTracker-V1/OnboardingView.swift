@@ -8,7 +8,6 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            // Hintergrund
             LinearGradient(
                 gradient: Gradient(colors: [Color(.systemBackground), Color(.systemGray6)]),
                 startPoint: .top,
@@ -71,7 +70,6 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Preview
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {

@@ -20,11 +20,12 @@ final class SupabaseAuthManager: ObservableObject {
     }
 
     func signOut() async {
-        try? await client.auth.signOut()
+        do { try await client.auth.signOut() } catch { }
         session = nil
     }
 
-    // ✅ Apple
+    // MARK: - Apple Sign In
+
     func signInWithApple(idToken: String, nonce: String) async throws {
         let session = try await client.auth.signInWithIdToken(
             credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
@@ -32,50 +33,60 @@ final class SupabaseAuthManager: ObservableObject {
         self.session = session
     }
 
-    // ✅ (ALT) Klassisches Email+Passwort SignUp (Link-Confirm möglich)
-    func signUpWithEmail(email: String, password: String) async throws {
-        _ = try await client.auth.signUp(email: email, password: password)
-        await restoreSession()
-    }
+    // MARK: - Profile (Supabase DB optional) + Local AppStorage handled in UI
 
-    func signInWithEmail(email: String, password: String) async throws {
-        let session = try await client.auth.signIn(email: email, password: password)
-        self.session = session
-    }
+    /// Optional: Speichert Profil-Daten in einer `profiles` Tabelle (wenn vorhanden).
+    /// Wenn Tabelle/Policies noch nicht existieren, wird der Fehler geschluckt (MVP-friendly).
+    func upsertProfile(email: String, name: String, goal: String) async {
+        struct ProfileRow: Encodable {
+            let id: String
+            let email: String
+            let name: String
+            let goal: String
+            let updated_at: String
+        }
 
-    // ✅ NEU: OTP an Email senden (6-stelliger Code / oder magic link – je nach Supabase Setting)
-    // ✅ OTP an Email senden (6-stelliger Code / oder Magic Link – je nach Template)
-    func sendEmailOTP(email: String) async throws {
-        // Wichtig: In Swift SDK wird shouldCreateUser als eigener Parameter übergeben, nicht über options:
-        try await client.auth.signInWithOTP(
+        guard let userId = session?.user.id.uuidString else { return }
+
+        let row = ProfileRow(
+            id: userId,
             email: email,
-            shouldCreateUser: true
-        )
-    }
-
-    // ✅ OTP verifizieren -> erzeugt AuthResponse (nicht Session), daher session daraus holen
-    func verifyEmailOTP(email: String, code: String) async throws {
-        let response = try await client.auth.verifyOTP(
-            email: email,
-            token: code,
-            // Je nach dem, was du vorher aufgerufen hast:
-            // - Für "signInWithOTP(...)" ist .signup häufig korrekt, wenn dabei User angelegt wird
-            type: .signup
+            name: name,
+            goal: goal,
+            updated_at: ISO8601DateFormatter().string(from: Date())
         )
 
-        // Deine Fehlermeldung kam, weil response != Session
-        self.session = response.session
-
-        // Falls session in response nil ist (kommt je nach Setup vor), dann Session danach nochmal holen:
-        if self.session == nil {
-            await restoreSession()
+        do {
+            _ = try await client
+                .from("profiles")
+                .upsert(row, onConflict: "id")
+                .execute()
+        } catch {
+            // MVP: Wenn die Tabelle/Policies noch nicht da sind, blockiert das nicht den Login.
         }
     }
 
-    // ✅ Passwort setzen (nachdem Session existiert)
-    func setPassword(_ password: String) async throws {
-        try await client.auth.update(user: UserAttributes(password: password))
-        await restoreSession()
-    }
+    // MARK: - Delete Account (Client-side via GoTrue endpoint)
 
+    /// Löscht den aktuell eingeloggten User via GoTrue `DELETE /auth/v1/user`.
+    /// Danach ist die Session weg (signOut + session=nil).
+    func deleteCurrentUser() async throws {
+        guard let accessToken = session?.accessToken else {
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Keine Session vorhanden"])
+        }
+
+        let url = SupabaseConfig.url.appendingPathComponent("auth/v1/user")
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Account konnte nicht gelöscht werden"])
+        }
+
+        // Lokal aufräumen
+        await signOut()
+    }
 }

@@ -1,31 +1,30 @@
 import SwiftUI
 
 struct OnboardingViewGoals: View {
-    @State private var selectedGoal: String? = nil
+    @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
+
     @State private var animate: Bool = false
-        
+
     private let goals: [(title: String, systemImage: String)] = [
         ("Muskelaufbau", "dumbbell.fill"),
         ("Gewicht abnehmen", "arrow.down"),
         ("Kraft steigern", "bolt.circle"),
-        //("Fitter fühlen", "figure.walk.motion"),
         ("Routine aufbauen", "calendar"),
-        //("Sonstige", ""),
         ("Überspringen", "")
     ]
-    
+
     var body: some View {
-        ScrollView{
+        ScrollView {
             VStack(spacing: 16) {
                 Spacer(minLength: 40)
-                
+
                 Image(systemName: "target")
                     .font(.system(size: 60))
                     .symbolRenderingMode(.hierarchical)
                     .opacity(animate ? 1.0 : 0.0)
                     .scaleEffect(animate ? 1.0 : 0.8)
                     .animation(.spring(response: 0.6, dampingFraction: 0.7), value: animate)
-                
+
                 Text("Was ist Dein Ziel?")
                     .font(.title)
                     .fontWeight(.semibold)
@@ -33,7 +32,7 @@ struct OnboardingViewGoals: View {
                     .padding(.horizontal)
                     .opacity(animate ? 1.0 : 0.0)
                     .animation(.easeOut.delay(0.1), value: animate)
-                
+
                 Text("Wähle das Ziel, welches am meisten auf Dich zutrifft – Du kannst es später jederzeit ändern.")
                     .font(.body)
                     .foregroundColor(.secondary)
@@ -41,23 +40,28 @@ struct OnboardingViewGoals: View {
                     .padding(.horizontal, 32)
                     .opacity(animate ? 1.0 : 0.0)
                     .animation(.easeOut.delay(0.15), value: animate)
-                
+
                 VStack(spacing: 12) {
                     ForEach(goals, id: \.title) { goal in
                         Button {
-                            selectedGoal = goal.title
-                            // Optional: Hier könntest du später @AppStorage oder Store-Logic anbinden
+                            onboardingGoal = goal.title
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: goal.systemImage)
-                                    .font(.system(size: 22))
-                                
+                                if !goal.systemImage.isEmpty {
+                                    Image(systemName: goal.systemImage)
+                                        .font(.system(size: 22))
+                                } else {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 16))
+                                        .opacity(0.0) // Platzhalter für Alignment
+                                }
+
                                 Text(goal.title)
                                     .font(.body)
-                                
+
                                 Spacer()
-                                
-                                if selectedGoal == goal.title {
+
+                                if onboardingGoal == goal.title {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 20))
                                 }
@@ -66,7 +70,7 @@ struct OnboardingViewGoals: View {
                             .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .fill(selectedGoal == goal.title
+                                    .fill(onboardingGoal == goal.title
                                           ? Color.accentColor.opacity(0.15)
                                           : Color(.secondarySystemBackground))
                             )
@@ -79,15 +83,14 @@ struct OnboardingViewGoals: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
-                
+
                 Spacer()
             }
             .onAppear {
                 animate = true
             }
         }
-        }
-        
+    }
 }
 
 struct OnboardingViewGoals_Previews: PreviewProvider {

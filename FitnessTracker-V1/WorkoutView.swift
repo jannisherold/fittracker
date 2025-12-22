@@ -3,17 +3,15 @@ import SwiftUI
 struct WorkoutView: View {
     @EnvironmentObject var store: Store
     @StateObject private var router = Router()
-    
-    // Eigener EditMode-State, der auch an die Environment durchgereicht wird
+
     @State private var editMode: EditMode = .inactive
-    
+
     @State private var showingNew = false
     @State private var newTitle = ""
-    
-    // Löschen-Bestätigung
+
     @State private var showDeleteAlert = false
     @State private var pendingDeleteID: UUID? = nil
-    
+
     var body: some View {
         NavigationStack(path: $router.path) {
             ZStack {
@@ -27,7 +25,6 @@ struct WorkoutView: View {
                         Section {
                             ForEach(store.trainings) { t in
                                 if editMode == .active {
-                                    // Im Edit-Mode nur Text, damit die Zeile klar als bearbeitbar wirkt
                                     Text(t.title)
                                         .font(.headline)
                                         .padding(.vertical, 8)
@@ -43,23 +40,19 @@ struct WorkoutView: View {
                                 store.moveTraining(from: indices, to: newOffset)
                             }
                             .onDelete { offsets in
-                                
-                                        if let index = offsets.first {
-                                            let training = store.trainings[index]
-                                            pendingDeleteID = training.id
-                                            showDeleteAlert = true
-                                        }
-                                    
+                                if let index = offsets.first {
+                                    let training = store.trainings[index]
+                                    pendingDeleteID = training.id
+                                    showDeleteAlert = true
                                 }
+                            }
                         }
                     }
                 }
             }
             .navigationTitle("Workouts")
             .navigationBarTitleDisplayMode(.large)
-            // Toolbar oben: + links, Edit/Sortieren rechts
             .toolbar {
-                // Plus-Button links
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showingNew = true
@@ -68,9 +61,9 @@ struct WorkoutView: View {
                     }
                     .accessibilityLabel("Neues Training")
                 }
-                
-                // Edit-/Reorder-Button rechts
+
                 ToolbarItem(placement: .topBarTrailing) {
+                    // ✅ Nur noch Edit-Button (kein Profil hier)
                     if !store.trainings.isEmpty {
                         Button {
                             withAnimation {
@@ -88,7 +81,6 @@ struct WorkoutView: View {
                     }
                 }
             }
-            // Navigation inkl. Inspect-/Edit-/Run-Routes
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .workoutInspect(let id):
@@ -108,12 +100,10 @@ struct WorkoutView: View {
                         .environmentObject(store)
                 }
             }
-            // 🔑 Hier bekommt die List ihren EditMode-Binding – das hält die Reorder-Icons stabil sichtbar
             .environment(\.editMode, $editMode)
         }
         .environmentObject(router)
-        
-        // Sheet: Neues Workout anlegen
+
         .sheet(isPresented: $showingNew) {
             NavigationStack {
                 Form {
@@ -141,8 +131,7 @@ struct WorkoutView: View {
             }
             .presentationDetents([.height(220)])
         }
-        
-        // Sicherheitsabfrage vor dem Löschen
+
         .alert("Workout löschen?", isPresented: $showDeleteAlert) {
             Button("Löschen", role: .destructive) {
                 if let id = pendingDeleteID,

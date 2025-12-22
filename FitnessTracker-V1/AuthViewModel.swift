@@ -5,6 +5,11 @@ import AuthenticationServices
 final class AuthViewModel: ObservableObject {
     private(set) var currentNonce: String?
 
+    struct AppleProfile {
+        let email: String
+        let name: String
+    }
+
     func handleSignInWithAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         let nonce = AppleSignInNonce.randomNonceString()
         currentNonce = nonce
@@ -13,10 +18,11 @@ final class AuthViewModel: ObservableObject {
         request.nonce = AppleSignInNonce.sha256(nonce)
     }
 
-    func handleSignInWithAppleCompletion(
+    /// ✅ SignIn + gibt (wenn vorhanden) Email/Name zurück (Apple liefert diese u.U. nur beim ersten Mal).
+    func handleSignInWithAppleCompletionAndReturnProfile(
         _ result: Result<ASAuthorization, Error>,
         authManager: SupabaseAuthManager
-    ) async throws {
+    ) async throws -> AppleProfile {
         let authorization = try result.get()
 
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
@@ -35,7 +41,17 @@ final class AuthViewModel: ObservableObject {
         // ✅ Supabase Login
         try await authManager.signInWithApple(idToken: idToken, nonce: nonce)
 
-        // optional reset
+        // Email/Name: kann nil sein (Apple gibt es nicht immer zurück).
+        // Fallbacks:
+        let email = credential.email ?? authManager.userEmail
+
+        let given = credential.fullName?.givenName ?? ""
+        let family = credential.fullName?.familyName ?? ""
+        let fullName = ([given, family].filter { !$0.isEmpty }).joined(separator: " ").trimmingCharacters(in: .whitespaces)
+
+        let name = fullName.isEmpty ? "User" : fullName
+
         currentNonce = nil
+        return AppleProfile(email: email, name: name)
     }
 }

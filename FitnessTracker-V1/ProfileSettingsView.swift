@@ -4,23 +4,19 @@ struct ProfileSettingsView: View {
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var auth: SupabaseAuthManager
 
-    // Onboarding-Flag: nur relevant, um nach Delete sicher NICHT zurück ins Onboarding zu fallen
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
 
-    // (Legacy) Apple-Felder: optional beibehalten, damit du sie bei Delete/SignOut sauber leeren kannst
-    @AppStorage("appleUserID") private var appleUserID: String = ""
-    @AppStorage("appleFirstName") private var appleFirstName: String = ""
-    @AppStorage("appleLastName")  private var appleLastName: String = ""
-    @AppStorage("appleEmail")     private var appleEmail: String = ""
-
-    // MARK: - UI State
+    @AppStorage("userEmail") private var storedEmail: String = ""
+    @AppStorage("userName") private var storedName: String = ""
+    @AppStorage("userGoal") private var storedGoal: String = ""
+    @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
 
     private enum ActiveAlert: Identifiable {
         case resetBodyweight
         case deleteAllData
         case deleteProfile
         case signOut
-
         var id: Int { hashValue }
     }
 
@@ -30,7 +26,6 @@ struct ProfileSettingsView: View {
 
     var body: some View {
         List {
-            // 🔹 Account
             Section("Account") {
                 HStack {
                     Text("E-Mail")
@@ -40,40 +35,46 @@ struct ProfileSettingsView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+                HStack {
+                    Text("Name")
+                    Spacer()
+                    Text(storedName.isEmpty ? "—" : storedName)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                HStack {
+                    Text("Ziel")
+                    Spacer()
+                    Text(storedGoal.isEmpty ? "—" : storedGoal)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
-            // 🔹 Abo Platzhalter
             Section {
                 Label("Abonnement", systemImage: "receipt")
                     .foregroundStyle(.secondary)
             }
 
-            // 🔹 Daten
             Section {
-                Button(role: .destructive) {
-                    activeAlert = .resetBodyweight
-                } label: {
+                Button(role: .destructive) { activeAlert = .resetBodyweight } label: {
                     Label("Körpergewicht zurücksetzen", systemImage: "scalemass")
                 }
                 .disabled(isWorking)
 
-                Button(role: .destructive) {
-                    activeAlert = .deleteAllData
-                } label: {
+                Button(role: .destructive) { activeAlert = .deleteAllData } label: {
                     Label("Alle Daten löschen", systemImage: "trash.slash")
                 }
                 .disabled(isWorking)
 
-                Button(role: .destructive) {
-                    activeAlert = .deleteProfile
-                } label: {
+                Button(role: .destructive) { activeAlert = .deleteProfile } label: {
                     Label("Profil löschen", systemImage: "trash")
                 }
                 .disabled(isWorking)
 
             } footer: {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("„Körpergewicht zurücksetzen“ entfernt nur deine Körpergewichts-Historie. „Alle Daten löschen“ setzt die App lokal vollständig zurück, inklusive aller Workouts, Sessions und Statistiken.")
+                    Text("„Körpergewicht zurücksetzen“ entfernt nur deine Körpergewichts-Historie. „Alle Daten löschen“ setzt die App lokal zurück. „Profil löschen“ entfernt zusätzlich deinen Supabase Account.")
                     if let errorMessage {
                         Text(errorMessage)
                             .foregroundStyle(.red)
@@ -82,11 +83,8 @@ struct ProfileSettingsView: View {
                 }
             }
 
-            // 🔹 Abmelden
             Section {
-                Button(role: .destructive) {
-                    activeAlert = .signOut
-                } label: {
+                Button(role: .destructive) { activeAlert = .signOut } label: {
                     Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
                 }
                 .disabled(isWorking)
@@ -98,7 +96,7 @@ struct ProfileSettingsView: View {
             case .resetBodyweight:
                 return Alert(
                     title: Text("Körpergewicht zurücksetzen?"),
-                    message: Text("Alle gespeicherten Körpergewichtsdaten werden dauerhaft gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden."),
+                    message: Text("Alle gespeicherten Körpergewichtsdaten werden dauerhaft gelöscht."),
                     primaryButton: .destructive(Text("Körpergewicht löschen")) {
                         store.resetBodyweightEntries()
                     },
@@ -108,7 +106,7 @@ struct ProfileSettingsView: View {
             case .deleteAllData:
                 return Alert(
                     title: Text("Alle Daten löschen?"),
-                    message: Text("Alle Workouts, Sessions und Körpergewichtsdaten werden lokal dauerhaft gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden."),
+                    message: Text("Alle Workouts, Sessions und Körpergewichtsdaten werden lokal dauerhaft gelöscht."),
                     primaryButton: .destructive(Text("Alle Daten löschen")) {
                         store.deleteAllData()
                     },
@@ -128,7 +126,7 @@ struct ProfileSettingsView: View {
             case .signOut:
                 return Alert(
                     title: Text("Abmelden?"),
-                    message: Text("Du wirst abgemeldet und gelangst zurück zum Login/Registrieren."),
+                    message: Text("Du wirst abgemeldet und gelangst zurück zum Login."),
                     primaryButton: .destructive(Text("Abmelden")) {
                         Task { await signOut() }
                     },
@@ -139,14 +137,9 @@ struct ProfileSettingsView: View {
     }
 
     private var displayEmail: String {
-        // Bevorzugt: Supabase Session Email
         let supa = auth.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !supa.isEmpty { return supa }
-
-        // Fallback: alte Apple AppStorage Email
-        let apple = appleEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !apple.isEmpty { return apple }
-
+        if !storedEmail.isEmpty { return storedEmail }
         return "—"
     }
 
@@ -156,12 +149,8 @@ struct ProfileSettingsView: View {
         isWorking = true
         defer { isWorking = false }
 
-        // optional: lokale Daten behalten oder löschen – dein Call
-        // store.deleteAllData()
-
         await auth.signOut()
-        clearLegacyAppleCache()
-        // Onboarding nicht anfassen -> Root zeigt Register/Login (weil auth.isLoggedIn == false)
+        // Flags bleiben: Onboarding abgeschlossen + Account existiert -> Root zeigt LoginView
     }
 
     @MainActor
@@ -171,37 +160,33 @@ struct ProfileSettingsView: View {
         defer { isWorking = false }
 
         do {
-            // 1) Server: Supabase Auth-User löschen (Edge Function, siehe Anleitung unten)
-            // Wenn die Function noch nicht existiert, kommentiere die Zeile aus – dann wird nur lokal gelöscht + abgemeldet.
-            try await SupabaseManager.shared.client.functions.invoke("delete-account")
+            // 1) Supabase Auth User löschen
+            try await auth.deleteCurrentUser()
 
-            // 2) Lokal: alle Daten löschen
+            // 2) Lokal alles löschen
             store.deleteAllData()
 
-            // 3) Abmelden
-            await auth.signOut()
-
-            // 4) Damit du nach Delete sicher NICHT zurück ins Onboarding fällst:
-            hasCompletedOnboarding = true
-
-            // 5) Legacy-Apple Cache leeren
-            clearLegacyAppleCache()
+            // 3) App wieder "neu" machen -> OnboardingView
+            resetAppStateToFreshInstall()
 
         } catch {
-            // Fallback: zumindest lokal löschen + abmelden, damit UI wieder “clean” ist
+            // Fallback: wenigstens lokal resetten + ausloggen,
+            // damit der Nutzer nicht hängen bleibt.
             store.deleteAllData()
             await auth.signOut()
-            hasCompletedOnboarding = true
-            clearLegacyAppleCache()
+            resetAppStateToFreshInstall()
 
-            errorMessage = "Profil konnte serverseitig nicht gelöscht werden (Edge Function fehlt/fehlerhaft). Lokal wurde alles zurückgesetzt. Fehler: \(error.localizedDescription)"
+            errorMessage = "Account konnte serverseitig nicht gelöscht werden. Lokal wurde alles zurückgesetzt. Fehler: \(error.localizedDescription)"
         }
     }
 
-    private func clearLegacyAppleCache() {
-        appleUserID = ""
-        appleFirstName = ""
-        appleLastName = ""
-        appleEmail = ""
+    private func resetAppStateToFreshInstall() {
+        hasCompletedOnboarding = false
+        hasCreatedAccount = false
+
+        storedEmail = ""
+        storedName = ""
+        storedGoal = ""
+        onboardingGoal = ""
     }
 }
