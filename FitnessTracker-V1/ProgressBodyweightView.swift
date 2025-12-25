@@ -267,6 +267,21 @@ struct ProgressBodyweightView: View {
     private var chartView: some View {
         let data = points
 
+        // Dynamische Y-Skalierung: min unten, max oben
+        let minWeight = data.map(\.weight).min() ?? 0
+        let maxWeight = data.map(\.weight).max() ?? 0
+
+        // Falls alle Werte gleich sind, braucht die Achse trotzdem eine Range > 0
+        let safeMin: Double
+        let safeMax: Double
+        if minWeight == maxWeight {
+            safeMin = minWeight - 1
+            safeMax = maxWeight + 1
+        } else {
+            safeMin = minWeight
+            safeMax = maxWeight
+        }
+
         return Chart {
             ForEach(data) { p in
                 LineMark(
@@ -278,11 +293,9 @@ struct ProgressBodyweightView: View {
             }
 
             if let sp = selectedPoint {
-                RuleMark(
-                    x: .value("Messung", sp.index)
-                )
-                .foregroundStyle(.gray)
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                RuleMark(x: .value("Messung", sp.index))
+                    .foregroundStyle(.gray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
                 PointMark(
                     x: .value("Messung", sp.index),
@@ -300,6 +313,7 @@ struct ProgressBodyweightView: View {
             }
         }
         .chartXScale(domain: (data.first?.index ?? 0)...(data.last?.index ?? 0))
+        .chartYScale(domain: safeMin...safeMax)   // ⭐️ das ist der entscheidende Teil
         .frame(height: 160)
         .padding(.top, 4)
         .chartOverlay { proxy in
@@ -311,7 +325,6 @@ struct ProgressBodyweightView: View {
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 let _ = geo[proxy.plotAreaFrame]
-
                                 if let idx: Int = proxy.value(atX: value.location.x, as: Int.self) {
                                     if let nearest = data.min(by: {
                                         abs($0.index - idx) < abs($1.index - idx)
@@ -330,6 +343,7 @@ struct ProgressBodyweightView: View {
             }
         }
     }
+
 
     // MARK: - Chart Datenmodell
 
