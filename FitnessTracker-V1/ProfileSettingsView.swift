@@ -32,7 +32,8 @@ struct ProfileSettingsView: View {
                     Image(systemName: "person.crop.circle")
                         .font(.system(size: 84, weight: .regular))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.blue)
+                        //.foregroundStyle(.secondary)
                         //.padding(.top, 6)
                     
                     VStack{

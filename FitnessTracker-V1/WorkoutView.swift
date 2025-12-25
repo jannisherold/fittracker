@@ -17,10 +17,15 @@ struct WorkoutView: View {
             ZStack {
                 List {
                     if store.trainings.isEmpty {
-                        Section {
-                            Text("Tippe auf + um ein Workout anzulegen.")
-                                .foregroundStyle(.secondary)
-                        }
+                    
+                            Section {
+                                Text("Tippe auf + um ein Workout anzulegen.")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .listRowBackground(Color.clear)
+                            .padding(.vertical, 8)
+                        
+                        
                     } else {
                         Section {
                             ForEach(store.trainings) { t in

@@ -200,8 +200,9 @@ private struct CollapsibleSectionHeader: View {
             if let iconName = iconName {
                 Image(systemName: iconName)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.secondary)
+                    //.foregroundColor(.secondary)
                     .frame(width: 28, alignment: .leading)
+                    .foregroundStyle(.blue)
             }
 
             Text(title)
