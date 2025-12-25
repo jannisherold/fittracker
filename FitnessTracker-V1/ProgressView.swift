@@ -35,6 +35,7 @@ struct ProgressView: View {
                     if store.trainings.isEmpty {
                         Text("Noch keine Workouts angelegt.")
                             .foregroundStyle(.secondary)
+                            .listRowBackground(Color.clear)
                     } else {
                         ForEach(store.trainings) { t in
                             NavigationLink {
@@ -116,6 +117,7 @@ struct ProgressView: View {
                     if sessionHistory.isEmpty {
                         Text("Noch keine Workouts absolviert.")
                             .foregroundStyle(.secondary)
+                            .listRowBackground(Color.clear)
                     } else {
                         // Nur die 3 neuesten Sessions anzeigen
                         let recentSessions = Array(sessionHistory.prefix(3))

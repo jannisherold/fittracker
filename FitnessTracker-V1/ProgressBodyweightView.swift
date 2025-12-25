@@ -164,10 +164,11 @@ struct ProgressBodyweightView: View {
             // Chart + Meta-Infos
             Section {
                 if points.isEmpty {
-                    Text("Noch keine Körpergewichts-Einträge.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 8)
+                    Section {
+                        Text("Noch keine Körpergewichts-Einträge.")
+                            .foregroundStyle(.secondary)
+                    }
+                    //.listRowBackground(Color.clear)
                 } else {
                     chartView
 
@@ -205,7 +206,7 @@ struct ProgressBodyweightView: View {
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Hier kannst Du jederzeit Dein aktuelles Körpergewicht eintragen und die Veränderung im Chart analysieren. Tipp: Wiege Dich täglich morgens auf nüchternen Magen um sinnvoll zu vergleichen.")
+                        Text("Hier kannst Du jederzeit Dein aktuelles Körpergewicht eintragen und die Veränderung im Chart analysieren.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)

@@ -23,7 +23,7 @@ struct WorkoutView: View {
                                     .foregroundStyle(.secondary)
                             }
                             .listRowBackground(Color.clear)
-                            .padding(.vertical, 8)
+                            //.padding(.vertical, 8)
                         
                         
                     } else {
