@@ -10,8 +10,8 @@ final class SupabaseUserDataService {
 
     struct UserDataRow: Codable {
         let user_id: String
-        let trainings: [Training]
-        let bodyweight: [BodyweightEntry]
+        let trainings: [Training]?
+        let bodyweight: [BodyweightEntry]?
         let updated_at: String?
     }
 
@@ -21,21 +21,17 @@ final class SupabaseUserDataService {
         let bodyweight: [BodyweightEntry]
     }
 
-    /// Pull: Lädt user_data. Wenn noch keine Zeile existiert -> nil
+    /// Pull: Row laden. Wenn keine existiert -> nil (aber echte Fehler werden geworfen!)
     func fetchUserData(userId: String) async throws -> UserDataRow? {
-        do {
-            let response = try await client
-                .from("user_data")
-                .select("user_id,trainings,bodyweight,updated_at")
-                .eq("user_id", value: userId)
-                .single()
-                .execute()
+        let response = try await client
+            .from("user_data")
+            .select("user_id,trainings,bodyweight,updated_at")
+            .eq("user_id", value: userId)
+            .limit(1)
+            .execute()
 
-            return try JSONDecoder().decode(UserDataRow.self, from: response.data)
-        } catch {
-            // Wenn noch keine Row existiert, wirft Supabase oft einen Error bei .single()
-            return nil
-        }
+        let rows = try JSONDecoder().decode([UserDataRow].self, from: response.data)
+        return rows.first
     }
 
     /// Push: Upsert der kompletten lokalen Daten

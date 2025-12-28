@@ -49,17 +49,17 @@ final class SyncManager: ObservableObject {
     }
 
     /// Pull von Supabase -> lokal setzen; danach Push lokaler Zustand (damit "erstes Gerät" auch hochlädt)
+    /// Pull von Supabase -> lokal setzen; danach Push lokaler Zustand
     func syncNow() async {
         guard let userId = auth.session?.user.id.uuidString else { return }
 
         // 1) Pull
         do {
             if let remote = try await SupabaseUserDataService.shared.fetchUserData(userId: userId) {
-                // Remote gewinnt beim Start (MVP-Strategie)
-                store.trainings = remote.trainings
-                store.bodyweightEntries = remote.bodyweight
+                store.trainings = remote.trainings ?? []
+                store.bodyweightEntries = remote.bodyweight ?? []
             } else {
-                // Noch keine Row: initial anlegen
+                // Noch keine Row -> initial anlegen (mit lokalem Stand)
                 try await SupabaseUserDataService.shared.upsertUserData(
                     userId: userId,
                     trainings: store.trainings,
@@ -67,10 +67,12 @@ final class SyncManager: ObservableObject {
                 )
             }
         } catch {
-            // offline / Fehler -> ignorieren (lokal bleibt nutzbar)
+            // ✅ Nicht ignorieren – sonst merkst du nie, dass Pull kaputt ist.
+            print("❌ syncNow: Pull fehlgeschlagen:", error)
+            return
         }
 
-        // 2) Push (best effort)
+        // 2) Push (best effort) nur wenn Pull ok war
         do {
             try await SupabaseUserDataService.shared.upsertUserData(
                 userId: userId,
@@ -78,9 +80,11 @@ final class SyncManager: ObservableObject {
                 bodyweight: store.bodyweightEntries
             )
         } catch {
-            // offline / Fehler -> ignorieren
+            print("⚠️ syncNow: Push fehlgeschlagen:", error)
         }
     }
+
+
 
     /// Debounced Push nach lokalen Änderungen
     private func schedulePush() {
