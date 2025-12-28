@@ -62,7 +62,7 @@ struct ProgressView: View {
                                 ProgressStatisticView()
                                 
                             } label: {
-                                Text("Rekorde")
+                                Text("Rekorde anzeigen")
                                     .font(.headline)
                                     .padding(.vertical, 2)
                             }
@@ -80,7 +80,7 @@ struct ProgressView: View {
                             NavigationLink {
                                 ProgressBodyweightView()
                             } label: {
-                                Text("Logbuch")
+                                Text("Logbuch anzeigen")
                                     .font(.headline)
                                     .padding(.vertical, 2)
                             }
@@ -99,7 +99,7 @@ struct ProgressView: View {
                     NavigationLink {
                         ProgressFrequencyView()
                     } label: {
-                        Text("Analyse")
+                        Text("Frequenz anzeigen")
                             .font(.headline)
                             .padding(.vertical, 2)
                     }

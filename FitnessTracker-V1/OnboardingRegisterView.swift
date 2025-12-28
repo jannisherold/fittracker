@@ -24,9 +24,10 @@ struct OnboardingRegisterView: View {
                 VStack(spacing: 20) {
                     
                     Text("Kostenlos Registrieren")
-                        .font(.title)
-                        .fontWeight(.semibold)
-                        .padding(.top, 24)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24)
                     
                     
                     Spacer(minLength: 0)

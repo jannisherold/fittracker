@@ -7,7 +7,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 // MARK: - Konto
-                Section("Konto") {
+                Section() {
                     NavigationLink {
                         ProfileSettingsView()
                     } label: {
@@ -18,45 +18,65 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)*/
                         }
                     }
+                    
+                }
+
+                // MARK: - App-Einstellungen
+                Section() {
                     NavigationLink {
                         AppSettingsView()
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("App-Einstellungen")
+                            Text("Sprache")
                             /*Text("Einheiten (kg/lbs), Sprache, iCloud-Sync")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)*/
                         }
                     }
+                    
+                    NavigationLink {
+                        AppSettingsView()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Einheit")
+                            /*Text("Einheiten (kg/lbs), Sprache, iCloud-Sync")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)*/
+                        }
+                    }
+                    
                 }
 
-                // MARK: - Support
-                Section("Support") {
+                /*
+                //Kontakt/Socials
+                Section() {
+                    
+                
                     NavigationLink {
                         FeedbackSupportView()
                     } label: {
-                        Text("Feedback & Support")
+                        Text("Kontakt")
                     }
+                    
                     NavigationLink {
                         SocialMediaView()
                     } label: {
                         Text("Social-Media")
                     }
                 }
-
+                */
+                
                 // MARK: - Rechtliches
-                Section("Rechtliches") {
+                Section() {
+                    /*
                     NavigationLink {
                         AboutView()
                     } label: {
                         Text("Version")
                     }
+                     */
 
-                    NavigationLink {
-                        DatenschutzView()
-                    } label: {
-                        Text("Datenschutzerklärung")
-                    }
+                    
 
                     NavigationLink {
                         AGBView()
@@ -65,11 +85,35 @@ struct SettingsView: View {
                     }
                     
                     NavigationLink {
+                        DatenschutzView()
+                    } label: {
+                        Text("Datenschutzerklärung")
+                    }
+                    
+                    NavigationLink {
                         ImpressumView()
                     } label: {
                         Text("Impressum")
                     }
+                    
+                    NavigationLink {
+                        FeedbackSupportView()
+                    } label: {
+                        Text("Kontakt")
+                    }
+                    
+                
                 }
+                
+                Section(){
+                    Text("Soziale Medien Icons mit link als HStack")
+                }
+                .listRowBackground(Color.clear)
+                
+                Section(){
+                    Text("Versionsnummer")
+                }
+                .listRowBackground(Color.clear)
                 
     
             }
