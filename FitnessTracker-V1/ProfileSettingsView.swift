@@ -60,14 +60,66 @@ struct ProfileSettingsView: View {
             .textCase(nil)
             .listRowBackground(Color.clear)
 
+            Section() {
+                NavigationLink {
+                    PersonalDataView()
+                } label: {
+                    
+                    HStack(spacing: 0) {
+                       
+                            Image(systemName: "person.text.rectangle")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                //.frame(width: 28, alignment: .leading)
+                                //.foregroundStyle(.blue)
+                        }
+
+                        Text("Persönliche Daten")
+                            //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
+                            //.foregroundColor(.primary)                     // Schwarz
+
+                        Spacer()
+                    
+                   
+                }
+                
+                NavigationLink {
+                    WorkoutView()
+                } label: {
+                    HStack(spacing: 0) {
+                       
+                            Image(systemName: "scalemass")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                //.frame(width: 28, alignment: .leading)
+                                //.foregroundStyle(.blue)
+                        }
+
+                        Text("Abonnement verwalten")
+                            //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
+                            //.foregroundColor(.primary)                     // Schwarz
+
+                        Spacer()
+                }
+                
+            }
+            
             // --- Inhalt wie bisher (nur Layout angepasst) ---
-            Section("Account") {
+            Section{
     
-                Label("Abonnement", systemImage: "receipt")
-                    .foregroundStyle(.secondary)
+                
                 
                 HStack {
                     Text("Ziel")
+                    Spacer()
+                    Text(storedGoal.isEmpty ? "—" : storedGoal)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                
+                HStack {
+                    Text("Abonnement verwalten")
                     Spacer()
                     Text(storedGoal.isEmpty ? "—" : storedGoal)
                         .foregroundStyle(.secondary)
@@ -87,7 +139,7 @@ struct ProfileSettingsView: View {
                 Button(role: .destructive) {
                     activeAlert = .deleteProfile
                 } label: {
-                    Label("Profil löschen", systemImage: "trash")
+                    Label("Progress Account löschen", systemImage: "trash")
                 }
                 .disabled(isWorking)
 

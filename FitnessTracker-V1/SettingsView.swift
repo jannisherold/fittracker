@@ -11,12 +11,25 @@ struct SettingsView: View {
                     NavigationLink {
                         ProfileSettingsView()
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Profil")
-                            /*Text("Abmelden, Profil löschen")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)*/
+                        HStack(spacing: 10){
+                            Image(systemName: "person.crop.circle")
+                                .font(.system(size: 42, weight: .regular))
+                                
+                                .foregroundColor(.blue)
+                            
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("Profil")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    
+                                Text("Persönliche Daten, Abonnement und mehr")
+                                    .font(.system(size: 14, weight: .regular))
+                                        .foregroundStyle(.secondary)
+                                      
+                                        .foregroundColor(.secondary)
+                            }
                         }
+                            
+                        
                     }
                     
                 }
@@ -26,23 +39,42 @@ struct SettingsView: View {
                     NavigationLink {
                         AppSettingsView()
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
+                        
+                        HStack(spacing: 0) {
+                           
+                                Image(systemName: "globe")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                                    //.frame(width: 28, alignment: .leading)
+                                    //.foregroundStyle(.blue)
+                            }
+
                             Text("Sprache")
-                            /*Text("Einheiten (kg/lbs), Sprache, iCloud-Sync")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)*/
-                        }
+                                //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
+                                //.foregroundColor(.primary)                     // Schwarz
+
+                            Spacer()
+                        
+                       
                     }
                     
                     NavigationLink {
                         AppSettingsView()
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 0) {
+                           
+                                Image(systemName: "scalemass")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                                    //.frame(width: 28, alignment: .leading)
+                                    //.foregroundStyle(.blue)
+                            }
+
                             Text("Einheit")
-                            /*Text("Einheiten (kg/lbs), Sprache, iCloud-Sync")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)*/
-                        }
+                                //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
+                                //.foregroundColor(.primary)                     // Schwarz
+
+                            Spacer()
                     }
                     
                 }
@@ -112,6 +144,7 @@ struct SettingsView: View {
                 
                 Section(){
                     Text("Versionsnummer")
+                        .foregroundColor(.secondary)
                 }
                 .listRowBackground(Color.clear)
                 
