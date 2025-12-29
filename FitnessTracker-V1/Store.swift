@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 
 final class Store: ObservableObject {
+    
+    
+    
     @Published var trainings: [Training] = [] {
         didSet { save() }
     }
@@ -278,3 +281,5 @@ final class Store: ObservableObject {
         }
     }
 }
+
+

@@ -128,7 +128,7 @@ struct ProgressStatisticView: View {
                          attachmentAnchor: .point(.topTrailing),
                          arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Wow, was für Zahlen! Hier siehst Du Deine Rekorde. Darauf kannst Du wirklich stolz sein.")
+                        Text("Wow! Hier siehst Du Deine All-time Statistiken. Darauf kannst Du wirklich stolz sein.")
                             .font(.body)
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)

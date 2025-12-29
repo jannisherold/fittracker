@@ -66,6 +66,57 @@ struct WorkoutView: View {
                     }
                     .accessibilityLabel("Neues Training")
                 }
+                
+                ToolbarItem(placement: .principal) {
+                    
+                  
+                            Button {
+                                // TODO: später Upgrade / Paywall öffnen
+                                print("Upgrade tapped")
+                            } label: {
+                                HStack{
+                                    Text("Upgrade")
+                                        .font(.subheadline
+                                        .weight(.semibold))
+                                        
+
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        //.foregroundColor(.secondary)
+                                        //.frame(width: 28, alignment: .leading)
+                                    
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 8)
+                                .background(.blue.opacity(0.12))
+                                .foregroundStyle(.blue)
+                                .clipShape(Capsule())
+                                
+                                
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Upgraden")
+                        
+                    
+                    /*
+                        Button {
+                            // TODO: später Upgrade / Paywall öffnen
+                            print("Upgrade tapped")
+                        } label: {
+                            HStack{
+                                Text("Upgraden")
+                                    .fontWeight(.semibold)
+                                Image(systemName: "sparkles")
+                                
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color(.systemBlue))
+                        //.tint(.blue)
+                        //.buttonStyle(.plain) // wichtig, sonst wirkt er wie "nav title" / kann komisch getintet sein
+                        .accessibilityLabel("Upgraden")
+                     */
+                    }
 
                 ToolbarItem(placement: .topBarTrailing) {
                     // ✅ Nur noch Edit-Button (kein Profil hier)
@@ -151,5 +202,14 @@ struct WorkoutView: View {
         } message: {
             Text("Dieser Vorgang kann nicht rückgängig gemacht werden. Alle Daten absolvierter Sessions werden unwiderruflich gelöscht.")
         }
+    }
+}
+
+#Preview("WorkoutView – mit Upgrade Button") {
+    let previewStore = Store.preview // siehe Extension unten
+
+    NavigationStack {
+        WorkoutView()
+            .environmentObject(previewStore)
     }
 }

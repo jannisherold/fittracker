@@ -183,7 +183,7 @@ struct ProgressView: View {
             .navigationDestination(for: Training.ID.self) { id in
                 ProgressStrenghtView(trainingID: id)  // wird jetzt erst beim Tippen erstellt
             }
-            .navigationTitle("Progress")
+            .navigationTitle("Progress+")
             .listStyle(.insetGrouped)
             .listSectionSpacing(.compact)
         }
