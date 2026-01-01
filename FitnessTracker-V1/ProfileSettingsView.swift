@@ -121,15 +121,13 @@ struct ProfileSettingsView: View {
                 HStack {
                     Text("Abonnement verwalten")
                     Spacer()
-                    Text(storedGoal.isEmpty ? "—" : storedGoal)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    
                 }
                 
                 
             }
 
+            /*
             Section {
                 Button(role: .destructive) { activeAlert = .resetBodyweight } label: {
                     Label("Körpergewicht zurücksetzen", systemImage: "scalemass")
@@ -153,6 +151,7 @@ struct ProfileSettingsView: View {
                     }
                 }
             }
+            */
 
             // --- Abmelden: ganz unten, zentriert, nur Text ---
             Section {

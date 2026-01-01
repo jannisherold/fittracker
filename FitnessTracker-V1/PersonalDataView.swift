@@ -7,27 +7,15 @@ struct PersonalDataView: View {
         List {
             
             
-            // --- Inhalt wie bisher (nur Layout angepasst) ---
-            Section{
-                
-                
-                
-                HStack {
-                    Text("Ziel")
-                    Spacer()
-                    
-                }
-                
-                HStack {
-                    Text("Abonnement verwalten")
-                    Spacer()
-                    
-                }
-                
-                
-            }
+            
             
             Section {
+                
+                HStack {
+                    Text("Namen ändern")
+                    Spacer()
+                    
+                }
                 
                 HStack {
                     Text("Kontakt E-Mail Adresse ändern")

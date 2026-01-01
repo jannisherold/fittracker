@@ -168,7 +168,7 @@ struct ProgressBodyweightView: View {
                         Text("Noch keine Körpergewichts-Einträge.")
                             .foregroundStyle(.secondary)
                     }
-                    //.listRowBackground(Color.clear)
+                    .listRowBackground(Color.clear)
                 } else {
                     chartView
 
