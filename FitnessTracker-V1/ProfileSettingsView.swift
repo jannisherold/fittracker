@@ -88,7 +88,7 @@ struct ProfileSettingsView: View {
                 } label: {
                     HStack(spacing: 0) {
                        
-                            Image(systemName: "scalemass")
+                            Image(systemName: "text.document")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.secondary)
                                 //.frame(width: 28, alignment: .leading)
@@ -118,11 +118,7 @@ struct ProfileSettingsView: View {
                         .truncationMode(.tail)
                 }
                 
-                HStack {
-                    Text("Abonnement verwalten")
-                    Spacer()
-                    
-                }
+                
                 
                 
             }

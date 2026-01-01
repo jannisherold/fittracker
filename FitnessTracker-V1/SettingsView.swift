@@ -37,7 +37,7 @@ struct SettingsView: View {
                 // MARK: - App-Einstellungen
                 Section() {
                     NavigationLink {
-                        AppSettingsView()
+                        LanguageView()
                     } label: {
                         
                         HStack(spacing: 0) {
@@ -163,15 +163,10 @@ struct SettingsView: View {
 private struct AppSettingsView: View {
     var body: some View {
         List {
-            Section("Einheiten") {
-                Label("kg / lbs (Platzhalter)", systemImage: "scalemass")
+            Section("Einheit wählen") {
+                Label("kg / lbs", systemImage: "scalemass")
             }
-            Section("Sprache") {
-                Label("Sprache wählen (Platzhalter)", systemImage: "globe")
-            }
-            Section("iCloud-Sync") {
-                Label("Sync aktivieren/deaktivieren (Platzhalter)", systemImage: "icloud")
-            }
+            
         }
         .navigationTitle("App-Einstellungen")
     }
