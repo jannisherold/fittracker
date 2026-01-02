@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct LanguageView: View {
+struct SettingsLanguageView: View {
     
     
     var body: some View {
@@ -12,13 +12,13 @@ struct LanguageView: View {
             Section {
                 
                 HStack {
-                    Text("Sprache wählen")
+                    Text("Deutsch")
                     Spacer()
                     
                 }
                 
                 HStack {
-                    Text("Deutsch und English für MVP")
+                    Text("English")
                     Spacer()
                     
                 }

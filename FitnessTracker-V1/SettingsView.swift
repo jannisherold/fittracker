@@ -9,7 +9,7 @@ struct SettingsView: View {
                 // MARK: - Konto
                 Section() {
                     NavigationLink {
-                        ProfileSettingsView()
+                        SettingsProfileView()
                     } label: {
                         HStack(spacing: 10){
                             Image(systemName: "person.crop.circle")
@@ -37,7 +37,7 @@ struct SettingsView: View {
                 // MARK: - App-Einstellungen
                 Section() {
                     NavigationLink {
-                        LanguageView()
+                        SettingsLanguageView()
                     } label: {
                         
                         HStack(spacing: 0) {
@@ -164,11 +164,12 @@ private struct AppSettingsView: View {
     var body: some View {
         List {
             Section("Einheit wählen") {
-                Label("kg / lbs", systemImage: "scalemass")
+                Label("kg", systemImage: "scalemass")
+                Label("lbs", systemImage: "scalemass")
             }
             
         }
-        .navigationTitle("App-Einstellungen")
+        //.navigationTitle("App-Einstellungen")
     }
 }
 

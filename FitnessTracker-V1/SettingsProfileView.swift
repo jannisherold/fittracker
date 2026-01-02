@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ProfileSettingsView: View {
+struct SettingsProfileView: View {
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var auth: SupabaseAuthManager
 
@@ -62,7 +62,7 @@ struct ProfileSettingsView: View {
 
             Section() {
                 NavigationLink {
-                    PersonalDataView()
+                    SettingsPersonalDataView()
                 } label: {
                     
                     HStack(spacing: 0) {

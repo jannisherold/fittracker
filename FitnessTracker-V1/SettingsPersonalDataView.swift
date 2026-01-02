@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PersonalDataView: View {
+struct SettingsPersonalDataView: View {
     
     
     var body: some View {
