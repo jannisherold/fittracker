@@ -24,6 +24,10 @@ struct SettingsProfileView: View {
     @State private var isWorking: Bool = false
     @State private var errorMessage: String?
 
+    // ✅ Neu: Popover State
+    @State private var showGoalPicker: Bool = false
+    @State private var lastSavedGoal: String = ""
+
     var body: some View {
         List {
             // --- Apple-Account-ähnlicher Header ---
@@ -33,10 +37,8 @@ struct SettingsProfileView: View {
                         .font(.system(size: 84, weight: .regular))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.blue)
-                        //.foregroundStyle(.secondary)
-                        //.padding(.top, 6)
-                    
-                    VStack{
+
+                    VStack {
                         Text(displayName)
                             .font(.title2)
                             .fontWeight(.semibold)
@@ -50,8 +52,6 @@ struct SettingsProfileView: View {
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 6)
-
-                    
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -64,63 +64,53 @@ struct SettingsProfileView: View {
                 NavigationLink {
                     SettingsPersonalDataView()
                 } label: {
-                    
                     HStack(spacing: 0) {
-                       
-                            Image(systemName: "person.text.rectangle")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                //.frame(width: 28, alignment: .leading)
-                                //.foregroundStyle(.blue)
-                        }
+                        Image(systemName: "person.text.rectangle")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
 
-                        Text("Persönliche Daten")
-                            //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
-                            //.foregroundColor(.primary)                     // Schwarz
-
-                        Spacer()
-                    
-                   
+                    Text("Persönliche Daten")
+                    Spacer()
                 }
-                
+
                 NavigationLink {
                     WorkoutView()
                 } label: {
                     HStack(spacing: 0) {
-                       
-                            Image(systemName: "text.document")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                //.frame(width: 28, alignment: .leading)
-                                //.foregroundStyle(.blue)
-                        }
+                        Image(systemName: "text.document")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
 
-                        Text("Abonnement verwalten")
-                            //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
-                            //.foregroundColor(.primary)                     // Schwarz
-
-                        Spacer()
-                }
-                
-            }
-            
-            // --- Inhalt wie bisher (nur Layout angepasst) ---
-            Section{
-    
-                
-                
-                HStack {
-                    Text("Ziel")
+                    Text("Abonnement verwalten")
                     Spacer()
-                    Text(storedGoal.isEmpty ? "—" : storedGoal)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
                 }
-                
-                
-                
-                
+            }
+
+            // --- Inhalt wie bisher (nur Ziel: Popover im Apple-Stil) ---
+            Section {
+
+                Button {
+                    showGoalPicker = true
+                } label: {
+                    HStack {
+                        Text("Ziel")
+                        Spacer()
+                        Text(storedGoal.isEmpty ? "—" : storedGoal)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isWorking)
+                .popover(isPresented: $showGoalPicker,
+                         attachmentAnchor: .rect(.bounds),
+                         arrowEdge: .top) {
+                    GoalPickerPopover(selection: $storedGoal)
+                        .presentationCompactAdaptation(.popover) // ✅ iPhone: nicht als Sheet adaptieren
+                }
             }
 
             /*
@@ -160,8 +150,16 @@ struct SettingsProfileView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .listStyle(.insetGrouped)
-        //.navigationTitle("Profil")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            lastSavedGoal = storedGoal
+        }
+        .onChange(of: storedGoal) { _, newValue in
+            // ✅ Verhindert unnötige Loops, z.B. durch syncProfileFromBackendToLocal()
+            guard newValue != lastSavedGoal else { return }
+            lastSavedGoal = newValue
+            Task { await updateGoal(newValue) }
+        }
         .alert(item: $activeAlert) { alert in
             switch alert {
             case .resetBodyweight:
@@ -220,6 +218,27 @@ struct SettingsProfileView: View {
     }
 
     @MainActor
+    private func updateGoal(_ newGoal: String) async {
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+
+        // Optional: konsistent halten (wird auch als Fallback genutzt)
+        onboardingGoal = newGoal
+
+        do {
+            // ✅ Name/Email für Upsert verwenden (wie dein restlicher Flow)
+            let email = displayEmail == "—" ? auth.userEmail : displayEmail
+            let name = displayName
+
+            try await auth.upsertProfile(email: email, name: name, goal: newGoal)
+            await auth.syncProfileFromBackendToLocal()
+        } catch {
+            errorMessage = "Ziel konnte nicht gespeichert werden: \(error.localizedDescription)"
+        }
+    }
+
+    @MainActor
     private func signOut() async {
         errorMessage = nil
         isWorking = true
@@ -246,10 +265,8 @@ struct SettingsProfileView: View {
             resetAppStateToFreshInstall()
 
         } catch {
-      
             // ❌ NICHT lokal alles resetten, wenn der Server-Delete fehlschlägt
             errorMessage = "Account konnte NICHT serverseitig gelöscht werden.\nFehler: \(error.localizedDescription)\n\nBitte erneut versuchen."
-
         }
     }
 
@@ -261,5 +278,44 @@ struct SettingsProfileView: View {
         storedName = ""
         storedGoal = ""
         onboardingGoal = ""
+    }
+}
+
+// MARK: - Apple-like Popover Picker (plain list + checkmark left)
+
+private struct GoalPickerPopover: View {
+    @Binding var selection: String
+    @Environment(\.dismiss) private var dismiss
+
+    private let goals: [String] = [
+        "Muskelaufbau",
+        "Gewicht abnehmen",
+        "Kraft steigern",
+        "Routine aufbauen",
+        "Überspringen"
+    ]
+
+    var body: some View {
+        List {
+            ForEach(goals, id: \.self) { goal in
+                Button {
+                    selection = goal
+                    dismiss() // ✅ wie iOS: sofort schließen
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark")
+                            .opacity(selection == goal ? 1 : 0)
+
+                        Text(goal)
+
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .frame(width: 320, height: 420) // ✅ Popover-typische Größe
     }
 }
