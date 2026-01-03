@@ -69,6 +69,8 @@ struct SettingsProfileView: View {
             }
             .textCase(nil)
             .listRowBackground(Color.clear)
+            
+            
 
             Section() {
                 NavigationLink {
@@ -85,7 +87,7 @@ struct SettingsProfileView: View {
                 }
 
                 NavigationLink {
-                    WorkoutView()
+                    SettingsAboView()
                 } label: {
                     HStack(spacing: 0) {
                         Image(systemName: "text.document")
@@ -102,7 +104,7 @@ struct SettingsProfileView: View {
             Section {
                 HStack {
                     HStack(spacing: 0) {
-                        Image(systemName: "text.document")
+                        Image(systemName: "target")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.secondary)
                     }

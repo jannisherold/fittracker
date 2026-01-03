@@ -143,7 +143,7 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
                 
                 Section(){
-                    Text("Versionsnummer")
+                    Text("Versionsnummer: 1.0.0")
                         .foregroundColor(.secondary)
                 }
                 .listRowBackground(Color.clear)
