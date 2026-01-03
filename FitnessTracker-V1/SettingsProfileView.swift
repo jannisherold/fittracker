@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsProfileView: View {
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var auth: SupabaseAuthManager
+    @EnvironmentObject private var sync: SyncManager
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
@@ -24,10 +25,8 @@ struct SettingsProfileView: View {
     @State private var isWorking: Bool = false
     @State private var errorMessage: String?
 
-    // ✅ Popover/Menu State nicht mehr nötig – Apple-native Menu/Picker handled das
     @State private var lastSavedGoal: String = ""
 
-    // ✅ Ziele (wie zuvor im Popover)
     private let goals: [String] = [
         "Muskeln aufbauen",
         "Gewicht abnehmen",
@@ -39,7 +38,6 @@ struct SettingsProfileView: View {
 
     var body: some View {
         List {
-            // --- Apple-Account-ähnlicher Header ---
             Section {
                 VStack(spacing: 0) {
                     Image(systemName: "person.crop.circle")
@@ -69,6 +67,14 @@ struct SettingsProfileView: View {
             .textCase(nil)
             .listRowBackground(Color.clear)
 
+            if let errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.footnote)
+                }
+            }
+
             Section() {
                 NavigationLink {
                     SettingsPersonalDataView()
@@ -97,7 +103,6 @@ struct SettingsProfileView: View {
                 }
             }
 
-            // --- Inhalt wie bisher (nur Ziel: Apple-native Menu/Picker am Chevron) ---
             Section {
                 HStack {
                     HStack(spacing: 0) {
@@ -109,7 +114,6 @@ struct SettingsProfileView: View {
                     Text("Ziel")
                     Spacer()
 
-                    // ✅ Fix: Label nimmt die restliche Breite ein + rechtsbündig -> kein Reposition-Jump
                     Menu {
                         Picker("Ziel", selection: $storedGoal) {
                             ForEach(goals, id: \.self) { goal in
@@ -119,10 +123,7 @@ struct SettingsProfileView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Text(storedGoal.isEmpty ? "—" : storedGoal)
-                                
-
                             Image(systemName: "chevron.up.chevron.down")
-                                
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .contentShape(Rectangle())
@@ -131,7 +132,6 @@ struct SettingsProfileView: View {
                 }
             }
 
-            // --- Abmelden: ganz unten, zentriert, nur Text ---
             Section {
                 Button(role: .destructive) { activeAlert = .signOut } label: {
                     Text("Abmelden")
@@ -147,7 +147,6 @@ struct SettingsProfileView: View {
             lastSavedGoal = storedGoal
         }
         .onChange(of: storedGoal) { _, newValue in
-            // ✅ Verhindert unnötige Loops, z.B. durch syncProfileFromBackendToLocal()
             guard newValue != lastSavedGoal else { return }
             lastSavedGoal = newValue
             Task { await updateGoal(newValue) }
@@ -215,11 +214,9 @@ struct SettingsProfileView: View {
         isWorking = true
         defer { isWorking = false }
 
-        // Optional: konsistent halten (wird auch als Fallback genutzt)
         onboardingGoal = newGoal
 
         do {
-            // ✅ Name/Email für Upsert verwenden (wie dein restlicher Flow)
             let email = displayEmail == "—" ? auth.userEmail : displayEmail
             let name = displayName
 
@@ -236,8 +233,19 @@ struct SettingsProfileView: View {
         isWorking = true
         defer { isWorking = false }
 
-        await auth.signOut()
-        // Flags bleiben: Onboarding abgeschlossen + Account existiert -> Root zeigt LoginView
+        do {
+            // Offline-first: vor lokalem Löschen MUSS der letzte Stand in Supabase sein.
+            try await sync.flushOrThrow()
+
+            await auth.signOut()
+
+            // Lokal gespeicherte Trainingsdaten löschen (wie von dir gewünscht)
+            store.deleteAllData()
+            print("🚪 SettingsProfileView: signOut completed (cloud synced, local wiped)")
+        } catch {
+            print("❌ SettingsProfileView: signOut blocked (flush failed):", error)
+            errorMessage = "Zum Abmelden bitte kurz Internet verbinden, damit nichts verloren geht.\n\nFehler: \(error.localizedDescription)"
+        }
     }
 
     @MainActor
@@ -247,17 +255,12 @@ struct SettingsProfileView: View {
         defer { isWorking = false }
 
         do {
-            // 1) Supabase Auth User löschen
             try await auth.deleteAccountCompletely()
 
-            // 2) Lokal alles löschen
             store.deleteAllData()
-
-            // 3) App wieder "neu" machen -> OnboardingView
             resetAppStateToFreshInstall()
 
         } catch {
-            // ❌ NICHT lokal alles resetten, wenn der Server-Delete fehlschlägt
             errorMessage = "Account konnte NICHT serverseitig gelöscht werden.\nFehler: \(error.localizedDescription)\n\nBitte erneut versuchen."
         }
     }

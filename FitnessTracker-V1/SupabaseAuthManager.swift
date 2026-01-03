@@ -6,6 +6,7 @@ final class SupabaseAuthManager: ObservableObject {
     @Published private(set) var session: Session?
 
     private let client = SupabaseManager.shared.client
+    private var authListenerTask: Task<Void, Never>?
 
     var isLoggedIn: Bool { session != nil }
     var userEmail: String { session?.user.email ?? "" }
@@ -19,37 +20,79 @@ final class SupabaseAuthManager: ObservableObject {
     }
 
     init() {
-        Task { await restoreSession() }
+        startAuthListener()
     }
 
-    // MARK: - Session
+    deinit {
+        authListenerTask?.cancel()
+    }
 
-    func restoreSession() async {
-        do {
-            session = try await client.auth.session
-            // ✅ Wichtig: Nach Restore Profil aus DB holen und lokal speichern
-            await syncProfileFromBackendToLocal()
-        } catch {
-            session = nil
+    // MARK: - Auth Listener (offline-stabil)
+
+    private func startAuthListener() {
+        authListenerTask?.cancel()
+        authListenerTask = Task { [weak self] in
+            guard let self else { return }
+            print("🔐 AuthListener started")
+
+            // Wichtig: initialSession wird (mit emitLocalSessionAsInitialSession) auch offline emittiert.
+            for await (event, session) in await client.auth.authStateChanges {
+                print("🔐 authStateChanges event=\(event) session=\(session != nil)")
+
+                self.session = session
+
+                // Nach (re)login oder token refresh: Profil best-effort aus DB in lokale Defaults ziehen.
+                if session != nil {
+                    await self.syncProfileFromBackendToLocal()
+                }
+            }
         }
     }
 
+    /// Für bestehende Call-Sites im Projekt: triggert nur noch einen best-effort Session Read.
+    /// (Die eigentliche Quelle ist der Listener.)
+    func restoreSession() async {
+        do {
+            let current = try await client.auth.session
+            print("🔐 restoreSession: got session from storage (offline ok)")
+            session = current
+            await syncProfileFromBackendToLocal()
+        } catch {
+            // Wichtig: bei Offline/Keychain-Glitches NICHT aggressiv local wipe triggern.
+            // Session bleibt dann einfach unverändert.
+            print("⚠️ restoreSession failed (ignored): \(error)")
+        }
+    }
+
+    // MARK: - Sign out
+
     /// Logout: Session beenden UND lokale Profile-Daten löschen (Backend bleibt)
     func signOut() async {
-        do { try await client.auth.signOut() } catch { }
+        print("🚪 signOut requested")
+        do {
+            try await client.auth.signOut()
+            print("🚪 signOut: supabase signOut ok")
+        } catch {
+            print("⚠️ signOut: supabase signOut failed (continuing): \(error)")
+        }
+
         session = nil
         clearLocalProfile()
+        SyncStateStore.reset()
+        print("🚪 signOut: local profile + sync state cleared")
     }
 
     // MARK: - Apple Sign In
 
     func signInWithApple(idToken: String, nonce: String) async throws {
-        let session = try await client.auth.signInWithIdToken(
+        print(" Sign in with Apple...")
+        let newSession = try await client.auth.signInWithIdToken(
             credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
         )
-        self.session = session
+        self.session = newSession
+        print(" Sign in with Apple OK. userId=\(newSession.user.id)")
 
-        // ✅ Nach Login: Profil aus DB holen und lokal speichern
+        // Nach Login: Profil aus DB holen und lokal speichern
         await syncProfileFromBackendToLocal()
     }
 
@@ -66,7 +109,10 @@ final class SupabaseAuthManager: ObservableObject {
 
     /// Upsert Profil in `profiles` (id = auth.user.id)
     func upsertProfile(email: String, name: String, goal: String) async throws {
-        guard let userId = session?.user.id.uuidString else { return }
+        guard let userId = session?.user.id.uuidString else {
+            print("⚠️ upsertProfile: no session")
+            return
+        }
 
         struct UpsertRow: Encodable {
             let id: String
@@ -84,6 +130,7 @@ final class SupabaseAuthManager: ObservableObject {
             updated_at: ISO8601DateFormatter().string(from: Date())
         )
 
+        print("👤 upsertProfile: \(userId) goal=\(goal)")
         _ = try await client
             .from("profiles")
             .upsert(row, onConflict: "id")
@@ -104,14 +151,17 @@ final class SupabaseAuthManager: ObservableObject {
 
             let profile = try JSONDecoder().decode(ProfileRow.self, from: response.data)
 
+            let fallbackGoal = UserDefaults.standard.string(forKey: Keys.onboardingGoal) ?? "Überspringen"
             setLocalProfile(
                 email: profile.email ?? userEmail,
                 name: profile.name ?? "User",
-                goal: profile.goal ?? (UserDefaults.standard.string(forKey: Keys.onboardingGoal) ?? "Überspringen")
+                goal: profile.goal ?? fallbackGoal
             )
+
+            print("👤 syncProfileFromBackendToLocal OK name=\(profile.name ?? "nil") goal=\(profile.goal ?? "nil")")
         } catch {
             // Wenn noch kein Profil existiert, lassen wir lokal erstmal wie es ist.
-            // Optional könntest du hier auch automatisch ein Default-Profil anlegen.
+            print("⚠️ syncProfileFromBackendToLocal failed (ignored): \(error)")
         }
     }
 
@@ -132,32 +182,48 @@ final class SupabaseAuthManager: ObservableObject {
 
     // MARK: - Delete Account
 
-    /// Löscht: 1) Profilrow in DB (falls vorhanden) 2) Auth-User 3) lokal alles
+    /// Löscht: 1) user_data row 2) profile row 3) Auth-User 4) lokal alles
     func deleteAccountCompletely() async throws {
-        // 1) Profilrow löschen (falls RLS erlaubt)
-        if let userId = session?.user.id.uuidString {
-            do {
-                _ = try await client
-                    .from("profiles")
-                    .delete()
-                    .eq("id", value: userId)
-                    .execute()
-            } catch {
-                // Wenn FK cascade existiert, ist das optional.
-                // Wenn nicht: RLS/Policy prüfen.
-            }
+        guard let userId = session?.user.id.uuidString else {
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kein User eingeloggt"])
         }
 
-        // 2) Auth-User löschen (GoTrue Endpoint)
-        try await deleteCurrentUserViaGoTrue()
+        print("🗑️ deleteAccountCompletely userId=\(userId)")
 
-        // 3) Lokal alles
+        // 1) user_data row löschen
+        do {
+            _ = try await client
+                .from("user_data")
+                .delete()
+                .eq("user_id", value: userId)
+                .execute()
+            print("🗑️ deleteAccountCompletely: user_data deleted")
+        } catch {
+            print("⚠️ deleteAccountCompletely: user_data delete failed (continuing): \(error)")
+        }
+
+        // 2) profile row löschen
+        do {
+            _ = try await client
+                .from("profiles")
+                .delete()
+                .eq("id", value: userId)
+                .execute()
+            print("🗑️ deleteAccountCompletely: profile deleted")
+        } catch {
+            print("⚠️ deleteAccountCompletely: profile delete failed (continuing): \(error)")
+        }
+
+        // 3) Auth-User löschen (GoTrue Endpoint)
+        try await deleteCurrentUserViaGoTrue()
+        print("🗑️ deleteAccountCompletely: auth user deleted")
+
+        // 4) Lokal alles
         clearLocalProfile()
+        SyncStateStore.reset()
         session = nil
     }
 
-    /// GoTrue `DELETE /auth/v1/user` (Self-Delete). Sollte funktionieren, solange Supabase das erlaubt.
-    /// GoTrue `DELETE /auth/v1/user` (Self-Delete).
     /// GoTrue `DELETE /auth/v1/user` (Self-Delete).
     private func deleteCurrentUserViaGoTrue() async throws {
         // Frische Session holen (Token kann sich ändern)
@@ -186,6 +252,4 @@ final class SupabaseAuthManager: ObservableObject {
             )
         }
     }
-
-
 }
