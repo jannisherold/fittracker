@@ -6,11 +6,12 @@ struct OnboardingViewGoals: View {
     @State private var animate: Bool = false
 
     private let goals: [(title: String, systemImage: String)] = [
-        ("Muskelaufbau", "dumbbell.fill"),
+        ("Muskeln aufbauen", "dumbbell.fill"),
         ("Gewicht abnehmen", "arrow.down"),
         ("Kraft steigern", "bolt.circle"),
         ("Routine aufbauen", "calendar"),
-        ("Überspringen", "")
+        ("Fit bleiben", "heart"),
+        ("sonstiges", "")
     ]
 
     var body: some View {

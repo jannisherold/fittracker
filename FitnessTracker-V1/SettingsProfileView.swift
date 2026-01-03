@@ -24,9 +24,19 @@ struct SettingsProfileView: View {
     @State private var isWorking: Bool = false
     @State private var errorMessage: String?
 
-    // ✅ Neu: Popover State
-    @State private var showGoalPicker: Bool = false
+    // ✅ Popover/Menu State nicht mehr nötig – Apple-native Menu/Picker handled das
     @State private var lastSavedGoal: String = ""
+
+    // ✅ Ziele (wie zuvor im Popover)
+    private let goals: [String] = [
+        "Muskeln aufbauen",
+        "Gewicht abnehmen",
+        "Kraft steigern",
+        "Routine aufbauen",
+        "Fit bleiben",
+        "sonstiges"
+
+    ]
 
     var body: some View {
         List {
@@ -88,56 +98,45 @@ struct SettingsProfileView: View {
                 }
             }
 
-            // --- Inhalt wie bisher (nur Ziel: Popover im Apple-Stil) ---
+            // --- Inhalt wie bisher (nur Ziel: Apple-native Menu/Picker am Chevron) ---
             Section {
-
-                Button {
-                    showGoalPicker = true
-                } label: {
-                    HStack {
-                        Text("Ziel")
-                        Spacer()
-                        Text(storedGoal.isEmpty ? "—" : storedGoal)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                HStack {
+                    HStack(spacing: 0) {
+                        Image(systemName: "text.document")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.secondary)
                     }
-                }
-                .buttonStyle(.plain)
-                .disabled(isWorking)
-                .popover(isPresented: $showGoalPicker,
-                         attachmentAnchor: .rect(.bounds),
-                         arrowEdge: .top) {
-                    GoalPickerPopover(selection: $storedGoal)
-                        .presentationCompactAdaptation(.popover) // ✅ iPhone: nicht als Sheet adaptieren
+                    
+                    
+                    Text("Ziel")
+                    Spacer()
+
+                    
+                    
+                 
+                    // ✅ Nur der Chevron öffnet die Auswahl (wie Reminders)
+                    Menu {
+                        Picker("Ziel", selection: $storedGoal) {
+                            ForEach(goals, id: \.self) { goal in
+                                Text(goal).tag(goal)
+                            }
+                        }
+                    } label: {
+                        HStack{
+                            Text(storedGoal.isEmpty ? "—" : storedGoal)
+                                //.foregroundStyle(.secondary)
+                                //.lineLimit(1)
+                                //.truncationMode(.tail)
+                            
+                            Image(systemName: "chevron.up.chevron.down")
+                                //.frame(width: 44, height: 44, alignment: .trailing)
+                        }
+                        
+                    }
+                    .disabled(isWorking)
                 }
             }
 
-            /*
-            Section {
-                Button(role: .destructive) { activeAlert = .resetBodyweight } label: {
-                    Label("Körpergewicht zurücksetzen", systemImage: "scalemass")
-                }
-                .disabled(isWorking)
-
-                Button(role: .destructive) {
-                    activeAlert = .deleteProfile
-                } label: {
-                    Label("Progress Account löschen", systemImage: "trash")
-                }
-                .disabled(isWorking)
-
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("„Körpergewicht zurücksetzen“ entfernt nur deine Körpergewichts-Historie. „Alle Daten löschen“ setzt die App lokal zurück. „Profil löschen“ entfernt zusätzlich deinen Supabase Account.")
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .font(.footnote)
-                    }
-                }
-            }
-            */
 
             // --- Abmelden: ganz unten, zentriert, nur Text ---
             Section {
@@ -278,44 +277,5 @@ struct SettingsProfileView: View {
         storedName = ""
         storedGoal = ""
         onboardingGoal = ""
-    }
-}
-
-// MARK: - Apple-like Popover Picker (plain list + checkmark left)
-
-private struct GoalPickerPopover: View {
-    @Binding var selection: String
-    @Environment(\.dismiss) private var dismiss
-
-    private let goals: [String] = [
-        "Muskelaufbau",
-        "Gewicht abnehmen",
-        "Kraft steigern",
-        "Routine aufbauen",
-        "Überspringen"
-    ]
-
-    var body: some View {
-        List {
-            ForEach(goals, id: \.self) { goal in
-                Button {
-                    selection = goal
-                    dismiss() // ✅ wie iOS: sofort schließen
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark")
-                            .opacity(selection == goal ? 1 : 0)
-
-                        Text(goal)
-
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .frame(width: 320, height: 420) // ✅ Popover-typische Größe
     }
 }
