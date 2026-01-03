@@ -35,7 +35,6 @@ struct SettingsProfileView: View {
         "Routine aufbauen",
         "Fit bleiben",
         "sonstiges"
-
     ]
 
     var body: some View {
@@ -69,8 +68,6 @@ struct SettingsProfileView: View {
             }
             .textCase(nil)
             .listRowBackground(Color.clear)
-            
-            
 
             Section() {
                 NavigationLink {
@@ -108,15 +105,11 @@ struct SettingsProfileView: View {
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.secondary)
                     }
-                    
-                    
+
                     Text("Ziel")
                     Spacer()
 
-                    
-                    
-                 
-                    // ✅ Nur der Chevron öffnet die Auswahl (wie Reminders)
+                    // ✅ Fix: Label nimmt die restliche Breite ein + rechtsbündig -> kein Reposition-Jump
                     Menu {
                         Picker("Ziel", selection: $storedGoal) {
                             ForEach(goals, id: \.self) { goal in
@@ -124,21 +117,19 @@ struct SettingsProfileView: View {
                             }
                         }
                     } label: {
-                        HStack{
+                        HStack(spacing: 6) {
                             Text(storedGoal.isEmpty ? "—" : storedGoal)
-                                //.foregroundStyle(.secondary)
-                                //.lineLimit(1)
-                                //.truncationMode(.tail)
-                            
+                                
+
                             Image(systemName: "chevron.up.chevron.down")
-                                //.frame(width: 44, height: 44, alignment: .trailing)
+                                
                         }
-                        
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .contentShape(Rectangle())
                     }
                     .disabled(isWorking)
                 }
             }
-
 
             // --- Abmelden: ganz unten, zentriert, nur Text ---
             Section {

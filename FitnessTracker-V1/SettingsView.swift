@@ -164,8 +164,17 @@ private struct AppSettingsView: View {
     var body: some View {
         List {
             Section("Einheit wählen") {
-                Label("kg", systemImage: "scalemass")
-                Label("lbs", systemImage: "scalemass")
+                HStack {
+                    Text("kg")
+                    Spacer()
+                    
+                }
+                
+                HStack {
+                    Text("lbs")
+                    Spacer()
+                    
+                }
             }
             
         }
