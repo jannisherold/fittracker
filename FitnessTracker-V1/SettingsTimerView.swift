@@ -14,17 +14,19 @@ struct SettingsTimerView: View {
                         print("⏱️ SettingsTimerView: restTimerEnabled -> \(newValue)")
                     }
             } footer: {
-                Text("Wenn aktiv, kannst du im Workout einen Pausentimer starten. Nach Ablauf vibriert das iPhone und die Anzeige verschwindet.")
+                Text("Wenn aktiv, kannst Du während einer Workoutsession einen Pausentimer starten. Nach Ablauf vibriert das iPhone und die Anzeige verschwindet.")
             }
 
-            Section("Pausenlänge") {
+            Section/*("Pausenlänge")*/ {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Dauer")
+                        /*
                         Text("\(String(format: "%02d", minutes)):\(String(format: "%02d", seconds))")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
+                        */
                     }
 
                     Spacer()
