@@ -77,6 +77,25 @@ struct SettingsView: View {
                             Spacer()
                     }
                     
+                    NavigationLink {
+                        SettingsTimerView()
+                    } label: {
+                        HStack(spacing: 0) {
+                           
+                                Image(systemName: "clock")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                                    //.frame(width: 28, alignment: .leading)
+                                    //.foregroundStyle(.blue)
+                            }
+
+                            Text("Timer")
+                                //.font(.system(size: 22, weight: .semibold))   // H2-ähnlich
+                                //.foregroundColor(.primary)                     // Schwarz
+
+                            Spacer()
+                    }
+                    
                 }
 
                 /*
