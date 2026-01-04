@@ -1,11 +1,6 @@
 import Foundation
 import Combine
 
-/// Offline-first Sync:
-/// - UI liest immer aus lokalem JSON Store
-/// - lokale Änderungen markieren einen dirty Zustand
-/// - wenn dirty -> nur PUSH (niemals Pull überschreibt)
-/// - wenn clean -> Pull ist erlaubt
 @MainActor
 final class SyncManager: ObservableObject {
     private unowned let store: Store
@@ -20,7 +15,6 @@ final class SyncManager: ObservableObject {
         self.store = store
         self.auth = auth
 
-        // Wenn Session kommt: optional initial sync
         auth.$session
             .receive(on: DispatchQueue.main)
             .sink { [weak self] session in
@@ -29,13 +23,11 @@ final class SyncManager: ObservableObject {
                     print("🔄 SyncManager: session available -> syncNow()")
                     Task { await self.syncNow(reason: "sessionChanged") }
                 } else {
-                    // KEIN auto wipe mehr (sonst Datenverlust bei Offline/Restore-Glitches)
                     print("🔄 SyncManager: session nil (no auto local wipe)")
                 }
             }
             .store(in: &cancellables)
 
-        // Lokale Änderungen -> dirty + debounced push
         store.$trainings.dropFirst().sink { [weak self] _ in
             self?.markDirtyAndSchedulePush(reason: "trainingsChanged")
         }.store(in: &cancellables)
@@ -43,14 +35,20 @@ final class SyncManager: ObservableObject {
         store.$bodyweightEntries.dropFirst().sink { [weak self] _ in
             self?.markDirtyAndSchedulePush(reason: "bodyweightChanged")
         }.store(in: &cancellables)
+
+        // ✅ Neu: Rest timer settings
+        store.$restTimerEnabled.dropFirst().sink { [weak self] _ in
+            self?.markDirtyAndSchedulePush(reason: "restTimerEnabledChanged")
+        }.store(in: &cancellables)
+
+        store.$restTimerSeconds.dropFirst().sink { [weak self] _ in
+            self?.markDirtyAndSchedulePush(reason: "restTimerSecondsChanged")
+        }.store(in: &cancellables)
     }
 
-    /// App wurde aktiv (Foreground)
     func appDidBecomeActive() {
         Task { await syncNow(reason: "appActive") }
     }
-
-    // MARK: - Dirty state
 
     private func markDirtyAndSchedulePush(reason: String) {
         guard auth.isLoggedIn else {
@@ -73,13 +71,10 @@ final class SyncManager: ObservableObject {
 
         pushTask?.cancel()
         pushTask = Task { [weak self] in
-            // Debounce ~1.2s
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             await self?.pushOnly(reason: "debounced")
         }
     }
-
-    // MARK: - Sync
 
     func syncNow(reason: String) async {
         guard let userId = auth.session?.user.id.uuidString else {
@@ -94,27 +89,35 @@ final class SyncManager: ObservableObject {
         print("🔄 syncNow start reason=\(reason) dirty=\(state.isDirty)")
 
         if state.isDirty {
-            // Lokale Änderungen haben Vorrang: nur push
             await pushOnly(reason: "syncNow(dirty)")
             return
         }
 
-        // Clean: Pull ist erlaubt
         do {
             if let remote = try await SupabaseUserDataService.shared.fetchUserData(userId: userId) {
                 print("⬇️ Pull OK (remote row exists)")
                 store.trainings = remote.trainings ?? []
                 store.bodyweightEntries = remote.bodyweight ?? []
+
+                if let enabled = remote.rest_timer_enabled {
+                    store.restTimerEnabled = enabled
+                }
+                if let secs = remote.rest_timer_seconds {
+                    store.restTimerSeconds = secs
+                }
+
+                print("⬇️ Pull restTimer: enabled=\(store.restTimerEnabled) seconds=\(store.restTimerSeconds)")
             } else {
                 print("⬇️ Pull OK (no row) -> create initial row")
                 try await SupabaseUserDataService.shared.upsertUserData(
                     userId: userId,
                     trainings: store.trainings,
-                    bodyweight: store.bodyweightEntries
+                    bodyweight: store.bodyweightEntries,
+                    restTimerEnabled: store.restTimerEnabled,
+                    restTimerSeconds: store.restTimerSeconds
                 )
             }
         } catch {
-            // Offline/Fehler: UI bleibt lokal stabil
             print("⚠️ syncNow: Pull failed (ignored) error=\(error)")
         }
     }
@@ -126,11 +129,13 @@ final class SyncManager: ObservableObject {
         }
 
         do {
-            print("⬆️ Push start reason=\(reason) trainings=\(store.trainings.count) bw=\(store.bodyweightEntries.count)")
+            print("⬆️ Push start reason=\(reason) trainings=\(store.trainings.count) bw=\(store.bodyweightEntries.count) restEnabled=\(store.restTimerEnabled) restSecs=\(store.restTimerSeconds)")
             try await SupabaseUserDataService.shared.upsertUserData(
                 userId: userId,
                 trainings: store.trainings,
-                bodyweight: store.bodyweightEntries
+                bodyweight: store.bodyweightEntries,
+                restTimerEnabled: store.restTimerEnabled,
+                restTimerSeconds: store.restTimerSeconds
             )
 
             var state = SyncStateStore.load()
@@ -139,12 +144,10 @@ final class SyncManager: ObservableObject {
             SyncStateStore.save(state)
             print("⬆️ Push OK -> dirty=false")
         } catch {
-            // Offline/Fehler: dirty bleibt true
             print("⚠️ Push failed (will retry later) error=\(error)")
         }
     }
 
-    /// Für Logout: MUSS erfolgreich sein, sonst darf lokal nichts gelöscht werden.
     func flushOrThrow() async throws {
         guard let userId = auth.session?.user.id.uuidString else { return }
 
@@ -158,7 +161,9 @@ final class SyncManager: ObservableObject {
         try await SupabaseUserDataService.shared.upsertUserData(
             userId: userId,
             trainings: store.trainings,
-            bodyweight: store.bodyweightEntries
+            bodyweight: store.bodyweightEntries,
+            restTimerEnabled: store.restTimerEnabled,
+            restTimerSeconds: store.restTimerSeconds
         )
 
         var newState = state

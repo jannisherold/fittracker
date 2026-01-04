@@ -17,6 +17,10 @@ struct WorkoutRunView: View {
     // UI-State
     @State private var expandedSetID: UUID? = nil
 
+    // Rest-Timer
+    @State private var restEndDate: Date? = nil
+    @State private var didTriggerRestFinishedFeedback: Bool = false
+
     var body: some View {
         if training.exercises.isEmpty {
             // --- Leerer Zustand ---
@@ -79,36 +83,70 @@ struct WorkoutRunView: View {
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
-            // ✅ Eigener Titelbereich: Workoutname + Stoppuhr (aktualisiert sich jede Sekunde)
+
+            // ✅ Eigener Titelbereich: Workoutname + Stoppuhr + (optional) Pausezeit
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    HStack(spacing: 6) {
-                        Text(training.title)
-                            .font(.headline)
-                        if let start = training.currentSessionStart {
+                    VStack(spacing: 2) {
+                        // Zeile 1: Workout Name + Stoppuhr
+                        HStack(spacing: 6) {
+                            Text(training.title)
+                                .font(.headline)
+
+                            if let start = training.currentSessionStart {
+                                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                                    Text("- \(formatElapsed(since: start))")
+                                        .monospacedDigit()
+                                        .font(.headline)
+                                }
+                            }
+                        }
+
+                        // Zeile 2: Pausenzeit - MM:SS (nur wenn aktiv und Timer läuft)
+                        if store.restTimerEnabled, let restEndDate {
                             TimelineView(.periodic(from: .now, by: 1)) { _ in
-                                Text("- \(formatElapsed(since: start))")
-                                    .monospacedDigit()
+                                let remaining = max(0, Int(restEndDate.timeIntervalSinceNow.rounded(.down)))
+                                let mm = remaining / 60
+                                let ss = remaining % 60
+
+                                Text("Pause - \(String(format: "%02d:%02d", mm, ss))")
                                     .font(.headline)
+                                    .foregroundStyle(.blue)
+                                    .monospacedDigit()
+                                    .onChange(of: remaining) { newValue in
+                                        handleRestTimerTick(remaining: newValue)
+                                    }
                             }
                         }
                     }
                 }
+
                 // Links: Chevron -> „Workout beenden?“-Dialog
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showEndConfirm = true } label: { Image(systemName: "chevron.left") }
                         .accessibilityLabel("Workout beenden")
                 }
+
+                // Rechts: Rest-Timer Button
+                ToolbarItem(placement: .topBarTrailing) {
+                    if store.restTimerEnabled {
+                        Button {
+                            startOrRestartRestTimer()
+                        } label: {
+                            Image(systemName: "clock")
+                        }
+                        .accessibilityLabel("Pausentimer starten")
+                    }
+                }
             }
+
             // Untere Leiste: „Workout beenden“ (unverändert)
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
                     Button(action: {
                         showEndConfirm = true
-                    }
-                    ) {
-                        
-                        HStack{
+                    }) {
+                        HStack {
                             Image(systemName: "stop.fill")
                                 .fontWeight(.regular)
                                 .foregroundColor(.red)
@@ -116,17 +154,22 @@ struct WorkoutRunView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.red)
                         }
-                        
-                        
                     }
                 }
             }
+
             .onAppear {
                 startSessionIfNeeded()
                 if expandedSetID == nil,
                    let firstExercise = training.exercises.first,
                    let firstSet = firstExercise.sets.first {
                     expandedSetID = firstSet.id
+                }
+            }
+            .onChange(of: store.restTimerEnabled) { enabled in
+                if !enabled {
+                    print("⏱️ WorkoutRunView: rest timer disabled -> hide timer")
+                    restEndDate = nil
                 }
             }
             .alert("Workout beenden?", isPresented: $showEndConfirm) {
@@ -176,6 +219,40 @@ struct WorkoutRunView: View {
         showGlobalConfettiOverlay(duration: 2.0)
         playSuccessSound()
         router.popToRoot()
+    }
+
+    // MARK: - Rest Timer
+
+    private var restDurationSeconds: Int {
+        max(0, store.restTimerSeconds)
+    }
+
+    private func startOrRestartRestTimer() {
+        let seconds = restDurationSeconds
+        guard seconds > 0 else {
+            print("⏱️ WorkoutRunView: rest timer ignored (duration is 0)")
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            return
+        }
+
+        didTriggerRestFinishedFeedback = false
+        restEndDate = Date().addingTimeInterval(TimeInterval(seconds))
+        print("⏱️ WorkoutRunView: rest timer started/restarted -> \(seconds)s (ends at \(restEndDate!))")
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func handleRestTimerTick(remaining: Int) {
+        if remaining <= 0 {
+            guard restEndDate != nil else { return }
+            if !didTriggerRestFinishedFeedback {
+                didTriggerRestFinishedFeedback = true
+                print("⏱️ WorkoutRunView: rest timer finished -> vibration")
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+            DispatchQueue.main.async {
+                self.restEndDate = nil
+            }
+        }
     }
 
     // MARK: - Subview: Notizen
@@ -495,10 +572,6 @@ public func showGlobalConfettiOverlay(duration: TimeInterval = 1.0) {
     }, completion: { _ in
         skView.removeFromSuperview()
     })
-    
-
-    
-    
 }
 
 // MARK: - Preview Testdaten
@@ -548,21 +621,18 @@ extension Training {
                 .sampleBankdruecken,
                 .sampleSchulterdruecken
             ],
-            sessions: [],                 // für diese View egal
-            currentSessionStart: Date()   // damit der Timer im Titel läuft
+            sessions: [],
+            currentSessionStart: Date()
         )
     }
 }
 
 // MARK: - Preview
-
 #if DEBUG
 struct WorkoutRunView_Previews: PreviewProvider {
     static var previews: some View {
-        // Beispiel-Store mit einem Training
         let store = Store()
         store.trainings = [.sampleWorkoutRun]
-
         let trainingID = store.trainings[0].id
 
         return NavigationStack {

@@ -2,9 +2,7 @@ import Foundation
 import SwiftUI
 
 final class Store: ObservableObject {
-    
-    
-    
+
     @Published var trainings: [Training] = [] {
         didSet { save() }
     }
@@ -13,62 +11,68 @@ final class Store: ObservableObject {
     @Published var bodyweightEntries: [BodyweightEntry] = [] {
         didSet { saveBodyweight() }
     }
-    
-    // MARK: - All-time Statistiken
 
-    /// 1) Wie viele Workouts wurden insgesamt absolviert?
-    ///    => Anzahl aller gespeicherten Sessions über alle Trainings
-    var totalCompletedWorkouts: Int {
-        trainings.reduce(0) { partial, training in
-            partial + training.sessions.count
+    // MARK: - Rest Timer Settings (local: UserDefaults)
+
+    @Published var restTimerEnabled: Bool = true {
+        didSet {
+            UserDefaults.standard.set(restTimerEnabled, forKey: "restTimerEnabled")
+            print("⏱️ Store: restTimerEnabled -> \(restTimerEnabled)")
         }
     }
 
-    /// 2) Wie viele Minuten wurde insgesamt trainiert?
-    ///    => Summe der Dauer aller Sessions (in Minuten)
-    var totalTrainingMinutes: Double {
-        let totalSeconds = trainings
-            .flatMap { $0.sessions }
-            .reduce(0.0) { partial, session in
-                partial + session.duration
+    // Total seconds (0...1800)
+    @Published var restTimerSeconds: Int = 90 {
+        didSet {
+            let clamped = max(0, min(restTimerSeconds, 60 * 30)) // 0s ... 30min
+            if clamped != restTimerSeconds {
+                // ✅ Einmalig korrigieren, dann hört es auf (kein Endlos-Loop)
+                restTimerSeconds = clamped
+                return
             }
+
+            UserDefaults.standard.set(restTimerSeconds, forKey: "restTimerSeconds")
+            print("⏱️ Store: restTimerSeconds -> \(restTimerSeconds)")
+        }
+    }
+
+
+    // MARK: - All-time Statistiken
+
+    var totalCompletedWorkouts: Int {
+        trainings.reduce(0) { $0 + $1.sessions.count }
+    }
+
+    var totalTrainingMinutes: Double {
+        let totalSeconds = trainings.flatMap { $0.sessions }.reduce(0.0) { $0 + $1.duration }
         return totalSeconds / 60.0
     }
 
-    /// 3) Wie viel Gewicht wurde insgesamt bewegt (in kg)?
-    ///    Ein Satz mit 100 kg und 10 Wdh. = 1000 kg bewegt.
-    ///    Hier werden nur Sätze mit isDone == true gezählt.
     var totalMovedWeightKg: Double {
         trainings
             .flatMap { $0.sessions }
             .flatMap { $0.exercises }
             .flatMap { $0.sets }
             .filter { $0.isDone }
-            .reduce(0.0) { partial, set in
-                partial + set.weightKg * Double(set.repetition.value)
-            }
+            .reduce(0.0) { $0 + ($1.weightKg * Double($1.repetition.value)) }
     }
 
-    /// 4) Gesamtzahl aller Wiederholungen (nur erledigte Sets)
     var totalRepetitions: Int {
         trainings
             .flatMap { $0.sessions }
             .flatMap { $0.exercises }
             .flatMap { $0.sets }
             .filter { $0.isDone }
-            .reduce(0) { partial, set in
-                partial + set.repetition.value
-            }
+            .reduce(0) { $0 + $1.repetition.value }
     }
 
+    // MARK: - Persistence URLs
 
-    // Bestehende Trainings-Datei
     private let url: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return docs.appendingPathComponent("trainings.json")
     }()
 
-    // ✅ Neue Datei nur für Körpergewicht
     private let bodyweightURL: URL = {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return docs.appendingPathComponent("bodyweight.json")
@@ -77,13 +81,24 @@ final class Store: ObservableObject {
     init() {
         load()
         loadBodyweight()
+
+        // Load rest timer settings
+        if UserDefaults.standard.object(forKey: "restTimerEnabled") != nil {
+            restTimerEnabled = UserDefaults.standard.bool(forKey: "restTimerEnabled")
+        }
+        let secs = UserDefaults.standard.integer(forKey: "restTimerSeconds")
+        restTimerSeconds = secs == 0 ? 90 : secs  // default 90 if not set
+        restTimerSeconds = max(0, min(restTimerSeconds, 60 * 30))
+
+        print("⏱️ Store init: restTimerEnabled=\(restTimerEnabled), restTimerSeconds=\(restTimerSeconds)")
     }
 
     // MARK: - Mutations Trainings
+
     func addTraining(title: String) {
         trainings.insert(Training(title: title), at: 0)
     }
-    
+
     func moveTraining(from source: IndexSet, to destination: Int) {
         trainings.move(fromOffsets: source, toOffset: destination)
     }
@@ -165,7 +180,6 @@ final class Store: ObservableObject {
         trainings[t].currentSessionStart = nil
     }
 
-    // ✅ Sessionstart: alle Sätze auf „nicht erledigt“ + Startzeit setzen
     func beginSession(trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         for e in trainings[t].exercises.indices {
@@ -176,22 +190,16 @@ final class Store: ObservableObject {
         trainings[t].currentSessionStart = Date()
     }
 
-    // ✅ Session beenden:
-    // - Max-Gewichte berechnen (wie bisher)
-    // - Vollständigen Snapshot aller Übungen & Sätze speichern
-    // - Session (mit startedAt/endedAt) sichern, Start löschen
     func endSession(trainingID: UUID) {
         guard let t = trainings.firstIndex(where: { $0.id == trainingID }) else { return }
         let exs = trainings[t].exercises
 
-        // Bisherige Logik: Max-Gewicht pro Übung
         var map: [UUID: Double] = [:]
         for ex in exs {
             let maxW = ex.sets.map { $0.weightKg }.max() ?? 0
             map[ex.id] = maxW
         }
 
-        // ✅ Neue Logik: kompletter Snapshot aller Übungen & Sets
         let exerciseSnapshots: [SessionExerciseSnapshot] = exs.map { ex in
             let setSnapshots: [SessionSetSnapshot] = ex.sets.map { set in
                 SessionSetSnapshot(
@@ -226,21 +234,20 @@ final class Store: ObservableObject {
 
     // MARK: - Mutations Körpergewicht
 
-    /// ✅ Neuen Körpergewichts-Eintrag hinzufügen (neueste Einträge vorne)
     func addBodyweightEntry(weightKg: Double, date: Date = .now) {
         let entry = BodyweightEntry(date: date, weightKg: weightKg)
         bodyweightEntries.insert(entry, at: 0)
     }
 
-    /// ✅ Alle Körpergewichts-Daten löschen
     func resetBodyweightEntries() {
         bodyweightEntries = []
     }
 
-    /// ✅ Alle App-Daten (Trainings + Körpergewicht) löschen
     func deleteAllData() {
         trainings = []
         bodyweightEntries = []
+        restTimerEnabled = true
+        restTimerSeconds = 90
     }
 
     // MARK: - Persistence Trainings
@@ -281,5 +288,3 @@ final class Store: ObservableObject {
         }
     }
 }
-
-

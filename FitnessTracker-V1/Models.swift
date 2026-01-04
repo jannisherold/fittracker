@@ -276,4 +276,3 @@ struct BodyweightEntry: Identifiable, Codable {
         try c.encode(f.string(from: date), forKey: .date)
     }
 }
-

@@ -12,6 +12,8 @@ final class SupabaseUserDataService {
         let user_id: String
         let trainings: [Training]?
         let bodyweight: [BodyweightEntry]?
+        let rest_timer_enabled: Bool?
+        let rest_timer_seconds: Int?
         let updated_at: String?
     }
 
@@ -19,13 +21,14 @@ final class SupabaseUserDataService {
         let user_id: String
         let trainings: [Training]
         let bodyweight: [BodyweightEntry]
+        let rest_timer_enabled: Bool
+        let rest_timer_seconds: Int
     }
 
-    /// Pull: Row laden. Wenn keine existiert -> nil (aber echte Fehler werden geworfen!)
     func fetchUserData(userId: String) async throws -> UserDataRow? {
         let response = try await client
             .from("user_data")
-            .select("user_id,trainings,bodyweight,updated_at")
+            .select("user_id,trainings,bodyweight,rest_timer_enabled,rest_timer_seconds,updated_at")
             .eq("user_id", value: userId)
             .limit(1)
             .execute()
@@ -34,9 +37,20 @@ final class SupabaseUserDataService {
         return rows.first
     }
 
-    /// Push: Upsert der kompletten lokalen Daten
-    func upsertUserData(userId: String, trainings: [Training], bodyweight: [BodyweightEntry]) async throws {
-        let row = UpsertRow(user_id: userId, trainings: trainings, bodyweight: bodyweight)
+    func upsertUserData(
+        userId: String,
+        trainings: [Training],
+        bodyweight: [BodyweightEntry],
+        restTimerEnabled: Bool,
+        restTimerSeconds: Int
+    ) async throws {
+        let row = UpsertRow(
+            user_id: userId,
+            trainings: trainings,
+            bodyweight: bodyweight,
+            rest_timer_enabled: restTimerEnabled,
+            rest_timer_seconds: restTimerSeconds
+        )
 
         _ = try await client
             .from("user_data")
