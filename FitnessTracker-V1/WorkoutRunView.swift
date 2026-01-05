@@ -471,7 +471,6 @@ private struct SetRow: View {
                         .labelsHidden()
                         .frame(width: 90)
                     }
-                    .font(.callout)
                     .transition(.opacity)
                 }
             }
