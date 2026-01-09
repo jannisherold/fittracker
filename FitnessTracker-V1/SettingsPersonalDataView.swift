@@ -4,31 +4,52 @@ struct SettingsPersonalDataView: View {
     
     
     var body: some View {
+        
         List {
-            
-            
-            
-            
             Section {
                 
+                
+                HStack{
+                    Text("Name")
+                    
+                    Spacer()
+                    
+                    Text("Vorname Nachname")
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                    
+                }
+                
+                HStack{
+                    Text("Kontakt E-Mail")
+                    
+                    Spacer()
+                    
+                    Text("E-Mail")
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                    
+                }
+                
+                
+                
+                
+                
+                
+            }
+            
+            Section{
                 HStack {
-                    Text("Namen ändern")
+                    Text("Körpergewichtsdaten zurücksetzen")
                     Spacer()
                     
                 }
                 
-                HStack {
-                    Text("Kontakt E-Mail Adresse ändern")
-                    Spacer()
-                    
-                }
-                
-                HStack {
-                    Text("Körpergewicht zurücksetzen")
-                    Spacer()
-                    
-                }
-                
+            }
+            
+            Section{
                 HStack {
                     Text("Account löschen")
                     Spacer()
