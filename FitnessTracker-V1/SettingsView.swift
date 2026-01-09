@@ -36,10 +36,13 @@ struct SettingsView: View {
 
                 // MARK: - App-Einstellungen
                 Section() {
+                    
+                    //Spracheinstellung und Gewichtseinheiteinstellung werden in MVP nicht eingeführt werden, erst später
+                    
+                    /*
                     NavigationLink {
                         SettingsLanguageView()
                     } label: {
-                        
                         HStack(spacing: 0) {
                            
                                 Image(systemName: "globe")
@@ -54,8 +57,7 @@ struct SettingsView: View {
                                 //.foregroundColor(.primary)                     // Schwarz
 
                             Spacer()
-                        
-                       
+
                     }
                     
                     NavigationLink {
@@ -76,6 +78,7 @@ struct SettingsView: View {
 
                             Spacer()
                     }
+                    */
                     
                     NavigationLink {
                         SettingsTimerView()
@@ -278,9 +281,4 @@ private struct AGBView: View {
     }
 }
 
-// MARK: - Preview
 
-#Preview {
-    SettingsView()
-        .environmentObject(Store()) // Dummy, damit Preview funktioniert
-}
