@@ -14,6 +14,9 @@ struct SettingsProfileView: View {
 
     @AppStorage("userGoal") private var storedGoal: String = ""
     @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
+    
+    @StateObject private var network = NetworkMonitor()
+
 
     private enum ActiveAlert: Identifiable {
         case signOut
@@ -151,7 +154,7 @@ struct SettingsProfileView: View {
                     Text("Abmelden")
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .disabled(isWorking)
+                .disabled(!network.isConnected || isWorking)
             }
         }
         .toolbar(.hidden, for: .tabBar)
@@ -190,6 +193,11 @@ struct SettingsProfileView: View {
 
     @MainActor
     private func updateGoal(_ newGoal: String) async {
+        guard network.isConnected else {
+            errorMessage = "Diese Aktion ist nur mit Internet möglich."
+            return
+        }
+
         errorMessage = nil
         isWorking = true
         defer { isWorking = false }
@@ -214,6 +222,11 @@ struct SettingsProfileView: View {
 
     @MainActor
     private func signOut() async {
+        guard network.isConnected else {
+            errorMessage = "Zum Abmelden bitte Internet verbinden, damit deine Daten vorher synchronisiert werden."
+            return
+        }
+
         errorMessage = nil
         isWorking = true
         defer { isWorking = false }
@@ -234,6 +247,11 @@ struct SettingsProfileView: View {
 
     @MainActor
     private func deleteProfile() async {
+        guard network.isConnected else {
+            errorMessage = "Diese Aktion ist nur mit Internet möglich."
+            return
+        }
+
         errorMessage = nil
         isWorking = true
         defer { isWorking = false }
