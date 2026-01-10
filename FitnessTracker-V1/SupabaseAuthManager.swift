@@ -14,43 +14,40 @@ final class SupabaseAuthManager: ObservableObject {
     // MARK: - Local Storage Keys (müssen zu @AppStorage Keys passen)
     private enum Keys {
         static let userEmail = "userEmail"
-        static let userName  = "userName"
+        static let userFirstName = "userFirstName"
+        static let userLastName  = "userLastName"
         static let userGoal  = "userGoal"
         static let onboardingGoal = "onboardingGoal"
+
+        // Legacy (alte Builds)
+        static let userNameLegacy  = "userName"
     }
 
     init() {
+        migrateLegacyNameIfNeeded()
         startAuthListener()
     }
 
-    deinit {
-        authListenerTask?.cancel()
-    }
+    deinit { authListenerTask?.cancel() }
 
     // MARK: - Auth Listener (offline-stabil)
-
     private func startAuthListener() {
         authListenerTask?.cancel()
         authListenerTask = Task { [weak self] in
             guard let self else { return }
             print("🔐 AuthListener started")
 
-            // Wichtig: initialSession wird (mit emitLocalSessionAsInitialSession) auch offline emittiert.
-            for await (event, session) in await client.auth.authStateChanges {
-                print("🔐 authStateChanges event=\(event) session=\(session != nil)")
+            for await (event, newSession) in await client.auth.authStateChanges {
+                print("🔐 authStateChanges event=\(event) session=\(newSession != nil)")
+                self.session = newSession
 
-                self.session = session
-
-                // Nach (re)login oder token refresh: Profil best-effort aus DB in lokale Defaults ziehen.
-                if session != nil {
+                if newSession != nil {
                     await self.syncProfileFromBackendToLocal()
                 }
             }
         }
     }
 
-    /// Für bestehende Call-Sites im Projekt: triggert nur noch einen best-effort Session Read.
-    /// (Die eigentliche Quelle ist der Listener.)
     func restoreSession() async {
         do {
             let current = try await client.auth.session
@@ -58,14 +55,11 @@ final class SupabaseAuthManager: ObservableObject {
             session = current
             await syncProfileFromBackendToLocal()
         } catch {
-            // Wichtig: bei Offline/Keychain-Glitches NICHT aggressiv local wipe triggern.
-            // Session bleibt dann einfach unverändert.
             print("⚠️ restoreSession failed (ignored): \(error)")
         }
     }
 
     // MARK: - Sign out
-
     /// Logout: Session beenden UND lokale Profile-Daten löschen (Backend bleibt)
     func signOut() async {
         print("🚪 signOut requested")
@@ -83,7 +77,6 @@ final class SupabaseAuthManager: ObservableObject {
     }
 
     // MARK: - Apple Sign In
-
     func signInWithApple(idToken: String, nonce: String) async throws {
         print(" Sign in with Apple...")
         let newSession = try await client.auth.signInWithIdToken(
@@ -101,22 +94,30 @@ final class SupabaseAuthManager: ObservableObject {
     struct ProfileRow: Codable {
         let id: String
         let email: String?
-        let name: String?
+        let first_name: String?
+        let last_name: String?
+        let name: String? // optional legacy/compat
         let goal: String?
         let created_at: String?
         let updated_at: String?
     }
 
     /// Upsert Profil in `profiles` (id = auth.user.id)
-    func upsertProfile(email: String, name: String, goal: String) async throws {
+    func upsertProfile(email: String, firstName: String, lastName: String, goal: String) async throws {
         guard let userId = session?.user.id.uuidString else {
             print("⚠️ upsertProfile: no session")
             return
         }
 
+        let fn = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ln = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fullName = ([fn, ln].filter { !$0.isEmpty }).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+
         struct UpsertRow: Encodable {
             let id: String
             let email: String
+            let first_name: String
+            let last_name: String
             let name: String
             let goal: String
             let updated_at: String
@@ -125,12 +126,14 @@ final class SupabaseAuthManager: ObservableObject {
         let row = UpsertRow(
             id: userId,
             email: email,
-            name: name,
+            first_name: fn,
+            last_name: ln,
+            name: fullName, // optional, hält alte Tools/Views lesbar
             goal: goal,
             updated_at: ISO8601DateFormatter().string(from: Date())
         )
 
-        print("👤 upsertProfile: \(userId) goal=\(goal)")
+        print("👤 upsertProfile: \(userId) first=\(fn) last=\(ln) goal=\(goal)")
         _ = try await client
             .from("profiles")
             .upsert(row, onConflict: "id")
@@ -144,7 +147,7 @@ final class SupabaseAuthManager: ObservableObject {
         do {
             let response = try await client
                 .from("profiles")
-                .select("id,email,name,goal,created_at,updated_at")
+                .select("id,email,first_name,last_name,name,goal,created_at,updated_at")
                 .eq("id", value: userId)
                 .single()
                 .execute()
@@ -152,32 +155,65 @@ final class SupabaseAuthManager: ObservableObject {
             let profile = try JSONDecoder().decode(ProfileRow.self, from: response.data)
 
             let fallbackGoal = UserDefaults.standard.string(forKey: Keys.onboardingGoal) ?? "Überspringen"
+            let (fallbackFirst, fallbackLast) = splitNameFallback(profile.name)
+
+            let first = (profile.first_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let last  = (profile.last_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let resolvedFirst = first.isEmpty ? fallbackFirst : first
+            let resolvedLast  = last.isEmpty ? fallbackLast : last
+
             setLocalProfile(
                 email: profile.email ?? userEmail,
-                name: profile.name ?? "User",
+                firstName: resolvedFirst,
+                lastName: resolvedLast,
                 goal: profile.goal ?? fallbackGoal
             )
 
-            print("👤 syncProfileFromBackendToLocal OK name=\(profile.name ?? "nil") goal=\(profile.goal ?? "nil")")
+            print("👤 syncProfileFromBackendToLocal OK first=\(resolvedFirst) last=\(resolvedLast) goal=\(profile.goal ?? "nil")")
         } catch {
-            // Wenn noch kein Profil existiert, lassen wir lokal erstmal wie es ist.
             print("⚠️ syncProfileFromBackendToLocal failed (ignored): \(error)")
         }
     }
 
     // MARK: - Local Profile Storage (UserDefaults)
 
-    func setLocalProfile(email: String, name: String, goal: String) {
+    func setLocalProfile(email: String, firstName: String, lastName: String, goal: String) {
         UserDefaults.standard.set(email, forKey: Keys.userEmail)
-        UserDefaults.standard.set(name, forKey: Keys.userName)
+        UserDefaults.standard.set(firstName, forKey: Keys.userFirstName)
+        UserDefaults.standard.set(lastName, forKey: Keys.userLastName)
         UserDefaults.standard.set(goal, forKey: Keys.userGoal)
     }
 
     func clearLocalProfile() {
         UserDefaults.standard.removeObject(forKey: Keys.userEmail)
-        UserDefaults.standard.removeObject(forKey: Keys.userName)
+        UserDefaults.standard.removeObject(forKey: Keys.userFirstName)
+        UserDefaults.standard.removeObject(forKey: Keys.userLastName)
         UserDefaults.standard.removeObject(forKey: Keys.userGoal)
-        // onboardingGoal lassen wir bewusst stehen (kommt aus Onboarding Screen)
+        UserDefaults.standard.removeObject(forKey: Keys.userNameLegacy)
+        // onboardingGoal lassen wir bewusst stehen
+    }
+
+    private func migrateLegacyNameIfNeeded() {
+        let first = UserDefaults.standard.string(forKey: Keys.userFirstName) ?? ""
+        let last  = UserDefaults.standard.string(forKey: Keys.userLastName) ?? ""
+        guard first.isEmpty && last.isEmpty else { return }
+
+        let legacy = UserDefaults.standard.string(forKey: Keys.userNameLegacy) ?? ""
+        guard !legacy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        let (f, l) = splitNameFallback(legacy)
+        UserDefaults.standard.set(f, forKey: Keys.userFirstName)
+        UserDefaults.standard.set(l, forKey: Keys.userLastName)
+        print("🧩 Migrated legacy userName='\(legacy)' -> first='\(f)' last='\(l)'")
+    }
+
+    private func splitNameFallback(_ full: String?) -> (String, String) {
+        let s = (full ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { return ("", "") }
+        let parts = s.split(separator: " ").map(String.init)
+        if parts.count == 1 { return (parts[0], "") }
+        return (parts.first ?? "", parts.dropFirst().joined(separator: " "))
     }
 
     // MARK: - Delete Account
@@ -226,7 +262,6 @@ final class SupabaseAuthManager: ObservableObject {
 
     /// GoTrue `DELETE /auth/v1/user` (Self-Delete).
     private func deleteCurrentUserViaGoTrue() async throws {
-        // Frische Session holen (Token kann sich ändern)
         let currentSession = try await client.auth.session
 
         let url = SupabaseConfig.url.appendingPathComponent("auth/v1/user")

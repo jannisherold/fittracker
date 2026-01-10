@@ -9,22 +9,21 @@ struct SettingsProfileView: View {
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
 
     @AppStorage("userEmail") private var storedEmail: String = ""
-    @AppStorage("userName") private var storedName: String = ""
+    @AppStorage("userFirstName") private var storedFirstName: String = ""
+    @AppStorage("userLastName") private var storedLastName: String = ""
+
     @AppStorage("userGoal") private var storedGoal: String = ""
     @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
 
     private enum ActiveAlert: Identifiable {
-        case resetBodyweight
-        case deleteAllData
-        case deleteProfile
         case signOut
+        case deleteProfile
         var id: Int { hashValue }
     }
 
     @State private var activeAlert: ActiveAlert?
     @State private var isWorking: Bool = false
     @State private var errorMessage: String?
-
     @State private var lastSavedGoal: String = ""
 
     private let goals: [String] = [
@@ -35,6 +34,21 @@ struct SettingsProfileView: View {
         "Fit bleiben",
         "sonstiges"
     ]
+
+    private var displayName: String {
+        let full = ([storedFirstName, storedLastName]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " "))
+        return full.isEmpty ? "—" : full
+    }
+
+    private var displayEmail: String {
+        let supa = auth.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !supa.isEmpty { return supa }
+        if !storedEmail.isEmpty { return storedEmail }
+        return "—"
+    }
 
     var body: some View {
         List {
@@ -143,9 +157,7 @@ struct SettingsProfileView: View {
         .toolbar(.hidden, for: .tabBar)
         .listStyle(.insetGrouped)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            lastSavedGoal = storedGoal
-        }
+        .onAppear { lastSavedGoal = storedGoal }
         .onChange(of: storedGoal) { _, newValue in
             guard newValue != lastSavedGoal else { return }
             lastSavedGoal = newValue
@@ -153,22 +165,12 @@ struct SettingsProfileView: View {
         }
         .alert(item: $activeAlert) { alert in
             switch alert {
-            case .resetBodyweight:
+            case .signOut:
                 return Alert(
-                    title: Text("Körpergewicht zurücksetzen?"),
-                    message: Text("Alle gespeicherten Körpergewichtsdaten werden dauerhaft gelöscht."),
-                    primaryButton: .destructive(Text("Körpergewicht löschen")) {
-                        store.resetBodyweightEntries()
-                    },
-                    secondaryButton: .cancel(Text("Abbrechen"))
-                )
-
-            case .deleteAllData:
-                return Alert(
-                    title: Text("Alle Daten löschen?"),
-                    message: Text("Alle Workouts, Sessions und Körpergewichtsdaten werden lokal dauerhaft gelöscht."),
-                    primaryButton: .destructive(Text("Alle Daten löschen")) {
-                        store.deleteAllData()
+                    title: Text("Abmelden?"),
+                    message: Text("Du wirst abgemeldet und gelangst zurück zum Login."),
+                    primaryButton: .destructive(Text("Abmelden")) {
+                        Task { await signOut() }
                     },
                     secondaryButton: .cancel(Text("Abbrechen"))
                 )
@@ -182,30 +184,8 @@ struct SettingsProfileView: View {
                     },
                     secondaryButton: .cancel(Text("Abbrechen"))
                 )
-
-            case .signOut:
-                return Alert(
-                    title: Text("Abmelden?"),
-                    message: Text("Du wirst abgemeldet und gelangst zurück zum Login."),
-                    primaryButton: .destructive(Text("Abmelden")) {
-                        Task { await signOut() }
-                    },
-                    secondaryButton: .cancel(Text("Abbrechen"))
-                )
             }
         }
-    }
-
-    private var displayEmail: String {
-        let supa = auth.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !supa.isEmpty { return supa }
-        if !storedEmail.isEmpty { return storedEmail }
-        return "—"
-    }
-
-    private var displayName: String {
-        let name = storedName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.isEmpty ? "User" : name
     }
 
     @MainActor
@@ -217,10 +197,15 @@ struct SettingsProfileView: View {
         onboardingGoal = newGoal
 
         do {
-            let email = displayEmail == "—" ? auth.userEmail : displayEmail
-            let name = displayName
+            let email = (displayEmail == "—") ? auth.userEmail : displayEmail
 
-            try await auth.upsertProfile(email: email, name: name, goal: newGoal)
+            try await auth.upsertProfile(
+                email: email,
+                firstName: storedFirstName,
+                lastName: storedLastName,
+                goal: newGoal
+            )
+
             await auth.syncProfileFromBackendToLocal()
         } catch {
             errorMessage = "Ziel konnte nicht gespeichert werden: \(error.localizedDescription)"
@@ -238,9 +223,8 @@ struct SettingsProfileView: View {
             try await sync.flushOrThrow()
 
             await auth.signOut()
-
-            // Lokal gespeicherte Trainingsdaten löschen (wie von dir gewünscht)
             store.deleteAllData()
+
             print("🚪 SettingsProfileView: signOut completed (cloud synced, local wiped)")
         } catch {
             print("❌ SettingsProfileView: signOut blocked (flush failed):", error)
@@ -256,10 +240,8 @@ struct SettingsProfileView: View {
 
         do {
             try await auth.deleteAccountCompletely()
-
             store.deleteAllData()
             resetAppStateToFreshInstall()
-
         } catch {
             errorMessage = "Account konnte NICHT serverseitig gelöscht werden.\nFehler: \(error.localizedDescription)\n\nBitte erneut versuchen."
         }
@@ -270,7 +252,8 @@ struct SettingsProfileView: View {
         hasCreatedAccount = false
 
         storedEmail = ""
-        storedName = ""
+        storedFirstName = ""
+        storedLastName = ""
         storedGoal = ""
         onboardingGoal = ""
     }

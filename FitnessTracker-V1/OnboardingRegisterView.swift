@@ -4,153 +4,119 @@ import AuthenticationServices
 struct OnboardingRegisterView: View {
     @StateObject private var appleVM = AuthViewModel()
     @EnvironmentObject private var auth: SupabaseAuthManager
-    
-    // Onboarding/Profile Persistenz (lokal)
+
     @AppStorage("userEmail") private var storedEmail: String = ""
-    @AppStorage("userName") private var storedName: String = ""
+    @AppStorage("userFirstName") private var storedFirstName: String = ""
+    @AppStorage("userLastName") private var storedLastName: String = ""
     @AppStorage("userGoal") private var storedGoal: String = ""
+    @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
-    
-    @AppStorage("onboardingGoal") private var onboardingGoal: String = ""      // kommt aus Screen 2
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
-    
+
     @State private var errorMessage: String?
-    
+    @State private var isWorking: Bool = false
+
     var body: some View {
-        
-        
-        GeometryReader { geo in
-            ScrollView {
-                VStack(spacing: 20) {
-                    
-                    Text("Kostenlos Registrieren")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
-                    
-                    
-                    Spacer(minLength: 0)
-                    
-                    VStack(spacing: 10) {
-                        
-                        SignInWithAppleButton(
-                            .signUp,
-                            onRequest: appleVM.handleSignInWithAppleRequest,
-                            onCompletion: { result in
-                                Task {
-                                    do {
-                                        
-                                        // ✅ Lokal speichern (MVP)
-                                        let profile = try await appleVM.handleSignInWithAppleCompletionAndReturnProfile(
-                                            result,
-                                            authManager: auth
-                                        )
+        VStack(spacing: 16) {
+            Spacer()
 
-                                        // Flags
-                                        hasCreatedAccount = true
+            VStack(spacing: 10) {
+                Image(systemName: "icloud.and.arrow.up")
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundStyle(.blue)
 
-                                        // Ziel aus Onboarding
-                                        let goal = onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal
+                Text("Account erstellen")
+                    .font(.title)
+                    .fontWeight(.bold)
 
-                                        // Email/Name Fallbacks (Apple kann leer sein)
-                                        let email = profile.email.isEmpty ? auth.userEmail : profile.email
-                                        let name  = profile.name.isEmpty ? "User" : profile.name
-
-                                        // ✅ In Supabase speichern
-                                        try await auth.upsertProfile(email: email, name: name, goal: goal)
-
-                                        // ✅ Danach aus DB ziehen und lokal speichern
-                                        await auth.syncProfileFromBackendToLocal()
-
-                                        
-                                    } catch {
-                                        errorMessage = "Apple Login fehlgeschlagen: \(error.localizedDescription)"
-                                    }
-                                }
-                            }
-                        )
-                        .frame(height: 50)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .padding(.horizontal, 24)
-                        
-                        /*
-                         Text("Mit deiner Apple ID anmelden. Email+Passwort ist im MVP nicht verfügbar.")
-                         .font(.footnote)
-                         .foregroundStyle(.secondary)
-                         .multilineTextAlignment(.center)
-                         .padding(.horizontal, 32)
-                         .padding(.top, 4)
-                         */
-                        
-                        if let errorMessage {
-                            Text(errorMessage)
-                                .font(.subheadline)
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 24)
-                                .multilineTextAlignment(.center)
-                                .padding(.top, 8)
-                        }
-                        
-                        
-                    }
-                    
-                    //Spacer(minLength: 0)
-                    
-                    
-                    //.padding(.bottom, 8)
-                    
-                    
-                    
-                    VStack(spacing: 12) {
-                        
-                        
-                        HStack(spacing: 6) {
-                            Text("Du hast bereits einen Account?")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                            
-                            Button {
-                                // Nutzer hat schon einen Account -> AppRootView soll Login zeigen
-                                hasCreatedAccount = true
-                                hasCompletedOnboarding = true
-                            } label: {
-                                Text("Einloggen")
-                                    .font(.footnote)
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        
-                        Text("Durch die Registrierung stimmst du unseren AGB und der Datenschutzerklärung zu.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 24)
-                            .multilineTextAlignment(.center)
-                        //.padding(.bottom, 16)
-                    }
-                    //.padding(.bottom, 40)
-                }
-                .frame(minHeight: geo.size.height, alignment: .top)
+                Text("Damit deine Daten sicher gespeichert werden.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .font(.footnote)
+                    .padding(.horizontal, 24)
+                    .multilineTextAlignment(.center)
+            }
+
+            SignInWithAppleButton(
+                .continue,
+                onRequest: appleVM.handleSignInWithAppleRequest,
+                onCompletion: { result in
+                    Task { await handleRegister(result) }
+                }
+            )
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 52)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.horizontal, 24)
+
+            if isWorking {
+                ProgressView().padding(.top, 8)
+            }
+
+            VStack(spacing: 12) {
+                
+                
+                HStack(spacing: 6) {
+                    Text("Du hast bereits einen Account?")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                    Button {
+                        // Nutzer hat schon einen Account -> AppRootView soll Login zeigen
+                        hasCreatedAccount = true
+                        hasCompletedOnboarding = true
+                    } label: {
+                        Text("Einloggen")
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                    }
+                }
+                
+                Text("Durch die Registrierung stimmst du unseren AGB und der Datenschutzerklärung zu.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 24)
+                    .multilineTextAlignment(.center)
+                //.padding(.bottom, 16)
+            }
         }
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
-        .interactiveDismissDisabled(true)
-        
     }
-    
-}
 
+    @MainActor
+    private func handleRegister(_ result: Result<ASAuthorization, Error>) async {
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
 
-// MARK: - Previews
+        do {
+            let profile = try await appleVM.handleSignInWithAppleCompletionAndReturnProfile(result, authManager: auth)
 
-#Preview("Light Mode") {
-    OnboardingRegisterView()
-        .environmentObject(SupabaseAuthManager())
-}
+            let goal = storedGoal.isEmpty ? (onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal) : storedGoal
+            let email = profile.email.isEmpty ? auth.userEmail : profile.email
 
-#Preview("Dark Mode") {
-    OnboardingRegisterView()
-        .environmentObject(SupabaseAuthManager())
-        .preferredColorScheme(.dark)
+            // ✅ Vor-/Nachname kommen idealerweise aus AuthViewModel (first/last),
+            // falls du dort noch "name" hast, splitte es bitte dort – diese View erwartet first/last in Auth-Flow.
+            // Fürs Minimum setzen wir hier erstmal lokale Werte, die später durch sync überschrieben werden.
+            // (Wenn du AuthViewModel bereits umgebaut hast, passt es direkt.)
+            let fn = storedFirstName
+            let ln = storedLastName
+
+            try await auth.upsertProfile(email: email, firstName: fn, lastName: ln, goal: goal)
+            await auth.syncProfileFromBackendToLocal()
+
+            hasCompletedOnboarding = true
+            hasCreatedAccount = true
+        } catch {
+            errorMessage = "Apple Registrierung fehlgeschlagen: \(error.localizedDescription)"
+        }
+    }
 }
