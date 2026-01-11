@@ -49,11 +49,21 @@ struct FinalizeRegistrationView: View {
                 } header: {
                     Text("Deine Daten")
                 }
+                
+                
 
                 Section {
-                    Toggle("Ich möchte E-Mails mit Updates erhalten", isOn: $marketingOptIn)
+                    Toggle("Ich möchte E-Mails mit Updates erhalten.", isOn: $marketingOptIn)
                 }
+                
+                Text("Mit der Registrierung durch tippen auf 'Account erstellen' stimmst du unseren AGB und der Datenschutzerklärung zu.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
 
+                /*
                 Section {
                     if let termsURL {
                         Link("AGB anzeigen", destination: termsURL)
@@ -69,8 +79,13 @@ struct FinalizeRegistrationView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                 */
 
+               
+                
                 Section {
+                    
+                    /*
                     Button {
                         Task { await finalize() }
                     } label: {
@@ -82,6 +97,7 @@ struct FinalizeRegistrationView: View {
                         }
                     }
                     .disabled(isWorking)
+                     */
 
                     if let errorMessage {
                         Text(errorMessage)
@@ -90,13 +106,9 @@ struct FinalizeRegistrationView: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
                     }
-
-                    Text("Mit der Registrierung stimmst du unseren AGB und der Datenschutzerklärung zu.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
                 }
+                .listRowBackground(Color.clear)
+                
             }
         }
         .navigationTitle("Account erstellen")
@@ -118,6 +130,19 @@ struct FinalizeRegistrationView: View {
                         .font(.system(size: 17, weight: .semibold))
                 }
                 .disabled(isWorking)
+            }
+            
+            ToolbarItem(placement: .bottomBar) {
+                Button {
+                    Task { await finalize() }
+                } label: {
+                        Text(isWorking ? "Wird registriert…" : "Account erstellen")
+                            .fontWeight(.semibold)
+                }
+                .disabled(isWorking)
+                .buttonStyle(.borderedProminent)
+                .tint(Color(.systemBlue))
+                
             }
         }
 

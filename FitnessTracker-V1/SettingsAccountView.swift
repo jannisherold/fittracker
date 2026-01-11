@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SettingsProfileView: View {
+struct SettingsAccountView: View {
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var auth: SupabaseAuthManager
     @EnvironmentObject private var sync: SyncManager
@@ -180,9 +180,9 @@ struct SettingsProfileView: View {
 
             case .deleteProfile:
                 return Alert(
-                    title: Text("Profil wirklich löschen?"),
+                    title: Text("Account wirklich löschen?"),
                     message: Text("Dein Account (Supabase) und alle lokalen App-Daten werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden."),
-                    primaryButton: .destructive(Text("Profil löschen")) {
+                    primaryButton: .destructive(Text("Account löschen")) {
                         Task { await deleteProfile() }
                     },
                     secondaryButton: .cancel(Text("Abbrechen"))

@@ -9,7 +9,7 @@ struct SettingsView: View {
                 // MARK: - Konto
                 Section() {
                     NavigationLink {
-                        SettingsProfileView()
+                        SettingsAccountView()
                     } label: {
                         HStack(spacing: 10){
                             Image(systemName: "person.crop.circle")
@@ -18,7 +18,7 @@ struct SettingsView: View {
                                 .foregroundColor(.blue)
                             
                             VStack(alignment: .leading, spacing: 0) {
-                                Text("Profil")
+                                Text("Account")
                                     .font(.system(size: 20, weight: .semibold))
                                     
                                 Text("Persönliche Daten, Abonnement und mehr")
