@@ -12,6 +12,12 @@ struct OnboardingRegisterView: View {
     @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
+    @AppStorage("hasFinalizedRegistration") private var hasFinalizedRegistration: Bool = false
+
+    // Pending (wird nach SIWA vorbefüllt und in FinalizeRegistrationView bestätigt)
+    @AppStorage("pendingFirstName") private var pendingFirstName: String = ""
+    @AppStorage("pendingLastName") private var pendingLastName: String = ""
+    @AppStorage("pendingContactEmail") private var pendingContactEmail: String = ""
 
     @State private var errorMessage: String?
     @State private var isWorking: Bool = false
@@ -61,13 +67,12 @@ struct OnboardingRegisterView: View {
             }
 
             VStack(spacing: 12) {
-                
-                
+
                 HStack(spacing: 6) {
                     Text("Du hast bereits einen Account?")
                         .font(.footnote)
                         .foregroundColor(.secondary)
-                    
+
                     Button {
                         // Nutzer hat schon einen Account -> AppRootView soll Login zeigen
                         hasCreatedAccount = true
@@ -78,13 +83,12 @@ struct OnboardingRegisterView: View {
                             .fontWeight(.semibold)
                     }
                 }
-                
+
                 Text("Durch die Registrierung stimmst du unseren AGB und der Datenschutzerklärung zu.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 24)
                     .multilineTextAlignment(.center)
-                //.padding(.bottom, 16)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -101,20 +105,22 @@ struct OnboardingRegisterView: View {
             let profile = try await appleVM.handleSignInWithAppleCompletionAndReturnProfile(result, authManager: auth)
 
             let goal = storedGoal.isEmpty ? (onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal) : storedGoal
-            let email = profile.email.isEmpty ? auth.userEmail : profile.email
+            let contactEmail = profile.email.isEmpty ? auth.userEmail : profile.email
 
-            // ✅ Vor-/Nachname kommen idealerweise aus AuthViewModel (first/last),
-            // falls du dort noch "name" hast, splitte es bitte dort – diese View erwartet first/last in Auth-Flow.
-            // Fürs Minimum setzen wir hier erstmal lokale Werte, die später durch sync überschrieben werden.
-            // (Wenn du AuthViewModel bereits umgebaut hast, passt es direkt.)
-            let fn = storedFirstName
-            let ln = storedLastName
+            // ✅ Ab hier NICHT sofort in `profiles` schreiben.
+            // Wir füllen nur die Pending-Infos vor, die der Nutzer im nächsten Screen bestätigt.
+            // (Registrierung ist erst nach Finalisierung abgeschlossen.)
+            let fn = profile.firstName.isEmpty ? storedFirstName : profile.firstName
+            let ln = profile.lastName.isEmpty ? storedLastName : profile.lastName
 
-            try await auth.upsertProfile(email: email, firstName: fn, lastName: ln, goal: goal)
-            await auth.syncProfileFromBackendToLocal()
+            pendingFirstName = fn
+            pendingLastName = ln
+            pendingContactEmail = contactEmail
+            storedGoal = goal
 
+            // Wichtig: AppRootView zeigt nun FinalizeRegistrationView, solange hasFinalizedRegistration == false.
+            hasFinalizedRegistration = false
             hasCompletedOnboarding = true
-            hasCreatedAccount = true
         } catch {
             errorMessage = "Apple Registrierung fehlgeschlagen: \(error.localizedDescription)"
         }

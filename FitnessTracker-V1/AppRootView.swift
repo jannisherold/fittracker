@@ -5,11 +5,18 @@ struct AppRootView: View {
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
+    @AppStorage("hasFinalizedRegistration") private var hasFinalizedRegistration: Bool = false
 
     var body: some View {
         if auth.isLoggedIn {
-            // ✅ Angemeldet -> Tabbar (Tabs haben ihre eigenen NavigationStacks)
-            RootTabView()
+            // ✅ Angemeldet -> Registrierung finalisieren ODER Tabbar (Tabs haben ihre eigenen NavigationStacks)
+            if hasFinalizedRegistration {
+                RootTabView()
+            } else {
+                NavigationStack {
+                    FinalizeRegistrationView()
+                }
+            }
         } else {
             // ✅ Abgemeldet -> eigener NavigationStack nur für Auth/Onboarding
             NavigationStack {

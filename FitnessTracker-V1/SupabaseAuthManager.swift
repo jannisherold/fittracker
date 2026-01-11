@@ -19,6 +19,14 @@ final class SupabaseAuthManager: ObservableObject {
         static let userGoal  = "userGoal"
         static let onboardingGoal = "onboardingGoal"
 
+        // Registration Gate
+        static let hasFinalizedRegistration = "hasFinalizedRegistration"
+
+        // Pending Registration (nach SIWA, vor Finalize Screen)
+        static let pendingFirstName = "pendingFirstName"
+        static let pendingLastName = "pendingLastName"
+        static let pendingContactEmail = "pendingContactEmail"
+
         // Legacy (alte Builds)
         static let userNameLegacy  = "userName"
     }
@@ -72,8 +80,16 @@ final class SupabaseAuthManager: ObservableObject {
 
         session = nil
         clearLocalProfile()
+        clearRegistrationGate()
         SyncStateStore.reset()
         print("🚪 signOut: local profile + sync state cleared")
+    }
+
+    private func clearRegistrationGate() {
+        UserDefaults.standard.set(false, forKey: Keys.hasFinalizedRegistration)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingFirstName)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingLastName)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingContactEmail)
     }
 
     // MARK: - Apple Sign In
@@ -94,10 +110,15 @@ final class SupabaseAuthManager: ObservableObject {
     struct ProfileRow: Codable {
         let id: String
         let email: String?
+        let contact_email: String?
         let first_name: String?
         let last_name: String?
         let name: String? // optional legacy/compat
         let goal: String?
+        let marketing_opt_in: Bool?
+        let marketing_opt_in_at: String?
+        let terms_accepted_at: String?
+        let privacy_accepted_at: String?
         let created_at: String?
         let updated_at: String?
     }
@@ -140,14 +161,85 @@ final class SupabaseAuthManager: ObservableObject {
             .execute()
     }
 
+    /// Finaler Registrierungsschritt (Variante 1):
+    /// - schreibt Profil + Consent-Felder in `profiles`
+    /// - setzt danach lokal `hasFinalizedRegistration = true`
+    ///
+    /// ⚠️ Voraussetzung: In deiner Supabase-Tabelle `profiles` müssen folgende Spalten existieren:
+    /// `contact_email`, `marketing_opt_in`, `marketing_opt_in_at`, `terms_accepted_at`, `privacy_accepted_at`.
+    func finalizeRegistration(
+        contactEmail: String,
+        firstName: String,
+        lastName: String,
+        goal: String,
+        marketingOptIn: Bool
+    ) async throws {
+        guard let userId = session?.user.id.uuidString else {
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kein User eingeloggt"])
+        }
+
+        let fn = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ln = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fullName = ([fn, ln].filter { !$0.isEmpty }).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        struct UpsertRow: Encodable {
+            let id: String
+            let email: String
+            let contact_email: String
+            let first_name: String
+            let last_name: String
+            let name: String
+            let goal: String
+            let marketing_opt_in: Bool
+            let marketing_opt_in_at: String?
+            let terms_accepted_at: String
+            let privacy_accepted_at: String
+            let updated_at: String
+        }
+
+        let row = UpsertRow(
+            id: userId,
+            email: userEmail,
+            contact_email: contactEmail,
+            first_name: fn,
+            last_name: ln,
+            name: fullName,
+            goal: goal,
+            marketing_opt_in: marketingOptIn,
+            marketing_opt_in_at: marketingOptIn ? now : nil,
+            terms_accepted_at: now,
+            privacy_accepted_at: now,
+            updated_at: now
+        )
+
+        print("✅ finalizeRegistration: upsert profile+consents userId=\(userId) marketing=\(marketingOptIn)")
+        _ = try await client
+            .from("profiles")
+            .upsert(row, onConflict: "id")
+            .execute()
+
+        // Backend -> Lokal
+        await syncProfileFromBackendToLocal()
+
+        // Gate öffnen
+        UserDefaults.standard.set(true, forKey: Keys.hasFinalizedRegistration)
+
+        // Pending Felder leeren
+        UserDefaults.standard.removeObject(forKey: Keys.pendingFirstName)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingLastName)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingContactEmail)
+    }
+
     /// Lädt Profil aus `profiles` und schreibt es in UserDefaults (-> @AppStorage aktualisiert sich)
     func syncProfileFromBackendToLocal() async {
         guard let userId = session?.user.id.uuidString else { return }
 
         do {
+            // 1) Neuer Schema-Select (inkl. Consent-Felder)
             let response = try await client
                 .from("profiles")
-                .select("id,email,first_name,last_name,name,goal,created_at,updated_at")
+                .select("id,email,contact_email,first_name,last_name,name,goal,marketing_opt_in,marketing_opt_in_at,terms_accepted_at,privacy_accepted_at,created_at,updated_at")
                 .eq("id", value: userId)
                 .single()
                 .execute()
@@ -170,9 +262,46 @@ final class SupabaseAuthManager: ObservableObject {
                 goal: profile.goal ?? fallbackGoal
             )
 
+            // Registrierung gilt als final, wenn Consent gesetzt ist.
+            let finalized = (profile.terms_accepted_at ?? "").isEmpty == false
+            UserDefaults.standard.set(finalized, forKey: Keys.hasFinalizedRegistration)
+
             print("👤 syncProfileFromBackendToLocal OK first=\(resolvedFirst) last=\(resolvedLast) goal=\(profile.goal ?? "nil")")
         } catch {
-            print("⚠️ syncProfileFromBackendToLocal failed (ignored): \(error)")
+            // 2) Fallback: älteres Schema (falls Spalten noch nicht angelegt sind)
+            do {
+                let response = try await client
+                    .from("profiles")
+                    .select("id,email,first_name,last_name,name,goal,created_at,updated_at")
+                    .eq("id", value: userId)
+                    .single()
+                    .execute()
+
+                let profile = try JSONDecoder().decode(ProfileRow.self, from: response.data)
+
+                let fallbackGoal = UserDefaults.standard.string(forKey: Keys.onboardingGoal) ?? "Überspringen"
+                let (fallbackFirst, fallbackLast) = splitNameFallback(profile.name)
+
+                let first = (profile.first_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let last  = (profile.last_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+                let resolvedFirst = first.isEmpty ? fallbackFirst : first
+                let resolvedLast  = last.isEmpty ? fallbackLast : last
+
+                setLocalProfile(
+                    email: profile.email ?? userEmail,
+                    firstName: resolvedFirst,
+                    lastName: resolvedLast,
+                    goal: profile.goal ?? fallbackGoal
+                )
+
+                // Legacy-Profil ohne Consent-Felder: wir lassen den Nutzer wie bisher rein.
+                UserDefaults.standard.set(true, forKey: Keys.hasFinalizedRegistration)
+
+                print("👤 syncProfileFromBackendToLocal (legacy) OK first=\(resolvedFirst) last=\(resolvedLast)")
+            } catch {
+                print("⚠️ syncProfileFromBackendToLocal failed (ignored): \(error)")
+            }
         }
     }
 
@@ -191,6 +320,10 @@ final class SupabaseAuthManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Keys.userLastName)
         UserDefaults.standard.removeObject(forKey: Keys.userGoal)
         UserDefaults.standard.removeObject(forKey: Keys.userNameLegacy)
+        UserDefaults.standard.set(false, forKey: Keys.hasFinalizedRegistration)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingFirstName)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingLastName)
+        UserDefaults.standard.removeObject(forKey: Keys.pendingContactEmail)
         // onboardingGoal lassen wir bewusst stehen
     }
 
