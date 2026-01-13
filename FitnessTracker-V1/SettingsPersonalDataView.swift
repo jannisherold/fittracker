@@ -34,6 +34,8 @@ struct SettingsPersonalDataView: View {
     @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
+    @State private var isSavingMarketingOptIn = false
+
 
     @StateObject private var network = NetworkMonitor()
 
@@ -168,9 +170,16 @@ struct SettingsPersonalDataView: View {
                         Task { await saveMarketingOptIn(newValue, previous: previous) }
                     }
                 )) {
-                    Text("Update-E-Mails")
+                    HStack(spacing: 8) {
+                        Text("Update-E-Mails")
+                        if isSavingMarketingOptIn {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
                 }
-                .disabled(!network.isConnected || isWorking)
+                .disabled(!network.isConnected || isSavingMarketingOptIn || isWorking)
+
             } footer: {
                 if !network.isConnected {
                     Text("Du bist offline. Änderungen sind nur mit Internetverbindung möglich.")
@@ -364,6 +373,36 @@ struct SettingsPersonalDataView: View {
             errorMessage = "Name konnte nicht gespeichert werden: \(error.localizedDescription)"
         }
     }
+    
+    private func isPlausibleEmail(_ input: String) -> Bool {
+        let email = input.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Basic constraints
+        if email.isEmpty || email.count > 254 { return false }
+        if email.contains(" ") { return false }
+        if email.contains("..") { return false }
+
+        // Exactly one "@"
+        let parts = email.split(separator: "@", omittingEmptySubsequences: false)
+        if parts.count != 2 { return false }
+
+        let local = String(parts[0])
+        let domain = String(parts[1])
+
+        // Local + domain must be non-empty
+        if local.isEmpty || domain.isEmpty { return false }
+
+        // Local part max length (common constraint)
+        if local.count > 64 { return false }
+
+        // Domain must contain a dot and a plausible TLD
+        if !domain.contains(".") { return false }
+
+        // Quick regex (conservative, not RFC-perfect by design)
+        let pattern = #"^[A-Z0-9a-z._%+\-']+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"#
+        return email.range(of: pattern, options: .regularExpression) != nil
+    }
+
 
     @MainActor
     private func saveContactEmail() async {
@@ -375,10 +414,11 @@ struct SettingsPersonalDataView: View {
 
         let mail = contactEmailDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !mail.isEmpty, mail.contains("@") else {
+        guard isPlausibleEmail(mail) else {
             errorMessage = "Bitte gib eine gültige Kontakt E-Mail ein."
             return
         }
+
 
         do {
             try await auth.updateContactPreferences(contactEmail: mail, marketingOptIn: nil)
@@ -396,8 +436,8 @@ struct SettingsPersonalDataView: View {
         }
 
         errorMessage = nil
-        isWorking = true
-        defer { isWorking = false }
+        isSavingMarketingOptIn = true
+        defer { isSavingMarketingOptIn = false }
 
         do {
             try await auth.updateContactPreferences(contactEmail: nil, marketingOptIn: newValue)
@@ -406,6 +446,7 @@ struct SettingsPersonalDataView: View {
             errorMessage = "Einstellung konnte nicht gespeichert werden: \(error.localizedDescription)"
         }
     }
+
 
     @MainActor
     private func deleteAccount() async {
