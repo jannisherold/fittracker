@@ -29,6 +29,8 @@ struct SettingsPersonalDataView: View {
     @AppStorage("userFirstName") private var storedFirstName: String = ""
     @AppStorage("userLastName") private var storedLastName: String = ""
     @AppStorage("userGoal") private var storedGoal: String = ""
+    @AppStorage("userContactEmail") private var storedContactEmail: String = ""
+    @AppStorage("userMarketingOptIn") private var storedMarketingOptIn: Bool = false
     @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
@@ -38,6 +40,9 @@ struct SettingsPersonalDataView: View {
     @State private var isEditingName = false
     @State private var firstDraft = ""
     @State private var lastDraft = ""
+
+    @State private var isEditingContactEmail = false
+    @State private var contactEmailDraft = ""
 
     @State private var isWorking = false
     @State private var errorMessage: String?
@@ -50,7 +55,7 @@ struct SettingsPersonalDataView: View {
         case last
     }
     @FocusState private var focusedNameField: NameField?
-    
+
     private struct NameValidationResult {
         let value: String
         let error: String?
@@ -98,12 +103,16 @@ struct SettingsPersonalDataView: View {
         return .init(value: value, error: nil)
     }
 
-
     private var displayEmail: String {
         let supa = auth.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !supa.isEmpty { return supa }
         if !storedEmail.isEmpty { return storedEmail }
         return ""
+    }
+
+    private var displayContactEmail: String {
+        let v = storedContactEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return v.isEmpty ? "—" : v
     }
 
     private var displayName: String {
@@ -130,6 +139,36 @@ struct SettingsPersonalDataView: View {
                             .font(.footnote)
                             .foregroundStyle(.tertiary)
                     }
+                }
+                .disabled(!network.isConnected || isWorking)
+
+                Button {
+                    contactEmailDraft = storedContactEmail.isEmpty ? displayEmail : storedContactEmail
+                    isEditingContactEmail = true
+                } label: {
+                    HStack {
+                        Text("Kontakt E-Mail")
+                        Spacer()
+                        Text(displayContactEmail)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .disabled(!network.isConnected || isWorking)
+
+                Toggle(isOn: Binding(
+                    get: { storedMarketingOptIn },
+                    set: { newValue in
+                        let previous = storedMarketingOptIn
+                        storedMarketingOptIn = newValue
+                        Task { await saveMarketingOptIn(newValue, previous: previous) }
+                    }
+                )) {
+                    Text("Update-E-Mails")
                 }
                 .disabled(!network.isConnected || isWorking)
             } footer: {
@@ -227,7 +266,6 @@ struct SettingsPersonalDataView: View {
                     }
                 }
                 .scrollDismissesKeyboard(.immediately)
-                //.navigationTitle("Name ändern")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -247,9 +285,40 @@ struct SettingsPersonalDataView: View {
                     }
                 }
                 .onAppear {
-                    // Apple-native Fokus statt UIKit-Wrapper
                     DispatchQueue.main.async {
                         focusedNameField = .first
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isEditingContactEmail) {
+            NavigationStack {
+                Form {
+                    Section {
+                        TextField("Kontakt E-Mail", text: $contactEmailDraft)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                }
+                .scrollDismissesKeyboard(.immediately)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Abbrechen") { isEditingContactEmail = false }
+                            .disabled(isWorking)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Speichern") {
+                            Task { await saveContactEmail() }
+                        }
+                        .foregroundColor(.blue)
+                        .disabled(
+                            isWorking ||
+                            !network.isConnected ||
+                            contactEmailDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
                     }
                 }
             }
@@ -271,8 +340,6 @@ struct SettingsPersonalDataView: View {
         }
 
         let lastNormalized = normalizeNameInput(lastDraft)
-        // Nachname darf optional leer sein? Wenn du willst, kannst du ihn auch verpflichtend machen.
-        // Hier: optional, aber wenn gesetzt, dann validieren.
         var ln = ""
         if !lastNormalized.isEmpty {
             let lastCheck = validateNameField(lastDraft, fieldLabel: "Nachname")
@@ -285,7 +352,6 @@ struct SettingsPersonalDataView: View {
 
         let fn = firstCheck.value
 
-
         do {
             let goal = storedGoal.isEmpty ? (onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal) : storedGoal
             let email = displayEmail.isEmpty ? auth.userEmail : displayEmail
@@ -296,6 +362,48 @@ struct SettingsPersonalDataView: View {
             isEditingName = false
         } catch {
             errorMessage = "Name konnte nicht gespeichert werden: \(error.localizedDescription)"
+        }
+    }
+
+    @MainActor
+    private func saveContactEmail() async {
+        guard network.isConnected else { return }
+
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+
+        let mail = contactEmailDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !mail.isEmpty, mail.contains("@") else {
+            errorMessage = "Bitte gib eine gültige Kontakt E-Mail ein."
+            return
+        }
+
+        do {
+            try await auth.updateContactPreferences(contactEmail: mail, marketingOptIn: nil)
+            isEditingContactEmail = false
+        } catch {
+            errorMessage = "Kontakt E-Mail konnte nicht gespeichert werden: \(error.localizedDescription)"
+        }
+    }
+
+    @MainActor
+    private func saveMarketingOptIn(_ newValue: Bool, previous: Bool) async {
+        guard network.isConnected else {
+            storedMarketingOptIn = previous
+            return
+        }
+
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+
+        do {
+            try await auth.updateContactPreferences(contactEmail: nil, marketingOptIn: newValue)
+        } catch {
+            storedMarketingOptIn = previous
+            errorMessage = "Einstellung konnte nicht gespeichert werden: \(error.localizedDescription)"
         }
     }
 
@@ -318,6 +426,8 @@ struct SettingsPersonalDataView: View {
             storedFirstName = ""
             storedLastName = ""
             storedGoal = ""
+            storedContactEmail = ""
+            storedMarketingOptIn = false
             onboardingGoal = ""
         } catch {
             errorMessage = "Account konnte nicht gelöscht werden: \(error.localizedDescription)"

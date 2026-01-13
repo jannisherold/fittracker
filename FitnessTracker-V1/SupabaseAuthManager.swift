@@ -17,6 +17,8 @@ final class SupabaseAuthManager: ObservableObject {
         static let userFirstName = "userFirstName"
         static let userLastName  = "userLastName"
         static let userGoal  = "userGoal"
+        static let userContactEmail = "userContactEmail"
+        static let userMarketingOptIn = "userMarketingOptIn"
         static let onboardingGoal = "onboardingGoal"
 
         // Registration Gate
@@ -259,7 +261,9 @@ final class SupabaseAuthManager: ObservableObject {
                 email: profile.email ?? userEmail,
                 firstName: resolvedFirst,
                 lastName: resolvedLast,
-                goal: profile.goal ?? fallbackGoal
+                goal: profile.goal ?? fallbackGoal,
+                contactEmail: (profile.contact_email ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                marketingOptIn: profile.marketing_opt_in ?? false
             )
 
             // Registrierung gilt als final, wenn Consent gesetzt ist.
@@ -292,7 +296,9 @@ final class SupabaseAuthManager: ObservableObject {
                     email: profile.email ?? userEmail,
                     firstName: resolvedFirst,
                     lastName: resolvedLast,
-                    goal: profile.goal ?? fallbackGoal
+                    goal: profile.goal ?? fallbackGoal,
+                    contactEmail: (profile.contact_email ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                    marketingOptIn: profile.marketing_opt_in ?? false
                 )
 
                 // Legacy-Profil ohne Consent-Felder: wir lassen den Nutzer wie bisher rein.
@@ -307,11 +313,20 @@ final class SupabaseAuthManager: ObservableObject {
 
     // MARK: - Local Profile Storage (UserDefaults)
 
-    func setLocalProfile(email: String, firstName: String, lastName: String, goal: String) {
+    func setLocalProfile(
+        email: String,
+        firstName: String,
+        lastName: String,
+        goal: String,
+        contactEmail: String = "",
+        marketingOptIn: Bool = false
+    ) {
         UserDefaults.standard.set(email, forKey: Keys.userEmail)
         UserDefaults.standard.set(firstName, forKey: Keys.userFirstName)
         UserDefaults.standard.set(lastName, forKey: Keys.userLastName)
         UserDefaults.standard.set(goal, forKey: Keys.userGoal)
+        UserDefaults.standard.set(contactEmail, forKey: Keys.userContactEmail)
+        UserDefaults.standard.set(marketingOptIn, forKey: Keys.userMarketingOptIn)
     }
 
     func clearLocalProfile() {
@@ -319,6 +334,8 @@ final class SupabaseAuthManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Keys.userFirstName)
         UserDefaults.standard.removeObject(forKey: Keys.userLastName)
         UserDefaults.standard.removeObject(forKey: Keys.userGoal)
+        UserDefaults.standard.removeObject(forKey: Keys.userContactEmail)
+        UserDefaults.standard.removeObject(forKey: Keys.userMarketingOptIn)
         UserDefaults.standard.removeObject(forKey: Keys.userNameLegacy)
         UserDefaults.standard.set(false, forKey: Keys.hasFinalizedRegistration)
         UserDefaults.standard.removeObject(forKey: Keys.pendingFirstName)
@@ -347,6 +364,53 @@ final class SupabaseAuthManager: ObservableObject {
         let parts = s.split(separator: " ").map(String.init)
         if parts.count == 1 { return (parts[0], "") }
         return (parts.first ?? "", parts.dropFirst().joined(separator: " "))
+    }
+
+    // MARK: - Contact Email / Update Mails
+
+    /// Aktualisiert `contact_email` und/oder `marketing_opt_in` im Profil.
+    /// - Parameters:
+    ///   - contactEmail: Wenn gesetzt, wird `contact_email` aktualisiert.
+    ///   - marketingOptIn: Wenn gesetzt, wird `marketing_opt_in` aktualisiert (inkl. Timestamp, wenn von false -> true).
+    func updateContactPreferences(contactEmail: String? = nil, marketingOptIn: Bool? = nil) async throws {
+        guard let userId = session?.user.id.uuidString else {
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kein User eingeloggt"])
+        }
+
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        // Wenn Opt-In auf true wechselt, setzen wir einmalig ein Datum.
+        let currentOptIn = UserDefaults.standard.bool(forKey: Keys.userMarketingOptIn)
+        let shouldSetOptInAt = (marketingOptIn == true && currentOptIn == false)
+
+        struct UpdateRow: Encodable {
+            let id: String
+            let email: String
+            let contact_email: String?
+            let marketing_opt_in: Bool?
+            let marketing_opt_in_at: String?
+            let updated_at: String
+        }
+
+        let row = UpdateRow(
+            id: userId,
+            email: userEmail,
+            contact_email: contactEmail,
+            marketing_opt_in: marketingOptIn,
+            marketing_opt_in_at: shouldSetOptInAt ? now : nil,
+            updated_at: now
+        )
+
+        let contactDesc = contactEmail ?? "<unchanged>"
+        let marketingDesc = marketingOptIn == nil ? "<unchanged>" : String(marketingOptIn!)
+        print("✉️ updateContactPreferences userId=\(userId) contact=\(contactDesc) marketing=\(marketingDesc)")
+
+        _ = try await client
+            .from("profiles")
+            .upsert(row, onConflict: "id")
+            .execute()
+
+        await syncProfileFromBackendToLocal()
     }
 
     // MARK: - Delete Account
