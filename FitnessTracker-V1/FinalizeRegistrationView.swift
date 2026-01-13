@@ -53,7 +53,7 @@ struct FinalizeRegistrationView: View {
                 
 
                 Section {
-                    Toggle("Ich möchte E-Mails mit Updates erhalten.", isOn: $marketingOptIn)
+                    Toggle("Ich möchte per E-Mail über Updates informiert werden.", isOn: $marketingOptIn)
                 }
                 
                 Text("Mit der Registrierung durch tippen auf 'Account erstellen' stimmst du unseren AGB und der Datenschutzerklärung zu.")

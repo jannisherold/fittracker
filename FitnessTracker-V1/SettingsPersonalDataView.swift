@@ -162,6 +162,8 @@ struct SettingsPersonalDataView: View {
                 }
                 .disabled(!network.isConnected || isWorking)
 
+                //In MVP nicht verfügbar, zu komplex der SYNC mit Mail Programm
+                /*
                 Toggle(isOn: Binding(
                     get: { storedMarketingOptIn },
                     set: { newValue in
@@ -179,6 +181,7 @@ struct SettingsPersonalDataView: View {
                     }
                 }
                 .disabled(!network.isConnected || isSavingMarketingOptIn || isWorking)
+                */
 
             } footer: {
                 if !network.isConnected {
