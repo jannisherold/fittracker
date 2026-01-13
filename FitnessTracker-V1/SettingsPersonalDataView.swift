@@ -21,47 +21,6 @@ final class NetworkMonitor: ObservableObject {
     deinit { monitor.cancel() }
 }
 
-struct FirstResponderTextField: UIViewRepresentable {
-    @Binding var text: String
-    var placeholder: String
-    var capitalization: UITextAutocapitalizationType = .words
-
-    func makeUIView(context: Context) -> UITextField {
-        let tf = UITextField(frame: .zero)
-        tf.delegate = context.coordinator
-        tf.placeholder = placeholder
-        tf.text = text
-        tf.clearButtonMode = .whileEditing
-        tf.autocapitalizationType = capitalization
-        tf.autocorrectionType = .no
-        tf.returnKeyType = .done
-        tf.font = UIFont.systemFont(ofSize: 22, weight: .regular)
-
-        DispatchQueue.main.async { tf.becomeFirstResponder() }
-        return tf
-    }
-
-    func updateUIView(_ uiView: UITextField, context: Context) {
-        if uiView.text != text { uiView.text = text }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    final class Coordinator: NSObject, UITextFieldDelegate {
-        let parent: FirstResponderTextField
-        init(_ parent: FirstResponderTextField) { self.parent = parent }
-
-        func textFieldDidChangeSelection(_ textField: UITextField) {
-            parent.text = textField.text ?? ""
-        }
-
-        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-            textField.resignFirstResponder()
-            return true
-        }
-    }
-}
-
 struct SettingsPersonalDataView: View {
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var auth: SupabaseAuthManager
@@ -85,6 +44,60 @@ struct SettingsPersonalDataView: View {
 
     @State private var showResetBodyweightConfirm = false
     @State private var showDeleteAccountConfirm = false
+
+    private enum NameField: Hashable {
+        case first
+        case last
+    }
+    @FocusState private var focusedNameField: NameField?
+    
+    private struct NameValidationResult {
+        let value: String
+        let error: String?
+    }
+
+    private func normalizeNameInput(_ s: String) -> String {
+        // Trim + Mehrfachspaces reduzieren
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Split auf Whitespaces/Newlines und wieder mit einem Space zusammenfügen
+        let parts = trimmed.split(whereSeparator: { $0.isWhitespace || $0.isNewline })
+        return parts.joined(separator: " ")
+    }
+
+    private func validateNameField(_ raw: String, fieldLabel: String) -> NameValidationResult {
+        let value = normalizeNameInput(raw)
+
+        // Länge
+        if value.isEmpty {
+            return .init(value: value, error: "\(fieldLabel) darf nicht leer sein.")
+        }
+        if value.count > 50 {
+            return .init(value: value, error: "\(fieldLabel) ist zu lang (max. 50 Zeichen).")
+        }
+
+        // Zeichen erlauben: Buchstaben + Space + - + ' + ’
+        // \p{L} = alle Unicode-Letters (inkl. Umlaute, Akzente, nicht-lateinische Alphabete)
+        // Wir erlauben außerdem Leerzeichen, Bindestrich, Apostroph.
+        let pattern = #"^[\p{L}][\p{L}\s\-'\u{2019}]*$"#
+
+        if value.range(of: pattern, options: [.regularExpression]) == nil {
+            return .init(
+                value: value,
+                error: "\(fieldLabel) enthält unzulässige Zeichen. Erlaubt sind nur Buchstaben, Leerzeichen, Bindestrich und Apostroph."
+            )
+        }
+
+        // Optional: keine doppelten Sonderzeichen am Ende/Anfang (z.B. "-" am Ende)
+        if let first = value.first, let last = value.last {
+            let forbiddenEdgeChars: Set<Character> = ["-", "'", "’", " "]
+            if forbiddenEdgeChars.contains(first) || forbiddenEdgeChars.contains(last) {
+                return .init(value: value, error: "\(fieldLabel) darf nicht mit Leerzeichen, Bindestrich oder Apostroph beginnen/enden.")
+            }
+        }
+
+        return .init(value: value, error: nil)
+    }
+
 
     private var displayEmail: String {
         let supa = auth.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -196,31 +209,25 @@ struct SettingsPersonalDataView: View {
         }
         .sheet(isPresented: $isEditingName) {
             NavigationStack {
-                VStack(spacing: 14) {
-                    VStack(spacing: 10) {
-                        FirstResponderTextField(text: $firstDraft, placeholder: "Vorname")
-                            .frame(height: 44)
-                            .padding(.horizontal, 14)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                Form {
+                    Section {
+                        TextField("Vorname", text: $firstDraft)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                            .submitLabel(.next)
+                            .focused($focusedNameField, equals: .first)
+                            .onSubmit { focusedNameField = .last }
 
-                        FirstResponderTextField(text: $lastDraft, placeholder: "Nachname")
-                            .frame(height: 44)
-                            .padding(.horizontal, 14)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        TextField("Nachname", text: $lastDraft)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                            .submitLabel(.done)
+                            .focused($focusedNameField, equals: .last)
+                            .onSubmit { focusedNameField = nil }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-
-                    Text("Apple liefert Vor- und Nachname oft nur beim ersten Login. Deshalb pflegen wir sie hier separat.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 16)
-
-                    Spacer()
                 }
-                .navigationTitle("Name ändern")
+                .scrollDismissesKeyboard(.immediately)
+                //.navigationTitle("Name ändern")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -231,7 +238,18 @@ struct SettingsPersonalDataView: View {
                         Button("Speichern") {
                             Task { await saveName() }
                         }
-                        .disabled(isWorking || !network.isConnected || firstDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .foregroundColor(.blue)
+                        .disabled(
+                            isWorking ||
+                            !network.isConnected ||
+                            firstDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
+                    }
+                }
+                .onAppear {
+                    // Apple-native Fokus statt UIKit-Wrapper
+                    DispatchQueue.main.async {
+                        focusedNameField = .first
                     }
                 }
             }
@@ -246,8 +264,27 @@ struct SettingsPersonalDataView: View {
         isWorking = true
         defer { isWorking = false }
 
-        let fn = firstDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        let ln = lastDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let firstCheck = validateNameField(firstDraft, fieldLabel: "Vorname")
+        if let err = firstCheck.error {
+            errorMessage = err
+            return
+        }
+
+        let lastNormalized = normalizeNameInput(lastDraft)
+        // Nachname darf optional leer sein? Wenn du willst, kannst du ihn auch verpflichtend machen.
+        // Hier: optional, aber wenn gesetzt, dann validieren.
+        var ln = ""
+        if !lastNormalized.isEmpty {
+            let lastCheck = validateNameField(lastDraft, fieldLabel: "Nachname")
+            if let err = lastCheck.error {
+                errorMessage = err
+                return
+            }
+            ln = lastCheck.value
+        }
+
+        let fn = firstCheck.value
+
 
         do {
             let goal = storedGoal.isEmpty ? (onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal) : storedGoal
