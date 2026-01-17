@@ -415,7 +415,10 @@ final class SupabaseAuthManager: ObservableObject {
 
     // MARK: - Delete Account
 
-    /// Löscht: 1) user_data row 2) profile row 3) Auth-User 4) lokal alles
+    /// Löscht den Account serverseitig (Edge Function mit Service Role):
+    /// - löscht alle zugehörigen Rows (profiles, user_data, …)
+    /// - löscht anschließend den Auth-User
+    /// - räumt lokal auf
     func deleteAccountCompletely() async throws {
         guard let userId = session?.user.id.uuidString else {
             throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Kein User eingeloggt"])
@@ -423,51 +426,37 @@ final class SupabaseAuthManager: ObservableObject {
 
         print("🗑️ deleteAccountCompletely userId=\(userId)")
 
-        // 1) user_data row löschen
+        // 1) Edge Function aufrufen (benötigt Internet)
+        try await deleteAccountViaEdgeFunction()
+        print("🗑️ deleteAccountCompletely: edge function success")
+
+        // 2) Lokal ausloggen (Tokens/Session entfernen)
         do {
-            _ = try await client
-                .from("user_data")
-                .delete()
-                .eq("user_id", value: userId)
-                .execute()
-            print("🗑️ deleteAccountCompletely: user_data deleted")
+            try await client.auth.signOut()
         } catch {
-            print("⚠️ deleteAccountCompletely: user_data delete failed (continuing): \(error)")
+            // Falls der User bereits gelöscht ist, kann signOut fehlschlagen – ist ok.
+            print("⚠️ deleteAccountCompletely: signOut failed (continuing): \(error)")
         }
 
-        // 2) profile row löschen
-        do {
-            _ = try await client
-                .from("profiles")
-                .delete()
-                .eq("id", value: userId)
-                .execute()
-            print("🗑️ deleteAccountCompletely: profile deleted")
-        } catch {
-            print("⚠️ deleteAccountCompletely: profile delete failed (continuing): \(error)")
-        }
-
-        // 3) Auth-User löschen (GoTrue Endpoint)
-        try await deleteCurrentUserViaGoTrue()
-        print("🗑️ deleteAccountCompletely: auth user deleted")
-
-        // 4) Lokal alles
+        // 3) Lokal alles
         clearLocalProfile()
         SyncStateStore.reset()
         session = nil
     }
 
-    /// GoTrue `DELETE /auth/v1/user` (Self-Delete).
-    private func deleteCurrentUserViaGoTrue() async throws {
+    /// Ruft die Supabase Edge Function `delete-account` auf, die serverseitig mit Service Role
+    /// a) alle App-Daten löscht und b) den Auth-User entfernt.
+    private func deleteAccountViaEdgeFunction() async throws {
         let currentSession = try await client.auth.session
 
-        let url = SupabaseConfig.url.appendingPathComponent("auth/v1/user")
+        let url = SupabaseConfig.url.appendingPathComponent("functions/v1/delete-account")
         var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
+        request.httpMethod = "POST"
         request.setValue("Bearer \(currentSession.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = Data("{}".utf8)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -480,7 +469,7 @@ final class SupabaseAuthManager: ObservableObject {
             throw NSError(
                 domain: "Auth",
                 code: http.statusCode,
-                userInfo: [NSLocalizedDescriptionKey: "Auth-Delete fehlgeschlagen (HTTP \(http.statusCode)): \(body)"]
+                userInfo: [NSLocalizedDescriptionKey: "Account-Löschung fehlgeschlagen (HTTP \(http.statusCode)): \(body)"]
             )
         }
     }
