@@ -8,9 +8,10 @@ struct SettingsAccountView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
 
-    @AppStorage("userEmail") private var storedEmail: String = ""
+    
     @AppStorage("userFirstName") private var storedFirstName: String = ""
     @AppStorage("userLastName") private var storedLastName: String = ""
+    @AppStorage("userContactEmail") private var storedContactEmail: String = ""
 
     @AppStorage("userGoal") private var storedGoal: String = ""
     @AppStorage("onboardingGoal") private var onboardingGoal: String = ""
@@ -39,18 +40,13 @@ struct SettingsAccountView: View {
     ]
 
     private var displayName: String {
-        let full = ([storedFirstName, storedLastName]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " "))
+        let full = ([storedFirstName, storedLastName].filter { !$0.isEmpty }).joined(separator: " ")
         return full.isEmpty ? "—" : full
     }
 
-    private var displayEmail: String {
-        let supa = auth.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !supa.isEmpty { return supa }
-        if !storedEmail.isEmpty { return storedEmail }
-        return "—"
+    private var displayContactEmail: String {
+        let v = storedContactEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return v.isEmpty ? "—" : v
     }
 
     var body: some View {
@@ -68,7 +64,7 @@ struct SettingsAccountView: View {
                             .fontWeight(.semibold)
                             .multilineTextAlignment(.center)
 
-                        Text(displayEmail)
+                        Text(displayContactEmail)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -205,7 +201,7 @@ struct SettingsAccountView: View {
         onboardingGoal = newGoal
 
         do {
-            let email = (displayEmail == "—") ? auth.userEmail : displayEmail
+            let email = (displayContactEmail == "—") ? auth.userEmail : displayContactEmail
 
             try await auth.upsertProfile(
                 email: email,
@@ -269,7 +265,7 @@ struct SettingsAccountView: View {
         hasCompletedOnboarding = false
         hasCreatedAccount = false
 
-        storedEmail = ""
+        storedContactEmail = ""
         storedFirstName = ""
         storedLastName = ""
         storedGoal = ""
