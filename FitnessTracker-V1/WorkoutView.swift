@@ -168,18 +168,24 @@ struct WorkoutView: View {
                 .navigationTitle("Workout anlegen")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { showingNew = false }
+                        Button {
+                            showingNew = false
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Speichern") {
+                        Button(role: .confirm){
                             let t = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !t.isEmpty else { return }
                             store.addTraining(title: t)
                             newTitle = ""
                             showingNew = false
+                        }label: {
+                            Image(systemName: "checkmark")
                         }
+                        //.glassEffect(.regular.tint(.accentColor).interactive())
                         .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .foregroundColor(.blue)
                     }
                 }
             }

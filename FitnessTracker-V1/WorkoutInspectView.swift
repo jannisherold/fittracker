@@ -124,20 +124,6 @@ struct WorkoutInspectView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                         
-                        Button {
-                            router.go(.addExercise(trainingID: trainingID))
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        } label: {
-                            Label("Übungen hinzufügen", systemImage: "plus")
-                                .font(.headline)
-                                .fontWeight(.medium)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .clipShape(Capsule())
-                        .padding(.horizontal, 24)
-                        
                         Spacer()
                     }
                     .padding(.top, 40)
@@ -186,6 +172,23 @@ struct WorkoutInspectView: View {
                         //Image(systemName: "pencil")
                     }
                     .accessibilityLabel("Workout bearbeiten")
+                }
+            }
+            if !hasExercises{
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        router.go(.addExercise(trainingID: trainingID))
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    } label: {
+                        HStack{
+                            Image(systemName: "plus")
+                            Text("Übung hinzufügen")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(.systemBlue))
+                    //.tint(.blue)
                 }
             }
         }

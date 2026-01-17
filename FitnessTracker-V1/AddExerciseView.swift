@@ -36,13 +36,13 @@ struct AddExerciseView: View {
                         router.replaceTop(with: .workoutEdit(trainingID: trainingID)) // Push -> Edit
                     }
                 } label: {
-                    Image(systemName: "chevron.left")
+                    Image(systemName: "xmark")
                 }
                 .accessibilityLabel("Zur Workout-Bearbeitung")
             }
             
             ToolbarItem(placement: .confirmationAction) {
-                Button("Speichern") {
+                Button(role: .confirm) {
                     let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !n.isEmpty else { return }
                     store.addExercise(to: trainingID, name: n, setCount: setCount)
@@ -52,9 +52,10 @@ struct AddExerciseView: View {
                     case .goToEdit:
                         router.replaceTop(with: .workoutEdit(trainingID: trainingID))
                     }
+                }label: {
+                    Image(systemName: "checkmark")
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .foregroundColor(.blue)
             }
         }
     }

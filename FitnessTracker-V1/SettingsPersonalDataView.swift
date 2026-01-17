@@ -214,7 +214,7 @@ struct SettingsPersonalDataView: View {
                 }
                 .disabled(!network.isConnected || isWorking)
             } footer: {
-                Text("Löscht deine gespeicherten Körpergewichtsdaten lokal. (Wenn du später auch Supabase-Reset willst, setzen wir das im nächsten Schritt um.)")
+                Text("Löscht alle bisherigen Körpergewichtseinträge.)")
             }
 
             Section {
@@ -231,7 +231,7 @@ struct SettingsPersonalDataView: View {
                 }
                 .disabled(!network.isConnected || isWorking)
             } footer: {
-                Text("Account löschen ist nur online möglich.")
+                Text("Löscht Deinen Account mit allen dazugehörigen Workoutdaten dauerhaft und unwiderruflich.")
             }
 
             if let errorMessage {
@@ -248,7 +248,7 @@ struct SettingsPersonalDataView: View {
             if isWorking { ProgressView() }
         }
         .confirmationDialog(
-            "Körpergewicht zurücksetzen?",
+            "Körpergewicht wirklich zurücksetzen?",
             isPresented: $showResetBodyweightConfirm,
             titleVisibility: .visible
         ) {
@@ -256,9 +256,11 @@ struct SettingsPersonalDataView: View {
                 Task { await resetBodyweight() }
             }
             Button("Abbrechen", role: .cancel) {}
+        }message: {
+            Text("Dies löscht alle Deine bisherigen Körpergewichtseinträge unwiderruflich.")
         }
         .confirmationDialog(
-            "Account wirklich löschen?",
+            "Account wirklich permament löschen?",
             isPresented: $showDeleteAccountConfirm,
             titleVisibility: .visible
         ) {
@@ -267,7 +269,7 @@ struct SettingsPersonalDataView: View {
             }
             Button("Abbrechen", role: .cancel) {}
         } message: {
-            Text("Dies löscht deinen Supabase-Account und alle lokalen Daten dauerhaft.")
+            Text("Dies löscht Deinen Account mit allen dazugehörigen Workoutdaten dauerhaft und unwiderruflich.")
         }
         .sheet(isPresented: $isEditingName) {
             NavigationStack {
@@ -292,14 +294,19 @@ struct SettingsPersonalDataView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { isEditingName = false }
+                        Button() {
+                            isEditingName = false
+                        }label: {
+                            Image(systemName: "xmark")
+                        }
                             .disabled(isWorking)
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Speichern") {
+                        Button(role: .confirm) {
                             Task { await saveName() }
+                        }label: {
+                            Image(systemName: "checkmark")
                         }
-                        .foregroundColor(.blue)
                         .disabled(
                             isWorking ||
                             !network.isConnected ||
@@ -329,14 +336,20 @@ struct SettingsPersonalDataView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { isEditingContactEmail = false }
+                        Button() {
+                            isEditingContactEmail = false
+                        }label: {
+                            Image(systemName: "xmark")
+                        }
                             .disabled(isWorking)
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Speichern") {
+                        
+                        Button(role: .confirm) {
                             Task { await saveContactEmail() }
+                        }label: {
+                            Image(systemName: "checkmark")
                         }
-                        .foregroundColor(.blue)
                         .disabled(
                             isWorking ||
                             !network.isConnected ||
