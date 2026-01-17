@@ -36,8 +36,11 @@ struct SettingsPersonalDataView: View {
     @AppStorage("hasCreatedAccount") private var hasCreatedAccount: Bool = false
     @State private var isSavingMarketingOptIn = false
 
-
     @StateObject private var network = NetworkMonitor()
+
+    // NEW: Apple Re-Auth Manager (wird bei jeder Aktion genutzt)
+    @State private var appleReauth = AppleReauthManager()
+
 
     @State private var isEditingName = false
     @State private var firstDraft = ""
@@ -61,6 +64,14 @@ struct SettingsPersonalDataView: View {
     private struct NameValidationResult {
         let value: String
         let error: String?
+    }
+
+    // NEW: Re-Auth + Supabase Session Refresh
+    @MainActor
+    private func requireAppleReauthAndRefreshSession() async throws {
+        let result = try await appleReauth.reauthenticate()
+        // Refresh Supabase session with fresh Apple identity token
+        try await auth.signInWithApple(idToken: result.idToken, nonce: result.nonce)
     }
 
     private func normalizeNameInput(_ s: String) -> String {
@@ -242,7 +253,7 @@ struct SettingsPersonalDataView: View {
             titleVisibility: .visible
         ) {
             Button("Zurücksetzen", role: .destructive) {
-                store.resetBodyweightEntries()
+                Task { await resetBodyweight() }
             }
             Button("Abbrechen", role: .cancel) {}
         }
@@ -365,6 +376,9 @@ struct SettingsPersonalDataView: View {
         let fn = firstCheck.value
 
         do {
+            // NEW: Re-Auth before any Supabase write
+            try await requireAppleReauthAndRefreshSession()
+
             let goal = storedGoal.isEmpty ? (onboardingGoal.isEmpty ? "Überspringen" : onboardingGoal) : storedGoal
             let email = displayEmail.isEmpty ? auth.userEmail : displayEmail
 
@@ -376,7 +390,7 @@ struct SettingsPersonalDataView: View {
             errorMessage = "Name konnte nicht gespeichert werden: \(error.localizedDescription)"
         }
     }
-    
+
     private func isPlausibleEmail(_ input: String) -> Bool {
         let email = input.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -406,7 +420,6 @@ struct SettingsPersonalDataView: View {
         return email.range(of: pattern, options: .regularExpression) != nil
     }
 
-
     @MainActor
     private func saveContactEmail() async {
         guard network.isConnected else { return }
@@ -422,8 +435,10 @@ struct SettingsPersonalDataView: View {
             return
         }
 
-
         do {
+            // NEW: Re-Auth before any Supabase write
+            try await requireAppleReauthAndRefreshSession()
+
             try await auth.updateContactPreferences(contactEmail: mail, marketingOptIn: nil)
             isEditingContactEmail = false
         } catch {
@@ -443,6 +458,7 @@ struct SettingsPersonalDataView: View {
         defer { isSavingMarketingOptIn = false }
 
         do {
+            // (Marketing toggle currently disabled in UI; left unchanged)
             try await auth.updateContactPreferences(contactEmail: nil, marketingOptIn: newValue)
         } catch {
             storedMarketingOptIn = previous
@@ -450,6 +466,22 @@ struct SettingsPersonalDataView: View {
         }
     }
 
+    // NEW: Re-Auth before reset action (strict per your requirement)
+    @MainActor
+    private func resetBodyweight() async {
+        guard network.isConnected else { return }
+
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+
+        do {
+            try await requireAppleReauthAndRefreshSession()
+            store.resetBodyweightEntries()
+        } catch {
+            errorMessage = "Körpergewicht konnte nicht zurückgesetzt werden: \(error.localizedDescription)"
+        }
+    }
 
     @MainActor
     private func deleteAccount() async {
@@ -460,6 +492,9 @@ struct SettingsPersonalDataView: View {
         defer { isWorking = false }
 
         do {
+            // NEW: Re-Auth before destructive server-side action
+            try await requireAppleReauthAndRefreshSession()
+
             try await auth.deleteAccountCompletely()
             store.deleteAllData()
 
