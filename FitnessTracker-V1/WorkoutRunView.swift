@@ -3,6 +3,10 @@ import UIKit
 import SpriteKit
 import AudioToolbox
 
+// ✅ NEU: Notification für "Satz wurde abgehakt"
+extension Notification.Name {
+    static let workoutSetCompleted = Notification.Name("workoutSetCompleted")
+}
 
 struct WorkoutRunView: View {
     @EnvironmentObject var store: Store
@@ -79,6 +83,13 @@ struct WorkoutRunView: View {
                     }
                 }
             }
+            // ✅ NEU: Auto-Trigger – sobald ein Satz abgehakt wurde, Timer starten/restarten
+            .onReceive(NotificationCenter.default.publisher(for: .workoutSetCompleted)) { _ in
+                if store.restTimerEnabled {
+                    startOrRestartRestTimer()
+                }
+            }
+
             .scrollDismissesKeyboard(.immediately)
             .simultaneousGesture(TapGesture().onEnded { hideKeyboard() })
             .navigationBarBackButtonHidden(true)
@@ -176,7 +187,7 @@ struct WorkoutRunView: View {
                 Button("Beenden", role: .destructive) { endSessionAndLeave() }
                 Button("Abbrechen", role: .cancel) { }
             } message: {
-                Text("Das Training wird beendet und die Werte je Übung gespeichert.")
+                Text("Die Session wird beendet und die Werte je Übung gespeichert.")
             }
         }
     }
@@ -294,7 +305,7 @@ struct WorkoutRunView: View {
     }
 }
 
-// MARK: - NotesEditor & GrowingTextView & SetRow & Konfetti (unverändert)
+// MARK: - NotesEditor & GrowingTextView & SetRow & Konfetti (minimal geändert: Notification post)
 private struct NotesEditor: View {
     @Binding var text: String
     @State private var dynamicHeight: CGFloat = 0
@@ -403,9 +414,13 @@ private struct SetRow: View {
             Button {
                 let willBeDone = !set.isDone
                 store.toggleSetDone(in: trainingID, exerciseID: exerciseID, setID: set.id)
+
                 if willBeDone {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     withAnimation(.easeInOut) { if isExpanded { expandedSetID = nil } }
+
+                    // ✅ NEU: Event feuern -> WorkoutRunView startet/restartet Timer
+                    NotificationCenter.default.post(name: .workoutSetCompleted, object: nil)
                 } else {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
