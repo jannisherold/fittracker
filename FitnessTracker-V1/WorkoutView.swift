@@ -2,30 +2,33 @@ import SwiftUI
 
 struct WorkoutView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject private var purchases: PurchaseManager
+
     @StateObject private var router = Router()
-    
+
     @State private var editMode: EditMode = .inactive
-    
+
     @State private var showingNew = false
     @State private var newTitle = ""
-    
+
     @State private var showDeleteAlert = false
     @State private var pendingDeleteID: UUID? = nil
-    
+
+    // NEU
+    @State private var showPaywall = false
+
     var body: some View {
         NavigationStack(path: $router.path) {
             ZStack {
                 List {
                     if store.trainings.isEmpty {
-                        
+
                         Section {
                             Text("Tippe auf + um ein Workout anzulegen.")
                                 .foregroundStyle(.secondary)
                         }
                         .listRowBackground(Color.clear)
-                        //.padding(.vertical, 8)
-                        
-                        
+
                     } else {
                         Section {
                             ForEach(store.trainings) { t in
@@ -66,58 +69,32 @@ struct WorkoutView: View {
                     }
                     .accessibilityLabel("Neues Training")
                 }
-                
+
+                // ✅ Upgrade-Button nur zeigen, wenn kein Premium aktiv ist
                 ToolbarItem(placement: .principal) {
-                    
-                    
-                    Button {
-                        // TODO: später Upgrade / Paywall öffnen
-                        print("Upgrade tapped")
-                    } label: {
-                        HStack(spacing: 3){
-                            
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 12, weight: .semibold))
-                            
-                            Text("Upgraden")
-                                .font(.subheadline
-                                    .weight(.semibold))
-                            
+                    if !purchases.isPremium {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 12, weight: .semibold))
+
+                                Text("Upgraden")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 8)
+                            .background(.blue.opacity(0.12))
+                            .foregroundStyle(.blue)
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 8)
-                        .background(.blue.opacity(0.12))
-                        .foregroundStyle(.blue)
-                        .clipShape(Capsule())
-                        
-                        
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Upgraden")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Upgraden")
-                    
-                    
-                    /*
-                     Button {
-                     // TODO: später Upgrade / Paywall öffnen
-                     print("Upgrade tapped")
-                     } label: {
-                     HStack{
-                     Text("Upgraden")
-                     .fontWeight(.semibold)
-                     Image(systemName: "sparkles")
-                     
-                     }
-                     }
-                     .buttonStyle(.borderedProminent)
-                     .tint(Color(.systemBlue))
-                     //.tint(.blue)
-                     //.buttonStyle(.plain) // wichtig, sonst wirkt er wie "nav title" / kann komisch getintet sein
-                     .accessibilityLabel("Upgraden")
-                     */
                 }
-                
+
                 ToolbarItem(placement: .topBarTrailing) {
-                    // ✅ Nur noch Edit-Button (kein Profil hier)
                     if !store.trainings.isEmpty {
                         Button {
                             withAnimation {
@@ -155,9 +132,14 @@ struct WorkoutView: View {
                 }
             }
             .environment(\.editMode, $editMode)
+            // NEU
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+                    .environmentObject(purchases)
+            }
         }
         .environmentObject(router)
-        
+
         .sheet(isPresented: $showingNew) {
             NavigationStack {
                 Form {
@@ -175,23 +157,22 @@ struct WorkoutView: View {
                         }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(role: .confirm){
+                        Button(role: .confirm) {
                             let t = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !t.isEmpty else { return }
                             store.addTraining(title: t)
                             newTitle = ""
                             showingNew = false
-                        }label: {
+                        } label: {
                             Image(systemName: "checkmark")
                         }
-                        //.glassEffect(.regular.tint(.accentColor).interactive())
                         .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
             }
             .presentationDetents([.height(220)])
         }
-        
+
         .alert("Workout löschen?", isPresented: $showDeleteAlert) {
             Button("Löschen", role: .destructive) {
                 if let id = pendingDeleteID,
@@ -209,11 +190,3 @@ struct WorkoutView: View {
     }
 }
 
-#Preview("WorkoutView – mit Upgrade Button") {
-    let previewStore = Store.preview // siehe Extension unten
-    
-    NavigationStack {
-        WorkoutView()
-            .environmentObject(previewStore)
-    }
-}
