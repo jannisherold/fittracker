@@ -13,10 +13,12 @@
 		837676512EF595A6006EBA11 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 837676502EF595A6006EBA11 /* Realtime */; };
 		837676532EF595A6006EBA11 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 837676522EF595A6006EBA11 /* Storage */; };
 		837676582EF596A1006EBA11 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 837676572EF596A1006EBA11 /* Supabase */; };
+		83C840782F1E521C003F6F8B /* ProgressPlus.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 83C840772F1E521C003F6F8B /* ProgressPlus.storekit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		834CDA0D2E60616B00896DD1 /* FitnessTracker-V1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FitnessTracker-V1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		83C840772F1E521C003F6F8B /* ProgressPlus.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = ProgressPlus.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -47,6 +49,7 @@
 		834CDA042E60616B00896DD1 = {
 			isa = PBXGroup;
 			children = (
+				83C840772F1E521C003F6F8B /* ProgressPlus.storekit */,
 				834CDA0F2E60616B00896DD1 /* FitnessTracker-V1 */,
 				837676562EF5969C006EBA11 /* Frameworks */,
 				834CDA0E2E60616B00896DD1 /* Products */,
@@ -141,6 +144,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				83C840782F1E521C003F6F8B /* ProgressPlus.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,6 +292,7 @@
 				DEVELOPMENT_TEAM = 5TUK76MDFC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Progress;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -319,6 +324,7 @@
 				DEVELOPMENT_TEAM = 5TUK76MDFC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Progress;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

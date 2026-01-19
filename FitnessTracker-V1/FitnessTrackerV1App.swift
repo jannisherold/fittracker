@@ -7,6 +7,8 @@ struct FitnessTrackerV1App: App {
     @StateObject private var store: Store
     @StateObject private var auth: SupabaseAuthManager
     @StateObject private var sync: SyncManager
+    @StateObject private var purchases = PurchaseManager()
+
 
     init() {
         let s = Store()
@@ -22,6 +24,10 @@ struct FitnessTrackerV1App: App {
                 .environmentObject(store)
                 .environmentObject(auth)
                 .environmentObject(sync)
+                .environmentObject(purchases)
+                        .onAppear {
+                            purchases.start()
+                        }
         }
         .onChange(of: scenePhase) { _, newValue in
             if newValue == .active {
