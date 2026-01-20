@@ -35,7 +35,7 @@ struct ProgressView: View {
 
                 // MARK: - Kraft
                 Section(isExpanded: $isKraftExpanded) {
-                    if purchases.isPremium {
+                    if !purchases.isPremium {
                         if store.trainings.isEmpty {
                             Text("Noch keine Workouts angelegt.")
                                 .foregroundStyle(.secondary)
@@ -64,7 +64,7 @@ struct ProgressView: View {
 
                 // MARK: - Statistik
                 Section(isExpanded: $isStatisticExpanded) {
-                    if purchases.isPremium {
+                    if !purchases.isPremium {
                         NavigationLink {
                             ProgressStatisticView()
                         } label: {
@@ -85,7 +85,7 @@ struct ProgressView: View {
 
                 // MARK: - Körpergewicht
                 Section(isExpanded: $isKoerpergewichtExpanded) {
-                    if purchases.isPremium {
+                    if !purchases.isPremium {
                         NavigationLink {
                             ProgressBodyweightView()
                         } label: {
@@ -106,7 +106,7 @@ struct ProgressView: View {
 
                 // MARK: - Frequenz
                 Section(isExpanded: $isFrequenzExpanded) {
-                    if purchases.isPremium {
+                    if !purchases.isPremium {
                         NavigationLink {
                             ProgressFrequencyView()
                         } label: {
@@ -127,7 +127,7 @@ struct ProgressView: View {
 
                 // MARK: - Trainingshistorie
                 Section(isExpanded: $isHistorieExpanded) {
-                    if purchases.isPremium {
+                    if !purchases.isPremium {
                         if sessionHistory.isEmpty {
                             Text("Noch keine Workouts absolviert.")
                                 .foregroundStyle(.secondary)
